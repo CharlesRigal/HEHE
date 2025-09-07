@@ -3,6 +3,8 @@ import pygame
 from enemy import EnemyEye
 from settings import WIDTH, HEIGHT, FPS, BLACK
 from player import Player
+from utils import get_random_location_away_from_screen_circle
+
 
 class Game:
     def __init__(self):
@@ -11,13 +13,14 @@ class Game:
         pygame.display.set_caption("Mon Jeu 2D")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.start_time = None
 
         # états du jeu
         self.state = "menu"  # menu, playing, game_over
 
         # entités
         self.player = Player("assets/images/player.png", (WIDTH/2, HEIGHT/2))
-        self.enemys = EnemyEye()
+        self.enemies = []
 
     def run(self):
         """Boucle principale"""
@@ -50,6 +53,14 @@ class Game:
             # futur menu
             pass
         elif self.state == "playing":
+            if self.start_time is None:
+                self.start_time = pygame.time.get_ticks()
+
+            elapsed = (pygame.time.get_ticks() - self.start_time) / 1000
+
+            if elapsed > 2.5 and len(self.enemies) == 0:
+                self.enemies.append(EnemyEye(location=(get_random_location_away_from_screen_circle())))
+
             self.player.update(dt)
         elif self.state == "game_over":
             pass
@@ -61,7 +72,8 @@ class Game:
             self.draw_text("Appuie sur une touche pour jouer", 40, (255,255,255), WIDTH/2, HEIGHT/2)
         elif self.state == "playing":
             self.player.draw(self.screen)
-            self.enemys.draw(self.screen)
+            for enemie in self.enemies:
+                enemie.draw(self.screen)
         elif self.state == "game_over":
             self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255,0,0), WIDTH/2, HEIGHT/2)
         pygame.display.flip()
