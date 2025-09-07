@@ -4,7 +4,7 @@ import random
 from settings import WIDTH, HEIGHT
 
 
-def get_random_location_away_from_screen_circle(self, center_x=None, center_y=None, min_radius=None):
+def get_random_location_away_from_screen_circle(center_x=None, center_y=None, min_radius=None):
     """
     Alternative: génère une position sur un cercle autour de l'écran
 
