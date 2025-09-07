@@ -1,16 +1,20 @@
+from abc import ABC
+
 import pygame
 import math
 
 from entity import Life
+from game_object import GameObject
 from settings import WIDTH, HEIGHT
 
 
-class Enemy:
+class Enemy(GameObject, ABC):
     def __init__(self, image_path, pos, max_health=50):
         self.life = Life(max_health)
         self.image = pygame.image.load(image_path).convert_alpha()
         self.rect = self.image.get_rect(center=pos)
         self.speed = 100
+        super().__init__()
 
     def take_damage(self, damage):
         remaining_health = self.life.lose_health(damage)
@@ -41,12 +45,17 @@ class Enemy:
 
 
 class EnemyEye(Enemy):
-    def __init__(self, image_path="assets/images/enemy.png", pos=(WIDTH / 2, HEIGHT / 2)):
+    def __init__(self, image_path="assets/images/enemy.png", pos=(WIDTH / 2, HEIGHT / 2), targeted_player=None):
         self.life = Life(life_max=100)
+        self.targeted_player = targeted_player
         super().__init__(image_path=image_path, pos=pos)
 
-    def update(self, targeted_player, dt):
-        self.travel_to_player(targeted_player, dt)
+    def set_targeted_player(self, player):
+        self.targeted_player = player
+
+    def update(self, dt, *args, **kwargs):
+        if self.targeted_player is not None:
+            self.travel_to_player(self.targeted_player, dt)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
