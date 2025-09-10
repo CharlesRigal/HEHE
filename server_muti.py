@@ -84,6 +84,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             if isinstance(msg, dict) and msg.get("type") == "ping":
                 await send_json(writer, {"type": "pong"})
+
+            if isinstance(msg, dict) and msg.get("t") == "in":
+                # Le joueur à press une input
+
             # TODO Ici router par type: input, chat, join_room, etc.
 
     except asyncio.CancelledError:

@@ -55,3 +55,9 @@ class Life:
 
     def __repr__(self):
         return f"Life(current={self.life_current}, max={self.life_max})"
+
+    def get_health(self):
+        return  self.life_current
+
+    def get_max_health(self):
+        return self.life_max
