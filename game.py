@@ -1,4 +1,10 @@
+import queue
+import socket
+import time
+
 import pygame
+
+from network import NetworkClient
 
 from enemy import EnemyEye
 from game_manager import GameManager
@@ -8,14 +14,102 @@ from utils import get_random_location_away_from_screen_circle
 
 
 class Game:
+    def build_input_message(self, inp):
+        now = time.time()
+        dt = now - self.last_input_time
+        self.last_input_time = now
+        msg = {
+            "t": "in",
+            "seq": self.input_seq,
+            "dt": dt,
+            "k": inp.get("k", 0),
+        }
+        if self.last_sid_ack is not None:
+            msg["ack"] = self.last_sid_ack
+        return msg, now
+
+    def send_input_if_needed(self, inp):
+        if not getattr(self, "net_connected", False) or self.net is None:
+           return
+        msg, now = self.build_input_message(inp)
+        period = 1.0 / self.input_send_hz
+        should_send = (now - self.last_input_send >= period) or (inp["k"] != self.input_prev_mask)
+        if should_send:
+            self.net.send(msg)
+            self.last_input_send = now
+            self.input_prev_mask = inp["k"]
+            self.input_seq += 1
+
+
+    def connect_to_server(self, host="127.0.0.1", port=9000):
+        if self.net is not None:
+            return
+        self.net = NetworkClient(host, port)
+        try:
+            self.net.connect()
+            self.net.start()
+            self.net_connected = True
+            print("connected to server: ", host, port)
+        except Exception as e:
+            print("Connect to server faild: ", e)
+            self.net = None
+            self.net_connected = False
+
+    def disconnect_from_server(self):
+        if self.net is not None:
+            try:
+                self.net.close()
+            except Exception:
+                pass
+            self.net = None
+
+        self.net_connected = False
+        self.client_id = None
+
+    def handle_server_message(self, msg):
+        t = msg.get("type")
+        if t == "welcome":
+            self.client_id = msg.get("your_id")
+            print("welcome, id = ", self.client_id)
+        elif t == "pong":
+            pass
+        elif t == "_info":
+            if msg.get("event") == "server_closed":
+                print("The server closed the connection")
+                self.disconnect_from_server()
+        elif t == "_error":
+            print("Network error")
+            self.disconnect_from_server()
+        else:
+            #TODO to game_manager
+            print("get from server : ", msg)
+
+    def pump_network(self, max_msgs=50):
+        if not self.net_connected or self.net is None:
+            return
+        for _ in range(max_msgs):
+            try:
+                msg = self.net.recv_q.get_nowait()
+            except queue.Empty:
+                break
+            self.handle_server_message(msg)
+
     def __init__(self):
         pygame.init()
         self.game_manager = GameManager()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.net = None
+        self.net_connected = False
         pygame.display.set_caption("Fala world")
         self.clock = pygame.time.Clock()
         self.running = True
         self.start_time = None
+        self.input_seq = 0
+        self.last_input_time = time.time()
+        self.last_input_send = 0.0
+        self.input_send_hz = 60.0
+        self.input_prev_mask = 0
+        self.last_sid_ack = None
 
         # états du jeu
         self.state = "menu"  # menu, playing, game_over
@@ -51,6 +145,9 @@ class Game:
 
     def run(self):
         """Boucle principale"""
+
+        self.server_thread = socket.socket().connect(("127.0.0.1", 9000))
+
         while self.running:
             dt = self.clock.tick(FPS) / 1000
             self.handle_events()
@@ -63,10 +160,12 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+                self.disconnect_from_server()
 
             if self.state == "menu":
                 if event.type == pygame.KEYDOWN:
                     self.state = "playing"
+                    self.connect_to_server()
 
             elif self.state == "game_over":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
@@ -86,14 +185,16 @@ class Game:
 
             # Spawn enemies
             if elapsed > 2.5 and len(self.enemies) == 0:
-                enemy = EnemyEye(pos=get_random_location_away_from_screen_circle(min_radius=100), targeted_player=self.player)
+                enemy = EnemyEye(pos=get_random_location_away_from_screen_circle(min_radius=100),
+                                 targeted_player=self.player)
                 # IMPORTANT: Définir le game_manager pour que l'ennemi puisse créer des projectiles
                 enemy.set_game_manager(self.game_manager)
                 self.game_manager.add_object(enemy)
                 self.enemies.append(enemy)  # Pour le comptage (optionnel)
 
-            # Mettre à jour le joueur (si il n'est pas dans le game_manager)
-            self.player.update(dt)
+            inp = self.player.read_local_input()
+            self.player.apply_input(inp, dt)
+            self.send_input_if_needed(inp)
 
             # Mettre à jour tous les objets gérés
             self.game_manager.update_all(dt, self.player, current_time)
@@ -129,6 +230,7 @@ class Game:
         if self.state == "menu":
             self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), WIDTH / 2, HEIGHT / 2)
         elif self.state == "playing":
+
             # Dessiner le joueur (s'il n'est pas dans le game_manager)
             self.player.draw(self.screen)
 
