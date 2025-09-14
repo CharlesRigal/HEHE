@@ -55,6 +55,10 @@ class Game:
             self.net = None
             self.net_connected = False
 
+    def join_the_server(self):
+        if self.net is not None:
+            self.net.send_join_request()
+
     def disconnect_from_server(self):
         if self.net is not None:
             try:
@@ -146,13 +150,12 @@ class Game:
     def run(self):
         """Boucle principale"""
 
-        self.server_thread = socket.socket().connect(("127.0.0.1", 9000))
-
         while self.running:
             dt = self.clock.tick(FPS) / 1000
             self.handle_events()
             self.update(dt)
             self.draw()
+            self.pump_network()
         pygame.quit()
 
     def handle_events(self):
@@ -166,6 +169,7 @@ class Game:
                 if event.type == pygame.KEYDOWN:
                     self.state = "playing"
                     self.connect_to_server()
+                    self.join_the_server()
 
             elif self.state == "game_over":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:

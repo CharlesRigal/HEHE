@@ -38,13 +38,13 @@ class NetworkClient(threading.Thread):
                 except queue.Empty:
                     pass
                 except Exception as e:
-                    self.recv_q.put({"type": "_error", "where": "send", "error": str(e)})
+                    self.recv_q.put({"t": "_error", "where": "send", "error": str(e)})
                     break
 
                 try:
                     chunk = self.socket.recv(4096)
                     if not chunk:
-                        self.recv_q.put({"type": "_info", "envent": "server_closed"})
+                        self.recv_q.put({"t": "_info", "event": "server_closed"})
                         break
                     buf += chunk
                     while True:
@@ -58,12 +58,12 @@ class NetworkClient(threading.Thread):
                         try:
                             obj = json.loads(line.decode("utf-8"))
                         except json.JSONDecodeError:
-                            obj = {"type": "_raw", "data": line.decode("utf-8", errors="ignore")}
+                            obj = {"t": "_raw", "data": line.decode("utf-8", errors="ignore")}
                         self.recv_q.put(obj)
                 except socket.timeout:
                     pass
                 except Exception as e:
-                    self.recv_q.put({"type": "_error", "where": "recv", "error": str(e)})
+                    self.recv_q.put({"t": "_error", "where": "recv", "error": str(e)})
                     break
         finally:
             try:
@@ -77,6 +77,9 @@ class NetworkClient(threading.Thread):
         if not self.connected:
             return
         self.send_q.put(obj)
+
+    def send_join_request(self):
+        self.send({"t": "join"})
 
     def close(self):
         self.stop_event.set()
