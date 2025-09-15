@@ -8,6 +8,7 @@ from network import NetworkClient
 
 from enemy import EnemyEye
 from game_manager import GameManager
+from remote_player import RemotePlayer
 from settings import WIDTH, HEIGHT, FPS, BLACK
 from player import Player
 from utils import get_random_location_away_from_screen_circle
@@ -71,7 +72,7 @@ class Game:
         self.client_id = None
 
     def handle_server_message(self, msg):
-        t = msg.get("type")
+        t = msg.get("t")
         if t == "welcome":
             self.client_id = msg.get("your_id")
             print("welcome, id = ", self.client_id)
@@ -84,9 +85,22 @@ class Game:
         elif t == "_error":
             print("Network error")
             self.disconnect_from_server()
+        elif t == "_exit":
+            self.disconnect_from_server()
+        elif t == "game_state":
+            self.handle_full_game_state(msg)
+        elif t == "game_update":
+            self.handle_game_update(msg)
+        elif t == "player_joined":
+            self.handle_player_joined(msg)
         else:
+
+            if self.msg_old and msg != self.msg_old:
+                print("get from server : ", msg)
+                self.msg_old = msg
+            pass
             #TODO to game_manager
-            print("get from server : ", msg)
+
 
     def pump_network(self, max_msgs=50):
         if not self.net_connected or self.net is None:
@@ -114,6 +128,7 @@ class Game:
         self.input_send_hz = 60.0
         self.input_prev_mask = 0
         self.last_sid_ack = None
+        self.msg_old = ""
 
         # états du jeu
         self.state = "menu"  # menu, playing, game_over
@@ -256,3 +271,44 @@ class Game:
         surf = font.render(text, True, color)
         rect = surf.get_rect(center=(x, y))
         self.screen.blit(surf, rect)
+
+    def handle_game_update(self, msg):
+        #TODO i should update my player to ?
+        remote_player_list = msg.get("players")
+        remote_player_list.pop(self.client_id, None)
+        for player in remote_player_list:
+            player_remote_new_status = remote_player_list.get(player)
+            remote_player: RemotePlayer = self.game_manager.get_remote_player(player)
+            if remote_player:
+                print("remote_player_update", player_remote_new_status)
+                remote_player.update_from_server(player_remote_new_status)
+
+
+    def handle_full_game_state(self, msg):
+        print("Get full game state from server")
+        your_player_data = msg.get("your_player", {})
+        if your_player_data:
+            self.player.pos.x = your_player_data.get("x", self.player.pos.x)
+            self.player.pos.y = your_player_data.get("y", self.player.pos.y)
+            self.player.life.life_current = your_player_data.get("healh", self.player.life.life_current)
+            print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
+
+        all_players = msg.get("players", {})
+        self.sync_remote_players(all_players)
+        pass
+
+    def handle_player_joined(self, msg):
+        pass
+
+    def update_or_create_remote_player(self, player_id, player_data):
+        """Met à jour ou crée un joueur distant"""
+        # Chercher si le joueur existe déjà dans le game_manager
+        self.game_manager.get_remote_player(player_id)
+
+    def sync_remote_players(self, all_players):
+        for player_id in all_players:
+            if player_id != self.client_id:
+                self.update_or_create_remote_player(player_id, all_players[player_id])
+                player_dict = all_players.get(player_id)
+                player_obj = RemotePlayer(player_id, x=player_dict.get("x"), y=player_dict.get("y"))
+                self.game_manager.add_object(player_obj)

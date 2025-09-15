@@ -127,8 +127,8 @@ def process_input(player: dict, input_data: dict, dt: float):
     player["y"] += vy * dt
 
     # Contraintes de map (ajustez selon votre jeu)
-    MAP_WIDTH = 800
-    MAP_HEIGHT = 600
+    MAP_WIDTH = 1280
+    MAP_HEIGHT = 720
     PLAYER_SIZE = 32
 
     player["x"] = max(PLAYER_SIZE / 2, min(player["x"], MAP_WIDTH - PLAYER_SIZE / 2))
@@ -278,7 +278,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 if msg_type == "ping":
                     await send_json(writer, {"t": "pong"})
 
-                elif msg_type == "join":
+                if msg_type == "join":
                     await handle_join_message(client_id, msg)
 
                 elif msg_type == "in":

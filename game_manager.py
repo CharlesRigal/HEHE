@@ -1,5 +1,6 @@
 # game_manager.py
 from game_object import GameObject
+from remote_player import RemotePlayer
 
 
 class GameManager:
@@ -26,8 +27,11 @@ class GameManager:
         self.game_objects.extend(self.objects_to_add)
         self.objects_to_add.clear()
 
+
         # Mettre à jour tous les objets actifs
         for obj in self.game_objects:
+            if isinstance(obj, RemotePlayer):
+                pass
             if obj.active:
                 obj.update(dt, *args, **kwargs)
 
@@ -48,3 +52,9 @@ class GameManager:
     def get_object_count(self):
         """Nombre total d'objets actifs"""
         return len([obj for obj in self.game_objects if obj.active])
+
+    def get_remote_player(self, player_id):
+        for remote_player in self.get_objects_by_type(RemotePlayer):
+            if remote_player.player_id == player_id:
+                return remote_player
+        return None
