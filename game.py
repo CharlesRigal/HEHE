@@ -1,9 +1,11 @@
 import queue
 import socket
 import time
+from typing import is_typeddict
 
 import pygame
 
+import player
 from network import NetworkClient
 
 from enemy import EnemyEye
@@ -93,6 +95,8 @@ class Game:
             self.handle_game_update(msg)
         elif t == "player_joined":
             self.handle_player_joined(msg)
+        elif t == "player_left":
+            self.handle_player_left(msg)
         else:
 
             if self.msg_old and msg != self.msg_old:
@@ -110,6 +114,8 @@ class Game:
                 msg = self.net.recv_q.get_nowait()
             except queue.Empty:
                 break
+            except AttributeError:
+                pass
             self.handle_server_message(msg)
 
     def __init__(self):
@@ -273,14 +279,12 @@ class Game:
         self.screen.blit(surf, rect)
 
     def handle_game_update(self, msg):
-        #TODO i should update my player to ?
         remote_player_list = msg.get("players")
         remote_player_list.pop(self.client_id, None)
         for player in remote_player_list:
             player_remote_new_status = remote_player_list.get(player)
             remote_player: RemotePlayer = self.game_manager.get_remote_player(player)
             if remote_player:
-                print("remote_player_update", player_remote_new_status)
                 remote_player.update_from_server(player_remote_new_status)
 
 
@@ -298,7 +302,16 @@ class Game:
         pass
 
     def handle_player_joined(self, msg):
-        pass
+        player = msg.get("player")
+        self.game_manager.add_object(RemotePlayer(player.get("id"), x=player.get("x"), y=player.get("y")))
+
+
+    def handle_player_left(self, msg):
+        print("Player left from server")
+        player_to_remove = self.game_manager.get_remote_player(msg.get("player_id"))
+        self.game_manager.remove_object(player_to_remove)
+
+
 
     def update_or_create_remote_player(self, player_id, player_data):
         """Met à jour ou crée un joueur distant"""
