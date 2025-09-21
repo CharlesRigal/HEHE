@@ -1,5 +1,5 @@
 # game_manager.py
-from game_object import GameObject
+from client.game_object import GameObject
 from remote_player import RemotePlayer
 
 

@@ -1,11 +1,8 @@
 import queue
-import socket
 import time
-from typing import is_typeddict
 
 import pygame
 
-import player
 from network import NetworkClient
 
 from enemy import EnemyEye
@@ -143,7 +140,7 @@ class Game:
         self.load_background()
 
         # entités
-        self.player = Player("assets/images/player.png", (WIDTH / 2, HEIGHT / 2))
+        self.player = Player("client/assets/images/player.png", (WIDTH / 2, HEIGHT / 2))
 
         # IMPORTANT: Ajouter le joueur au gestionnaire s'il hérite de GameObject
         # Sinon, on le gère séparément
@@ -155,7 +152,7 @@ class Game:
         """Charge et prépare l'image de background"""
         try:
             # Essayer de charger l'image de background
-            self.background = pygame.image.load("assets/images/dirt_and_grass.png").convert()
+            self.background = pygame.image.load("client/assets/images/dirt_and_grass.png").convert()
             self.has_background = True
         except pygame.error:
             # Si l'image n'existe pas, utiliser une couleur de fond

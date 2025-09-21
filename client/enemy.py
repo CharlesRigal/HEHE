@@ -4,7 +4,7 @@ import pygame
 import math
 
 from entity import Life
-from game_object import GameObject
+from client.game_object import GameObject
 from settings import WIDTH, HEIGHT
 
 
@@ -45,7 +45,7 @@ class Enemy(GameObject, ABC):
 
 
 class EnemyEye(Enemy):
-    def __init__(self, image_path="assets/images/enemy.png", pos=(WIDTH / 2, HEIGHT / 2), targeted_player=None):
+    def __init__(self, image_path="client/assets/images/enemy.png", pos=(WIDTH / 2, HEIGHT / 2), targeted_player=None):
         self.life = Life(life_max=100)
         self.targeted_player = targeted_player
         super().__init__(image_path=image_path, pos=pos)

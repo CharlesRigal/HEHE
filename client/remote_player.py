@@ -1,8 +1,7 @@
 # remote_player.py
 import pygame
-import math
 
-from game_object import GameObject
+from client.game_object import GameObject
 
 
 class RemotePlayer(GameObject):
@@ -33,7 +32,7 @@ class RemotePlayer(GameObject):
 
     def load_sprite(self):
         """Charge le sprite du joueur distant"""
-        self.image = pygame.image.load("assets/images/remote_player.png").convert_alpha()
+        self.image = pygame.image.load("client/assets/images/remote_player.png").convert_alpha()
 
 
     def set_target_position(self, new_x, new_y):

@@ -1,4 +1,3 @@
-import time
 import pygame
 
 from entity import Life
