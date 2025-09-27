@@ -205,15 +205,6 @@ class Game:
             elapsed = (pygame.time.get_ticks() - self.start_time) / 1000
             current_time = pygame.time.get_ticks() / 1000.0
 
-            # Spawn enemies
-            if elapsed > 2.5 and len(self.enemies) == 0:
-                enemy = EnemyEye(pos=get_random_location_away_from_screen_circle(min_radius=100),
-                                 targeted_player=self.player)
-                # IMPORTANT: Définir le game_manager pour que l'ennemi puisse créer des projectiles
-                enemy.set_game_manager(self.game_manager)
-                self.game_manager.add_object(enemy)
-                self.enemies.append(enemy)  # Pour le comptage (optionnel)
-
             inp = self.player.read_local_input()
             self.player.apply_input(inp, dt)
             self.send_input_if_needed(inp)
