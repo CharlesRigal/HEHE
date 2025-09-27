@@ -1,0 +1,112 @@
+name: "Désert brûlant"
+size: [1600, 900]
+
+# Points de spawn des joueurs
+spawn_points:
+  - x: 200
+    y: 200
+  - x: 1400
+    y: 700
+  - x: 200
+    y: 700
+  - x: 1400
+    y: 200
+  - x: 800
+    y: 450
+
+# Objets de collision dans la map
+objects:
+  # Oasis au centre
+  - id: 1
+    type: water
+    name: "Oasis centrale"
+    points:
+      - [700, 350]
+      - [900, 350]
+      - [900, 550]
+      - [700, 550]
+
+  # Dunes de sable (obstacles)
+  - id: 2
+    type: rock
+    name: "Grande dune"
+    points:
+      - [300, 200]
+      - [500, 200]
+      - [500, 350]
+      - [300, 350]
+
+  - id: 3
+    type: rock
+    name: "Dune est"
+    points:
+      - [1100, 300]
+      - [1300, 300]
+      - [1300, 450]
+      - [1100, 450]
+
+  # Cactus géants
+  - id: 4
+    type: tree
+    name: "Cactus géant"
+    points:
+      - [450, 600]
+      - [480, 600]
+      - [480, 650]
+      - [450, 650]
+
+  - id: 5
+    type: tree
+    name: "Cactus solitaire"
+    points:
+      - [1200, 150]
+      - [1230, 150]
+      - [1230, 200]
+      - [1200, 200]
+
+  # Murailles (limites de la map)
+  - id: 6
+    type: wall
+    name: "Muraille nord"
+    points:
+      - [0, 0]
+      - [1600, 0]
+      - [1600, 50]
+      - [0, 50]
+
+  - id: 7
+    type: wall
+    name: "Muraille ouest"
+    points:
+      - [0, 0]
+      - [50, 0]
+      - [50, 900]
+      - [0, 900]
+
+  - id: 8
+    type: wall
+    name: "Muraille est"
+    points:
+      - [1550, 0]
+      - [1600, 0]
+      - [1600, 900]
+      - [1550, 900]
+
+  - id: 9
+    type: wall
+    name: "Muraille sud"
+    points:
+      - [0, 850]
+      - [1600, 850]
+      - [1600, 900]
+      - [0, 900]
+
+  # Ruines
+  - id: 10
+    type: wall
+    name: "Ruines anciennes"
+    points:
+      - [200, 500]
+      - [350, 500]
+      - [350, 600]
+      - [200, 600]

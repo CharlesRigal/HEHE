@@ -113,7 +113,7 @@ async def handle_join_message(client_id: str, msg: dict):
         map_data = map_loader.get_default_map()
         if not map_data:
             await send_json(CLIENTS[client_id][1], {
-                "t": "error",
+                "t": "_error",
                 "message": "No maps available"
             })
             return
@@ -130,6 +130,19 @@ async def handle_join_message(client_id: str, msg: dict):
 
     instance = INSTANCES[map_id]
 
+    # send the map to the client
+    if client_id in CLIENTS:
+        _, writer = CLIENTS[client_id]
+        await send_json(writer, {
+            "t": "map_data",
+            "map": {
+                "id": map_id,
+                "name": map_data.get("name", "Unnamed"),
+                "size": map_data.get("size", [1280, 720]),
+                "objects": map_data.get("objects", [])
+            }
+        })
+
     # Créer le joueur dans l'instance
     player = instance.create_player(client_id)
 
@@ -139,13 +152,7 @@ async def handle_join_message(client_id: str, msg: dict):
         await send_json(writer, {
             "t": "game_state",
             "your_player": player,
-            "players": instance.players,
-            "map": {
-                "id": map_id,
-                "name": map_data.get("name", "Unnamed"),
-                "size": map_data.get("size", [1280, 720]),
-                "objects": map_data.get("objects", [])
-            }
+            "players": instance.players
         })
 
     # Notifier les autres joueurs de cette instance

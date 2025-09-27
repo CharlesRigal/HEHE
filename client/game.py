@@ -3,14 +3,14 @@ import time
 
 import pygame
 
+from client.map_renderer import MapRenderer
+from client.map_selector import MapSelector
 from network import NetworkClient
 
-from enemy import EnemyEye
 from game_manager import GameManager
 from remote_player import RemotePlayer
 from settings import WIDTH, HEIGHT, FPS, BLACK
 from player import Player
-from utils import get_random_location_away_from_screen_circle
 
 
 class Game:
@@ -55,9 +55,9 @@ class Game:
             self.net = None
             self.net_connected = False
 
-    def join_the_server(self):
+    def join_the_server(self, maps):
         if self.net is not None:
-            self.net.send_join_request()
+            self.net.send_join_request(maps)
 
     def disconnect_from_server(self):
         if self.net is not None:
@@ -75,6 +75,8 @@ class Game:
         if t == "welcome":
             self.client_id = msg.get("your_id")
             print("welcome, id = ", self.client_id)
+            self.map_selector.set_available_maps(msg.get("available_maps"))
+
         elif t == "pong":
             pass
         elif t == "_info":
@@ -86,6 +88,9 @@ class Game:
             self.disconnect_from_server()
         elif t == "_exit":
             self.disconnect_from_server()
+        elif t == "map_data":
+            self.handle_map_data(msg)
+            self.state = "playing"
         elif t == "game_state":
             self.handle_full_game_state(msg)
         elif t == "game_update":
@@ -94,8 +99,10 @@ class Game:
             self.handle_player_joined(msg)
         elif t == "player_left":
             self.handle_player_left(msg)
+        elif t == "maps_list":
+            available_maps = msg.get("maps", {})
+            self.map_selector.set_available_maps(available_maps)
         else:
-
             if self.msg_old and msg != self.msg_old:
                 print("get from server : ", msg)
                 self.msg_old = msg
@@ -113,12 +120,14 @@ class Game:
                 break
             except AttributeError:
                 pass
+            self.msg_old = msg
             self.handle_server_message(msg)
 
     def __init__(self):
         pygame.init()
         self.game_manager = GameManager()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.background = pygame.Surface(self.screen.get_size())
         self.net = None
         self.net_connected = False
         pygame.display.set_caption("Fala world")
@@ -133,37 +142,18 @@ class Game:
         self.last_sid_ack = None
         self.msg_old = ""
 
-        # états du jeu
         self.state = "menu"  # menu, playing, game_over
 
-        # Chargement du background
-        self.load_background()
+        self.map_renderer = MapRenderer()
+        self.map_selector = MapSelector()
 
-        # entités
         self.player = Player("client/assets/images/player.png", (WIDTH / 2, HEIGHT / 2))
 
-        # IMPORTANT: Ajouter le joueur au gestionnaire s'il hérite de GameObject
-        # Sinon, on le gère séparément
-        # self.game_manager.add_object(self.player)  # Décommenter si Player hérite de GameObject
-
-        self.enemies = []  # Peut être supprimé si on utilise que le game_manager
-
-    def load_background(self):
-        """Charge et prépare l'image de background"""
-        try:
-            # Essayer de charger l'image de background
-            self.background = pygame.image.load("client/assets/images/dirt_and_grass.png").convert()
-            self.has_background = True
-        except pygame.error:
-            # Si l'image n'existe pas, utiliser une couleur de fond
-            print("Background image not found, using solid color")
-            self.background = pygame.Surface((WIDTH, HEIGHT))
-            self.background.fill(BLACK)  # ou une autre couleur comme (50, 50, 80)
-            self.has_background = False
+        self.enemies = []
 
     def draw_background(self):
         """Dessine le background"""
-        self.screen.blit(self.background, (0, 0))
+        self.screen.blit(self.background,(0, 0))
 
     def run(self):
         """Boucle principale"""
@@ -185,9 +175,26 @@ class Game:
 
             if self.state == "menu":
                 if event.type == pygame.KEYDOWN:
-                    self.state = "playing"
                     self.connect_to_server()
-                    self.join_the_server()
+                    if self.net_connected:
+                        self.state = "map_selection"
+
+            if self.state == "map_selection":
+                selected_map = None
+
+                if event.type == pygame.KEYDOWN:
+                    selected_map = self.map_selector.handle_key(event.key)
+
+                elif event.type == pygame.MOUSEMOTION:
+                    self.map_selector.handle_hover(event.pos)
+
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    selected_map = self.map_selector.handle_click(event)
+
+                if selected_map:
+                    print(f"Selected map: {selected_map}")
+                    self.join_the_server(selected_map)
+                    self.state = "waiting_for_game"
 
             elif self.state == "game_over":
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
@@ -196,8 +203,15 @@ class Game:
     def update(self, dt):
         """Logique du jeu selon l'état"""
         if self.state == "menu":
-            # futur menu
             pass
+
+        elif self.state == "map_selection":
+            pass
+
+        elif self.state == "waiting_for_game":
+            # Attente du message game_state du serveur
+            pass
+
         elif self.state == "playing":
             if self.start_time is None:
                 self.start_time = pygame.time.get_ticks()
@@ -226,34 +240,24 @@ class Game:
 
         for projectile in projectiles:
             if projectile.rect.colliderect(self.player.rect):
-                # Le joueur prend des dégâts
                 remaining_health = self.player.take_damage(projectile.damage)
-                # Supprimer le projectile
                 self.game_manager.remove_object(projectile)
 
-                # Vérifier si le joueur est mort
                 if remaining_health <= 0:
                     self.state = "game_over"
 
     def draw(self):
         """Rendu graphique"""
         # Dessiner le background en premier
-        self.draw_background()
+        if self.state in ("menu", "map_selection", "game_over"):
+            self.draw_background()
 
         if self.state == "menu":
             self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), WIDTH / 2, HEIGHT / 2)
+        elif self.state == "map_selection":
+            self.map_selector.draw(self.screen)
         elif self.state == "playing":
-
-            # Dessiner le joueur (s'il n'est pas dans le game_manager)
-            self.player.draw(self.screen)
-
-            # Dessiner tous les objets gérés (ennemis, projectiles, etc.)
-            self.game_manager.draw_all(self.screen)
-
-            # Debug info (optionnel)
-            count = self.game_manager.get_object_count()
-            self.draw_text(f"Objets: {count}", 20, (255, 255, 255), 100, 30)
-
+            self.draw_playing()
         elif self.state == "game_over":
             self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255, 0, 0), WIDTH / 2, HEIGHT / 2)
 
@@ -275,6 +279,15 @@ class Game:
             if remote_player:
                 remote_player.update_from_server(player_remote_new_status)
 
+    def handle_map_data(self, msg: dict):
+        """Reçoit et charge une map envoyée par le serveur"""
+        map_data = msg.get("map")
+        if not map_data:
+            print("No map data received")
+            return
+
+        self.map_renderer.load_map(map_data)
+        print(f"Map '{map_data.get('name')}' loaded successfully.")
 
     def handle_full_game_state(self, msg):
         print("Get full game state from server")
@@ -287,7 +300,6 @@ class Game:
 
         all_players = msg.get("players", {})
         self.sync_remote_players(all_players)
-        pass
 
     def handle_player_joined(self, msg):
         player = msg.get("player")
@@ -313,3 +325,14 @@ class Game:
                 player_dict = all_players.get(player_id)
                 player_obj = RemotePlayer(player_id, x=player_dict.get("x"), y=player_dict.get("y"))
                 self.game_manager.add_object(player_obj)
+
+    def draw_playing(self):
+        self.map_renderer.draw(self.screen)
+        self.player.draw(self.screen)
+        self.game_manager.draw_all(self.screen)
+        self.draw_hud()
+
+    def draw_hud(self):
+        self.draw_text("server_request: {}".format(self.msg_old), 20, (255, 255, 255), 100, 50)
+        count = self.game_manager.get_object_count()
+        self.draw_text(f"Objets: {count}", 20, (255, 255, 255), 100, 30)

@@ -78,8 +78,8 @@ class NetworkClient(threading.Thread):
             return
         self.send_q.put(obj)
 
-    def send_join_request(self):
-        self.send({"t": "join"})
+    def send_join_request(self, maps):
+        self.send({"t": "join", "maps": maps})
 
     def close(self):
         self.stop_event.set()
