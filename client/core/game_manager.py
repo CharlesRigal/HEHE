@@ -1,6 +1,6 @@
 # game_manager.py
 from client.game_object import GameObject
-from remote_player import RemotePlayer
+from client.entities.remote_player import RemotePlayer
 
 
 class GameManager:

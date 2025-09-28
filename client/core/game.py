@@ -9,9 +9,9 @@ from client.map_selector import MapSelector
 from network import NetworkClient
 
 from game_manager import GameManager
-from remote_player import RemotePlayer
-from settings import WIDTH, HEIGHT, FPS, BLACK
-from player import Player
+from client.entities.remote_player import RemotePlayer
+from settings import WIDTH, HEIGHT, FPS
+from client.entities.player import Player
 
 
 class Game:
@@ -221,7 +221,7 @@ class Game:
 
     def check_collisions(self):
         """Vérification des collisions entre projectiles et joueur"""
-        from projectile import Projectile  # Import local pour éviter les imports circulaires
+        from client.entities.projectile import Projectile  # Import local pour éviter les imports circulaires
 
         projectiles = self.game_manager.get_objects_by_type(Projectile)
 
