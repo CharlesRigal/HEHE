@@ -3,6 +3,7 @@ import time
 
 import pygame
 
+from client.game_state.playing import playing
 from client.map_renderer import MapRenderer
 from client.map_selector import MapSelector
 from network import NetworkClient
@@ -213,21 +214,7 @@ class Game:
             pass
 
         elif self.state == "playing":
-            if self.start_time is None:
-                self.start_time = pygame.time.get_ticks()
-
-            elapsed = (pygame.time.get_ticks() - self.start_time) / 1000
-            current_time = pygame.time.get_ticks() / 1000.0
-
-            inp = self.player.read_local_input()
-            self.player.apply_input(inp, dt)
-            self.send_input_if_needed(inp)
-
-            # Mettre à jour tous les objets gérés
-            self.game_manager.update_all(dt, self.player, current_time)
-
-            # Vérifier les collisions
-            self.check_collisions()
+            playing(self, dt=dt)
 
         elif self.state == "game_over":
             pass
@@ -311,12 +298,15 @@ class Game:
         player_to_remove = self.game_manager.get_remote_player(msg.get("player_id"))
         self.game_manager.remove_object(player_to_remove)
 
-
-
     def update_or_create_remote_player(self, player_id, player_data):
-        """Met à jour ou crée un joueur distant"""
-        # Chercher si le joueur existe déjà dans le game_manager
-        self.game_manager.get_remote_player(player_id)
+        if player_id == self.client_id:
+            return
+        remote_player = self.game_manager.get_remote_player(player_id)
+        if remote_player:
+            remote_player.update_from_server(player_data)
+        else:
+            new_remote = RemotePlayer(player_id, x=player_data.get("x"), y=player_data.get("y"))
+            self.game_manager.add_object(new_remote)
 
     def sync_remote_players(self, all_players):
         for player_id in all_players:

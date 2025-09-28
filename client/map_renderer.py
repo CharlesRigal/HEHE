@@ -20,21 +20,27 @@ class MapRenderer:
 
         self.loaded_sprites = {}
 
-
     def _get_sprite(self, obj_type: str):
         conf = self.sprite_config.get(obj_type)
-
         if not conf:
             return None
 
         if "image" in conf:
             if obj_type not in self.loaded_sprites:
-                img = pygame.image.load(conf["image"]).convert_alpha()
+                # Charger via importlib.resources
+                asset_file = resources.files("client.assets.sprites") / conf["image"]
+                try:
+                    img = pygame.image.load(str(asset_file)).convert_alpha()
+                except FileNotFoundError:
+                    return None
+
                 scale = conf.get("scale", 1.0)
                 if scale != 1.0:
                     w, h = img.get_size()
                     img = pygame.transform.scale(img, (int(w * scale), int(h * scale)))
+
                 self.loaded_sprites[obj_type] = img
+
             return self.loaded_sprites[obj_type]
         return None
 
@@ -60,18 +66,22 @@ class MapRenderer:
         """Dessine un objet unique"""
         points = obj.get("points", [])
         if len(points) < 3:
-            return
+            return  # Il faut au moins 3 points pour un polygone
 
         obj_type = obj.get("type", "default")
 
         sprite = self._get_sprite(obj_type)
 
         if sprite:
+            # Placer le sprite au premier point (ou au barycentre si tu veux centrer)
             rect = sprite.get_rect()
+            rect.topleft = points[0]
             self.map_surface.blit(sprite, rect)
         else:
+            # Dessiner un polygone avec la couleur correspondante
             color = self._get_color(obj_type)
-            pygame.draw.rect(self.map_surface, color, points)
+            pygame.draw.polygon(self.map_surface, color, points)
+
 
     def _get_color(self, obj_type: str):
         palette = {
