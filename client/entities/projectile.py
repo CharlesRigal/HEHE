@@ -1,7 +1,7 @@
 import pygame
 
-from game_object import GameObject
-from settings import HEIGHT
+from client.core.game_object import GameObject
+from client.core.settings import HEIGHT
 
 
 class Projectile(GameObject):

@@ -1,7 +1,7 @@
 # remote_player.py
 import pygame
 
-from client.game_object import GameObject
+from client.core.game_object import GameObject
 
 
 class RemotePlayer(GameObject):

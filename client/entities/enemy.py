@@ -4,7 +4,7 @@ import pygame
 import math
 
 from entity import Life
-from client.game_object import GameObject
+from client.core.game_object import GameObject
 from settings import WIDTH, HEIGHT
 
 

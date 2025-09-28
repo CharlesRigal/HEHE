@@ -4,13 +4,13 @@ import time
 import pygame
 
 from client.game_state.playing import playing
-from client.map_renderer import MapRenderer
-from client.map_selector import MapSelector
-from network import NetworkClient
+from client.graphics.map_renderer import MapRenderer
+from client.graphics.map_selector import MapSelector
+from client.network.network import NetworkClient
 
-from game_manager import GameManager
+from client.core.game_manager import GameManager
 from client.entities.remote_player import RemotePlayer
-from settings import WIDTH, HEIGHT, FPS
+from client.core.settings import WIDTH, HEIGHT, FPS
 from client.entities.player import Player
 
 

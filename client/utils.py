@@ -1,7 +1,7 @@
 import math
 import random
 
-from settings import WIDTH, HEIGHT
+from client.core.settings import WIDTH, HEIGHT
 
 
 def get_random_location_away_from_screen_circle(center_x=None, center_y=None, min_radius=None):

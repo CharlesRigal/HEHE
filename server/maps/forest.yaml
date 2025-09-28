@@ -1,6 +1,8 @@
 name: "Forêt des débuts"
 size: [1280, 720]
 
+background: 1
+
 # Points de spawn des joueurs
 spawn_points:
   - x: 150

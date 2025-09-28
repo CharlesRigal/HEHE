@@ -1,6 +1,9 @@
 name: "Désert brûlant"
 size: [1600, 900]
 
+
+background: 2
+
 # Points de spawn des joueurs
 spawn_points:
   - x: 200

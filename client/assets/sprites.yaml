@@ -1,4 +1,3 @@
-# Déclaration des assets graphiques
 sprites:
   rock:
     image: "rock.png"
@@ -14,3 +13,7 @@ sprites:
     repeat: [32, 32]
   default:
     color: [128, 128, 128]
+
+backgrounds:
+  "1": "dirt_and_grass.png"
+  "2": "sand.png"

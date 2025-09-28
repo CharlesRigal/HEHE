@@ -1,7 +1,7 @@
 import pygame
 
-from entity import Life
-from settings import WIDTH, HEIGHT
+from client.entities.entity import Life
+from client.core.settings import WIDTH, HEIGHT
 
 # Constantes d'input
 IN_UP = 1
