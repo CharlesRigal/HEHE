@@ -1,4 +1,8 @@
+from importlib import resources
+
 import pygame
+import yaml
+from pygame.transform import scale
 
 
 class MapRenderer:
@@ -8,6 +12,31 @@ class MapRenderer:
         self.current_map = None
         self.map_surface = None
         self.collision_objects = []
+        sprite_package = resources.files("client.assets")
+
+        for sprite_list in sprite_package.iterdir():
+            if sprite_list.is_file() and sprite_list.suffix in {".yaml", ".yml"}:
+                self.sprite_config = yaml.safe_load(sprite_list.read_text()).get("sprites")
+
+        self.loaded_sprites = {}
+
+
+    def _get_sprite(self, obj_type: str):
+        conf = self.sprite_config.get(obj_type)
+
+        if not conf:
+            return None
+
+        if "image" in conf:
+            if obj_type not in self.loaded_sprites:
+                img = pygame.image.load(conf["image"]).convert_alpha()
+                scale = conf.get("scale", 1.0)
+                if scale != 1.0:
+                    w, h = img.get_size()
+                    img = pygame.transform.scale(img, (int(w * scale), int(h * scale)))
+                self.loaded_sprites[obj_type] = img
+            return self.loaded_sprites[obj_type]
+        return None
 
     # --- Chargement ---
     def load_map(self, map_data: dict):
@@ -34,11 +63,15 @@ class MapRenderer:
             return
 
         obj_type = obj.get("type", "default")
-        color = self._get_color(obj_type)
 
-        pygame.draw.polygon(self.map_surface, color, points)
-        border = tuple(max(0, c - 50) for c in color)
-        pygame.draw.polygon(self.map_surface, border, points, 2)
+        sprite = self._get_sprite(obj_type)
+
+        if sprite:
+            rect = sprite.get_rect()
+            self.map_surface.blit(sprite, rect)
+        else:
+            color = self._get_color(obj_type)
+            pygame.draw.rect(self.map_surface, color, points)
 
     def _get_color(self, obj_type: str):
         palette = {

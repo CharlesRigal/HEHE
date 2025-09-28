@@ -1,0 +1,16 @@
+# Déclaration des assets graphiques
+sprites:
+  rock:
+    image: "assets/sprites/rock.png"
+    scale: 1.0
+  tree:
+    image: "assets/sprites/tree.png"
+    scale: 1.2
+  water:
+    image: "assets/sprites/water_tile.png"
+    tiling: true
+  wall:
+    image: "assets/sprites/wall.png"
+    repeat: [32, 32]
+  default:
+    color: [128, 128, 128]
