@@ -161,7 +161,6 @@ class GameInstance:
                         "t": "game_update",
                         "players": self.players,
                         "timestamp": current_time,
-                        "map_id": self.map_id
                     })
 
                 # Attendre le prochain tick

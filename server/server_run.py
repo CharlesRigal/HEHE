@@ -146,7 +146,7 @@ async def handle_join_message(client_id: str, msg: dict):
     # Créer le joueur dans l'instance
     player = instance.create_player(client_id)
 
-    # Envoyer l'état initial au nouveau joueur
+    # on laisse le player qui se connect pour lui indiquer sont emplacement
     if client_id in CLIENTS:
         _, writer = CLIENTS[client_id]
         await send_json(writer, {

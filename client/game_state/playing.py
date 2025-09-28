@@ -15,6 +15,3 @@ def playing(game, dt=None):
 
     # Mettre à jour tous les objets gérés
     game.game_manager.update_all(dt, game.player, current_time)
-
-    # Vérifier les collisions
-    game.check_collisions()

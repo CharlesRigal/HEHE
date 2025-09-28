@@ -73,6 +73,7 @@ class Game:
 
     def handle_server_message(self, msg):
         t = msg.get("t")
+        print(msg)
         if t == "welcome":
             self.client_id = msg.get("your_id")
             print("welcome, id = ", self.client_id)
@@ -219,20 +220,6 @@ class Game:
         elif self.state == "game_over":
             pass
 
-    def check_collisions(self):
-        """Vérification des collisions entre projectiles et joueur"""
-        from client.entities.projectile import Projectile  # Import local pour éviter les imports circulaires
-
-        projectiles = self.game_manager.get_objects_by_type(Projectile)
-
-        for projectile in projectiles:
-            if projectile.rect.colliderect(self.player.rect):
-                remaining_health = self.player.take_damage(projectile.damage)
-                self.game_manager.remove_object(projectile)
-
-                if remaining_health <= 0:
-                    self.state = "game_over"
-
     def draw(self):
         """Rendu graphique"""
         # Dessiner le background en premier
@@ -259,8 +246,9 @@ class Game:
 
     def handle_game_update(self, msg):
         remote_player_list = msg.get("players")
-        remote_player_list.pop(self.client_id, None)
         for player in remote_player_list:
+            if player == self.client_id:
+                continue
             player_remote_new_status = remote_player_list.get(player)
             remote_player: RemotePlayer = self.game_manager.get_remote_player(player)
             if remote_player:
@@ -286,11 +274,14 @@ class Game:
             print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
 
         all_players = msg.get("players", {})
+        all_players.pop(self.client_id)
         self.sync_remote_players(all_players)
 
     def handle_player_joined(self, msg):
         player = msg.get("player")
-        self.game_manager.add_object(RemotePlayer(player.get("id"), x=player.get("x"), y=player.get("y")))
+        print("Player join from server", player.get("id"))
+        if self.client_id != player.get("id"):
+            self.game_manager.add_object(RemotePlayer(player.get("id"), x=player.get("x"), y=player.get("y")))
 
 
     def handle_player_left(self, msg):
@@ -312,9 +303,6 @@ class Game:
         for player_id in all_players:
             if player_id != self.client_id:
                 self.update_or_create_remote_player(player_id, all_players[player_id])
-                player_dict = all_players.get(player_id)
-                player_obj = RemotePlayer(player_id, x=player_dict.get("x"), y=player_dict.get("y"))
-                self.game_manager.add_object(player_obj)
 
     def draw_playing(self):
         self.map_renderer.draw(self.screen)
