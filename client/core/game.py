@@ -245,9 +245,11 @@ class Game:
         self.screen.blit(surf, rect)
 
     def handle_game_update(self, msg):
+        # TODO server side dont send game_update if i join and leave the instance
         remote_player_list = msg.get("players")
         for player in remote_player_list:
             if player == self.client_id:
+                self.player.update_from_server(remote_player_list.get(player))
                 continue
             player_remote_new_status = remote_player_list.get(player)
             remote_player: RemotePlayer = self.game_manager.get_remote_player(player)

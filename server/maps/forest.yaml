@@ -19,7 +19,7 @@ objects:
 #  # Rocher en haut à gauche
 #  - id: 1
 #    type: rock
-#    name: "Gros rocher"
+#    name: "Gros rocher"9
 #    points:
 #      - [100, 100]
 #      - [200, 100]

@@ -135,3 +135,7 @@ class Player:
 
     def __repr__(self):
         return f"Player(pos={self.get_position()}, health={self.life.get_health()}/{self.life.get_max_health()})"
+
+    def update_from_server(self, server_update):
+        self.pos.x = server_update.get("x")
+        self.pos.y =  server_update.get("y")
