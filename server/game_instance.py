@@ -40,6 +40,7 @@ class GameInstance:
         }
 
         self.players[client_id] = player
+        self.running = True
         return player
 
     def remove_player(self, client_id: str):

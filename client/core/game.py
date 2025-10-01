@@ -149,7 +149,7 @@ class Game:
         self.map_renderer = MapRenderer()
         self.map_selector = MapSelector()
 
-        self.player = Player("client/assets/images/player.png", (WIDTH / 2, HEIGHT / 2))
+        self.player = Player("1", WIDTH / 2, HEIGHT / 2, "client/assets/images/player.png")
 
         self.enemies = []
 

@@ -1,3 +1,6 @@
+from client.network.server_updatable import ServerUpdatable
+
+
 class Life:
     def __init__(self, life_max):
         self.life_max = life_max
@@ -39,9 +42,13 @@ class Life:
             return 0
         return (self.life_current / self.life_max) * 100
 
+    def life_current(self):
+        return self.life_current
+
     def reset_health(self):
         """Remet la vie au maximum"""
         self.life_current = self.life_max
+
 
     def set_max_health(self, new_max):
         """Change la vie maximum (pour les upgrades par exemple)"""
