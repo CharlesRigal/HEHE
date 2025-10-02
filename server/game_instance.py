@@ -60,7 +60,6 @@ class GameInstance:
         objects = self.map_data.get('objects', [])
 
         for obj in objects:
-            # Supposer que les objets sont des rectangles définis par leurs points
             points = obj.get('points', [])
             if len(points) >= 4:
                 # Rectangle simple : prendre min/max x et y
