@@ -1,7 +1,7 @@
 import asyncio
 import time
 import logging
-from typing import Dict, Set, Callable, Optional
+from typing import Dict, Set, Callable, Optional, List
 
 from config import TICK_INTERVAL
 
@@ -11,7 +11,7 @@ class GameInstance:
         self.map_id = map_id
         self.map_data = map_data
         self.players: Dict[str, dict] = {}
-        self.pending_inputs: Dict[str, dict] = {}
+        self.pending_inputs: Dict[str, List[dict]] = {}
         self.running = True
         self.broadcast_callback = broadcast_callback
 
@@ -60,7 +60,7 @@ class GameInstance:
     def add_input(self, client_id: str, input_data: dict):
         """Ajoute un input en attente pour un joueur"""
         if client_id in self.players:
-            self.pending_inputs[client_id] = input_data
+            self.pending_inputs.setdefault(client_id, []).append(input_data)
 
     def _check_collision_with_objects(self, x: float, y: float, player_size: float = 32) -> bool:
         """Vérifie les collisions avec les objets de la map"""
@@ -163,8 +163,9 @@ class GameInstance:
 
                 # Traiter les inputs
                 for client_id, input_data in list(self.pending_inputs.items()):
-                    if client_id in self.players:
-                        self.process_input(self.players[client_id], input_data, dt)
+                    for input_dict in input_data:
+                        if client_id in self.players:
+                            self.process_input(self.players[client_id], input_dict, dt)
                 self.pending_inputs.clear()
 
                 # Envoyer état du jeu
@@ -194,9 +195,11 @@ class GameInstance:
                 sleep_time = max(0, TICK_INTERVAL - (time.time() - current_time))
                 await asyncio.sleep(sleep_time)
 
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as e:
+            raise e
             logging.info(f"Game loop cancelled for instance {self.map_id}")
         except Exception as e:
+            raise e
             logging.error(f"Error in game loop for instance {self.map_id}: {e}")
         finally:
             logging.info(f"Game loop stopped for instance {self.map_id}")
