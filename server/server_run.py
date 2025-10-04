@@ -23,11 +23,12 @@ map_loader = MapLoader("maps")
 
 
 async def send_json(writer: asyncio.StreamWriter, obj: dict):
-    """Envoie un objet JSON au client"""
     try:
-        data = (json.dumps(obj) + "\n").encode("utf-8")
+        raw = json.dumps(obj) + "\n"
+        data = raw.encode("utf-8")
         writer.write(data)
         await writer.drain()
+        logging.debug(f"-> Sent {len(data)} bytes to {peername(writer)}")
     except Exception as e:
         logging.warning(f"Failed to send data: {e}")
 
@@ -203,8 +204,10 @@ async def cleanup_client(client_id: str):
         logging.info(f"Cleaned up player {client_id} from instance {instance.map_id}")
 
 
-async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    """Gère la connexion d'un client"""
+async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, line=None, client_id=None):
+    """Gère la connexion d'un client
+    :type line: object
+    """
     # Optimisation TCP
     try:
         sock = writer.get_extra_info("socket")
@@ -246,7 +249,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
             try:
                 msg = json.loads(line.decode("utf-8"))
-                logging.debug(f"<- {client_id}: {msg}")
+                logging.debug(f"<- {client_id}: {msg} ({len(line)} bytes)")
             except json.JSONDecodeError:
                 logging.info(f"<- {client_id} (text): {line!r}")
                 continue

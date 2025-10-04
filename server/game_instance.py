@@ -15,6 +15,13 @@ class GameInstance:
         self.running = True
         self.broadcast_callback = broadcast_callback
 
+        # Stats monitoring
+        self.tick_count = 0
+        self.dt_samples: list[float] = []
+        self.last_stats_log = time.time()
+        self.inputs_processed = 0
+        self.messages_sent = 0
+
         logging.info(f"Created game instance for map '{map_id}' - {map_data.get('name', 'Unnamed')}")
 
     def create_player(self, client_id: str, x=100, y=100) -> dict:
@@ -131,14 +138,16 @@ class GameInstance:
 
         player["last_update"] = time.time()
 
+        self.inputs_processed += 1
+
     async def broadcast_to_players(self, message: dict):
         """Diffuse un message à tous les joueurs de cette instance"""
         if self.broadcast_callback:
             player_ids = list(self.players.keys())
             await self.broadcast_callback(message, player_ids)
+            self.messages_sent += 1
 
     async def game_loop(self):
-        """Boucle principale du jeu pour cette instance"""
         logging.info(f"Starting game loop for instance {self.map_id}")
         last_time = time.time()
 
@@ -148,14 +157,17 @@ class GameInstance:
                 dt = current_time - last_time
                 last_time = current_time
 
-                # Traiter tous les inputs en attente
+                # Collect stats
+                self.dt_samples.append(dt)
+                self.tick_count += 1
+
+                # Traiter les inputs
                 for client_id, input_data in list(self.pending_inputs.items()):
                     if client_id in self.players:
                         self.process_input(self.players[client_id], input_data, dt)
-
                 self.pending_inputs.clear()
 
-                # Envoyer l'état du jeu aux joueurs s'il y en a
+                # Envoyer état du jeu
                 if self.players:
                     await self.broadcast_to_players({
                         "t": "game_update",
@@ -163,7 +175,22 @@ class GameInstance:
                         "timestamp": current_time,
                     })
 
-                # Attendre le prochain tick
+                # Log périodique toutes les 5s
+                if time.time() - self.last_stats_log >= 5:
+                    if self.dt_samples:
+                        avg_dt = sum(self.dt_samples) / len(self.dt_samples)
+                        max_dt = max(self.dt_samples)
+                        logging.info(
+                            f"[Instance {self.map_id}] ticks={self.tick_count}, "
+                            f"avg_dt={avg_dt*1000:.2f}ms, max_dt={max_dt*1000:.2f}ms, "
+                            f"inputs={self.inputs_processed}, msgs={self.messages_sent}"
+                        )
+                    self.dt_samples.clear()
+                    self.inputs_processed = 0
+                    self.messages_sent = 0
+                    self.last_stats_log = time.time()
+
+                # Attente tick
                 sleep_time = max(0, TICK_INTERVAL - (time.time() - current_time))
                 await asyncio.sleep(sleep_time)
 
