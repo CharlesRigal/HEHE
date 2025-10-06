@@ -3,6 +3,8 @@ import time
 import logging
 from typing import Dict, Set, Callable, Optional, List
 
+import pygame
+
 from config import TICK_INTERVAL
 
 
@@ -137,6 +139,8 @@ class GameInstance:
             player["vy"] = 0.0
 
         player["last_update"] = time.time()
+        if pygame.time.get_ticks() % 60 == 0:
+            logging.info(f"[DEBUG] Server player pos=({player['x']:.2f}, {player['y']:.2f})")
 
         self.inputs_processed += 1
 
@@ -186,6 +190,7 @@ class GameInstance:
                             f"avg_dt={avg_dt*1000:.2f}ms, max_dt={max_dt*1000:.2f}ms, "
                             f"inputs={self.inputs_processed}, msgs={self.messages_sent}"
                         )
+
                     self.dt_samples.clear()
                     self.inputs_processed = 0
                     self.messages_sent = 0

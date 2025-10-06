@@ -73,7 +73,6 @@ class Game:
 
     def handle_server_message(self, msg):
         t = msg.get("t")
-        print(msg)
         if t == "welcome":
             self.client_id = msg.get("your_id")
             print("welcome, id = ", self.client_id)
@@ -245,8 +244,11 @@ class Game:
         self.screen.blit(surf, rect)
 
     def handle_game_update(self, msg):
-        # TODO server side dont send game_update if i join and leave the instance
         remote_player_list = msg.get("players")
+        if int(time.time() * 2) % 2 == 0:  # toutes les 0.5s
+            print(
+                f"[DEBUG] Client got server pos=({remote_player_list.get(self.client_id)['x']:.2f}, {remote_player_list.get(self.client_id)['y']:.2f}), local=({self.player.pos.x:.2f}, {self.player.pos.y:.2f})")
+
         for player in remote_player_list:
             if player == self.client_id:
                 self.player.update_from_server(remote_player_list.get(player))
