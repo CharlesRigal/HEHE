@@ -243,20 +243,30 @@ class Game:
         rect = surf.get_rect(center=(x, y))
         self.screen.blit(surf, rect)
 
-    def handle_game_update(self, msg):
-        remote_player_list = msg.get("players")
-        if int(time.time() * 2) % 2 == 0:  # toutes les 0.5s
-            print(
-                f"[DEBUG] Client got server pos=({remote_player_list.get(self.client_id)['x']:.2f}, {remote_player_list.get(self.client_id)['y']:.2f}), local=({self.player.pos.x:.2f}, {self.player.pos.y:.2f})")
 
-        for player in remote_player_list:
-            if player == self.client_id:
-                self.player.update_from_server(remote_player_list.get(player))
+    def handle_game_update(self, msg):
+        """Traite les mises à jour d'état du jeu depuis le serveur"""
+        remote_player_list = msg.get("players")
+
+        if not remote_player_list:
+            return
+
+        # Traiter chaque joueur
+        for player_id in remote_player_list:
+            player_data = remote_player_list.get(player_id)
+
+            # ===== JOUEUR LOCAL : Réconciliation =====
+            if player_id == self.client_id:
+                self.player.reconcile_with_server(player_data)
                 continue
-            player_remote_new_status = remote_player_list.get(player)
-            remote_player: RemotePlayer = self.game_manager.get_remote_player(player)
+
+            # ===== JOUEURS DISTANTS : Interpolation =====
+            remote_player = self.game_manager.get_remote_player(player_id)
             if remote_player:
-                remote_player.update_from_server(player_remote_new_status)
+                remote_player.update_from_server(player_data)
+            else:
+                # Joueur distant pas encore créé localement (ne devrait pas arriver)
+                print(f"[WARN] Remote player {player_id} not found in game_manager")
 
     def handle_map_data(self, msg: dict):
         """Reçoit et charge une map envoyée par le serveur"""

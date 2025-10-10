@@ -28,10 +28,8 @@ class GameInstance:
 
     def create_player(self, client_id: str, x=100, y=100) -> dict:
         """Crée un nouveau joueur"""
-        # Vérifier s'il y a des points de spawn définis dans la map
         spawn_points = self.map_data.get('spawn_points', [])
         if spawn_points:
-            # Utiliser le premier point de spawn disponible ou un aléatoire
             spawn = spawn_points[len(self.players) % len(spawn_points)]
             x, y = spawn.get('x', x), spawn.get('y', y)
 
@@ -44,7 +42,7 @@ class GameInstance:
             "health": 100,
             "max_health": 100,
             "alive": True,
-            "last_input": 0,
+            "last_input_seq": -1,  # ← AJOUT: Dernier input traité
             "last_update": time.time()
         }
 
@@ -95,6 +93,11 @@ class GameInstance:
         if not player["alive"]:
             return
 
+        # ===== ENREGISTRER LE SEQ TRAITÉ =====
+        seq = input_data.get("seq", -1)
+        if seq > player["last_input_seq"]:
+            player["last_input_seq"] = seq
+
         k = input_data.get("k", 0)
         speed = 200.0
 
@@ -139,9 +142,6 @@ class GameInstance:
             player["vy"] = 0.0
 
         player["last_update"] = time.time()
-        if pygame.time.get_ticks() % 60 == 0:
-            logging.info(f"[DEBUG] Server player pos=({player['x']:.2f}, {player['y']:.2f})")
-
         self.inputs_processed += 1
 
     async def broadcast_to_players(self, message: dict):
@@ -161,33 +161,43 @@ class GameInstance:
                 dt = current_time - last_time
                 last_time = current_time
 
-                # Collect stats
                 self.dt_samples.append(dt)
                 self.tick_count += 1
 
                 # Traiter les inputs
-                for client_id, input_data in list(self.pending_inputs.items()):
-                    for input_dict in input_data:
+                for client_id, input_list in list(self.pending_inputs.items()):
+                    for input_dict in input_list:
                         if client_id in self.players:
                             self.process_input(self.players[client_id], input_dict, dt)
                 self.pending_inputs.clear()
 
-                # Envoyer état du jeu
+                # ===== ENVOYER last_input_seq DANS game_update =====
                 if self.players:
+                    # Créer un dict avec last_input_seq inclus
+                    players_state = {}
+                    for player_id, player_data in self.players.items():
+                        players_state[player_id] = {
+                            "x": player_data["x"],
+                            "y": player_data["y"],
+                            "health": player_data["health"],
+                            "alive": player_data["alive"],
+                            "last_input_seq": player_data["last_input_seq"]  # ← IMPORTANT
+                        }
+
                     await self.broadcast_to_players({
                         "t": "game_update",
-                        "players": self.players,
+                        "players": players_state,
                         "timestamp": current_time,
                     })
 
-                # Log périodique toutes les 5s
+                # Log périodique
                 if time.time() - self.last_stats_log >= 5:
                     if self.dt_samples:
                         avg_dt = sum(self.dt_samples) / len(self.dt_samples)
                         max_dt = max(self.dt_samples)
                         logging.info(
                             f"[Instance {self.map_id}] ticks={self.tick_count}, "
-                            f"avg_dt={avg_dt*1000:.2f}ms, max_dt={max_dt*1000:.2f}ms, "
+                            f"avg_dt={avg_dt * 1000:.2f}ms, max_dt={max_dt * 1000:.2f}ms, "
                             f"inputs={self.inputs_processed}, msgs={self.messages_sent}"
                         )
 
@@ -202,10 +212,8 @@ class GameInstance:
 
         except asyncio.CancelledError as e:
             raise e
-            logging.info(f"Game loop cancelled for instance {self.map_id}")
         except Exception as e:
             raise e
-            logging.error(f"Error in game loop for instance {self.map_id}: {e}")
         finally:
             logging.info(f"Game loop stopped for instance {self.map_id}")
 
