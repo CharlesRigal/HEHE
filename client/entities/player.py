@@ -108,13 +108,13 @@ class Player(BasePlayer):
         prediction_error = (server_pos - self.pos).length()
 
         # Seuil de tolérance pour déclencher une correction
-        ERROR_THRESHOLD = 5.0  # pixels
-
+        ERROR_THRESHOLD = 2.0  # pixels
         if prediction_error > ERROR_THRESHOLD:
-            print(f"[RECONCILE] Erreur de {prediction_error:.2f}px détectée")
-            print(f"  Position serveur: ({server_pos.x:.2f}, {server_pos.y:.2f})")
-            print(f"  Position prédite: ({self.pos.x:.2f}, {self.pos.y:.2f})")
-            print(f"  Inputs à rejouer: {len(self.pending_inputs)}")
+            print(f"[RECONCILE] Erreur de {prediction_error:.2f}px")
+            print(f"  Last processed seq: {last_processed_seq}")
+            print(f"  Pending seqs: {[inp['seq'] for inp in self.pending_inputs]}")
+            print(f"  Pending dts: {[f'{inp["dt"] * 1000:.2f}ms' for inp in self.pending_inputs]}")
+
 
             # Repartir de la position autoritaire du serveur
             self.pos = server_pos.copy()

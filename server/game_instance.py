@@ -88,7 +88,7 @@ class GameInstance:
 
         return False
 
-    def process_input(self, player: dict, input_data: dict, dt: float):
+    def process_input(self, player: dict, input_data: dict):
         """Traite l'input d'un joueur"""
         if not player["alive"]:
             return
@@ -120,8 +120,8 @@ class GameInstance:
             vy *= diag
 
         # Calculer la nouvelle position
-        new_x = player["x"] + vx * dt
-        new_y = player["y"] + vy * dt
+        new_x = player["x"] + vx * TICK_INTERVAL
+        new_y = player["y"] + vy * TICK_INTERVAL
 
         # Vérifier les limites de la map
         MAP_WIDTH, MAP_HEIGHT = self.map_data.get("size", [1280, 720])
@@ -168,7 +168,7 @@ class GameInstance:
                 for client_id, input_list in list(self.pending_inputs.items()):
                     for input_dict in input_list:
                         if client_id in self.players:
-                            self.process_input(self.players[client_id], input_dict, dt)
+                            self.process_input(self.players[client_id], input_dict)
                 self.pending_inputs.clear()
 
                 # ===== ENVOYER last_input_seq DANS game_update =====

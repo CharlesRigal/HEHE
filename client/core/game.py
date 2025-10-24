@@ -21,7 +21,7 @@ class Game:
         self.last_input_time = now
         msg = {
             "t": "in",
-            "seq": self.input_seq,
+            "seq": inp.get("seq", 0),
             "dt": dt,
             "k": inp.get("k", 0),
         }
@@ -39,7 +39,6 @@ class Game:
             self.net.send(msg)
             self.last_input_send = now
             self.input_prev_mask = inp["k"]
-            self.input_seq += 1
 
 
     def connect_to_server(self, host="127.0.0.1", port=9000):
@@ -149,6 +148,9 @@ class Game:
         self.map_selector = MapSelector()
 
         self.player = Player("1", WIDTH / 2, HEIGHT / 2, "client/assets/images/player.png")
+
+        # ===== IMPORTANT: Donner accès au map_renderer pour les collisions =====
+        self.player.map_renderer = self.map_renderer
 
         self.enemies = []
 
