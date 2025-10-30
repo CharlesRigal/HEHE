@@ -10,19 +10,17 @@ from client.network.network import NetworkClient
 
 from client.core.game_manager import GameManager
 from client.entities.remote_player import RemotePlayer
-from client.core.settings import WIDTH, HEIGHT, FPS
+from client.core.settings import WIDTH, HEIGHT, FPS, TICK_INTERVAL
 from client.entities.player import Player
 
 
 class Game:
     def build_input_message(self, inp):
         now = time.time()
-        dt = now - self.last_input_time
         self.last_input_time = now
         msg = {
             "t": "in",
             "seq": inp.get("seq", 0),
-            "dt": dt,
             "k": inp.get("k", 0),
         }
         if self.last_sid_ack is not None:
@@ -31,7 +29,7 @@ class Game:
 
     def send_input_if_needed(self, inp):
         if not getattr(self, "net_connected", False) or self.net is None:
-           return
+           return False
         msg, now = self.build_input_message(inp)
         period = 1.0 / self.input_send_hz
         should_send = (now - self.last_input_send >= period) or (inp["k"] != self.input_prev_mask)
@@ -39,6 +37,9 @@ class Game:
             self.net.send(msg)
             self.last_input_send = now
             self.input_prev_mask = inp["k"]
+            self.input_seq += 1
+            return True
+        return False
 
 
     def connect_to_server(self, host="127.0.0.1", port=9000):
@@ -162,11 +163,18 @@ class Game:
         """Boucle principale"""
 
         while self.running:
-            dt = self.clock.tick(FPS) / 1000
+            # handle events every frame
             self.handle_events()
-            self.update(dt)
-            self.draw()
+
+            # pump network BEFORE applying logic ticks
             self.pump_network()
+
+            # run a single logical tick with fixed dt
+            playing(self, tick_rate=TICK_INTERVAL)
+
+            # render (interpolated approach optional)
+            self.draw()
+            self.clock.tick(FPS)
         pygame.quit()
 
     def handle_events(self):
@@ -216,7 +224,7 @@ class Game:
             pass
 
         elif self.state == "playing":
-            playing(self, dt=dt)
+            playing(self, tick_rate=TICK_INTERVAL)
 
         elif self.state == "game_over":
             pass
@@ -253,25 +261,30 @@ class Game:
         if not remote_player_list:
             return
 
-        # Traiter chaque joueur
-        for player_id in remote_player_list:
-            player_data = remote_player_list.get(player_id)
+        ack_seq = msg.get("ack")
 
-            # ===== JOUEUR LOCAL : Réconciliation =====
+        if ack_seq is not None:
+            self.player.last_server_ack = ack_seq
+        # Traiter chaque joueur
+        for player_id, player_data in remote_player_list.items():
+            if player_id == self.client_id:
+                self.player.reconcile_with_server(player_data)
+            else:
+                remote_player = self.game_manager.get_remote_player(player_id)
+                if remote_player:
+                    remote_player.update_from_server(player_data)
+
             if player_id == self.client_id:
                 self.player.reconcile_with_server(player_data)
                 continue
 
-            # ===== JOUEURS DISTANTS : Interpolation =====
             remote_player = self.game_manager.get_remote_player(player_id)
             if remote_player:
                 remote_player.update_from_server(player_data)
             else:
-                # Joueur distant pas encore créé localement (ne devrait pas arriver)
                 print(f"[WARN] Remote player {player_id} not found in game_manager")
 
     def handle_map_data(self, msg: dict):
-        """Reçoit et charge une map envoyée par le serveur"""
         map_data = msg.get("map")
         if not map_data:
             print("No map data received")

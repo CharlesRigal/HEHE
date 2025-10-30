@@ -46,7 +46,7 @@ class BasePlayer(ServerUpdatable, GameObject):
         else:
             self.interpolator.set_target(new_target)
 
-    def update(self, dt: float, *args, **kwargs):
+    def update(self,dt, *args, **kwargs):
         """Par défaut, juste maintenir rect en phase avec pos"""
         self.pos = self.interpolator.update(dt)
         self.rect.center = (int(self.pos.x), int(self.pos.y))

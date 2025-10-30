@@ -13,6 +13,7 @@ IN_FIRE = 32
 class Player(BasePlayer):
     def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=200):
         super().__init__(player_id, x, y, image_path, max_health)
+        self.input_buffer = []
         self.speed = speed
 
         # Cache pour limites d'écran
@@ -89,44 +90,27 @@ class Player(BasePlayer):
         if len(self.pending_inputs) > 60:
             self.pending_inputs = self.pending_inputs[-60:]
 
-    def reconcile_with_server(self, server_data):
-        """
-        Réconciliation avec l'état serveur.
-        Compare la position prédite localement avec celle du serveur,
-        et rejoue les inputs non confirmés si nécessaire.
-        """
-        server_pos = pygame.Vector2(server_data.get("x", self.pos.x), server_data.get("y", self.pos.y))
-        last_processed_seq = server_data.get("last_input_seq", -1)
+    def reconcile_with_server(self, server_state):
+        server_x = server_state.get("x")
+        server_y = server_state.get("y")
+        server_seq = server_state.get("last_processed_input", None)
 
-        # Supprimer les inputs confirmés par le serveur
-        self.pending_inputs = [
-            inp for inp in self.pending_inputs
-            if inp["seq"] > last_processed_seq
+        # correction de la position
+        self.pos.x = server_x
+        self.pos.y = server_y
+
+        # MAJ du dernier input traité par le serveur
+        if server_seq is not None:
+            self.last_processed_seq = server_seq
+
+        # purge du buffer des inputs déjà traités
+        self.input_buffer = [
+            i for i in self.input_buffer if i["seq"] > self.last_processed_seq
         ]
 
-        # Calculer l'erreur de prédiction
-        prediction_error = (server_pos - self.pos).length()
-
-        # Seuil de tolérance pour déclencher une correction
-        ERROR_THRESHOLD = 2.0  # pixels
-        if prediction_error > ERROR_THRESHOLD:
-            print(f"[RECONCILE] Erreur de {prediction_error:.2f}px")
-            print(f"  Last processed seq: {last_processed_seq}")
-            print(f"  Pending seqs: {[inp['seq'] for inp in self.pending_inputs]}")
-            print(f"  Pending dts: {[f'{inp["dt"] * 1000:.2f}ms' for inp in self.pending_inputs]}")
-
-
-            # Repartir de la position autoritaire du serveur
-            self.pos = server_pos.copy()
-
-            # Rejouer tous les inputs non confirmés
-            for inp in self.pending_inputs:
-                self.apply_input(inp, inp["dt"])
-
-            print(f"  Position après rejeu: ({self.pos.x:.2f}, {self.pos.y:.2f})")
-
-        # Toujours mettre à jour la santé depuis le serveur (autoritaire)
-        self.life.life_current = server_data.get("health", self.life.life_current)
+        # rejeu des inputs restants
+        for i in self.input_buffer:
+            self.apply_input(i, i["dt"])
 
     def take_damage(self, damage):
         remaining_health = self.life.lose_health(damage)
