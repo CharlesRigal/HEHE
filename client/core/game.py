@@ -261,23 +261,14 @@ class Game:
         if not remote_player_list:
             return
 
-        ack_seq = msg.get("ack")
-
-        if ack_seq is not None:
-            self.player.last_server_ack = ack_seq
         # Traiter chaque joueur
         for player_id, player_data in remote_player_list.items():
-            if player_id == self.client_id:
-                self.player.reconcile_with_server(player_data)
-            else:
-                remote_player = self.game_manager.get_remote_player(player_id)
-                if remote_player:
-                    remote_player.update_from_server(player_data)
-
+            # player local
             if player_id == self.client_id:
                 self.player.reconcile_with_server(player_data)
                 continue
 
+            # remote player
             remote_player = self.game_manager.get_remote_player(player_id)
             if remote_player:
                 remote_player.update_from_server(player_data)

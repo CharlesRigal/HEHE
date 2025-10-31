@@ -11,8 +11,7 @@ def playing(game, tick_rate):
     sent = game.send_input_if_needed(inp)
     inp["seq"] = game.input_seq
 
-    if inp["k"] > 0:
-        game.player.apply_input(inp, tick_rate)
-        game.player.save_input_for_reconciliation(inp, tick_rate)
+    game.player.apply_input(inp, tick_rate)
+    game.player.save_input_for_reconciliation(inp, tick_rate)
 
     game.game_manager.update_all(tick_rate, game.player, current_time)
