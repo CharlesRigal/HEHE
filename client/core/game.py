@@ -37,7 +37,6 @@ class Game:
             self.net.send(msg)
             self.last_input_send = now
             self.input_prev_mask = inp["k"]
-            self.input_seq += 1
             return True
         return False
 

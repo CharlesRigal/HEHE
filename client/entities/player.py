@@ -13,17 +13,15 @@ IN_FIRE = 32
 class Player(BasePlayer):
     def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=200):
         super().__init__(player_id, x, y, image_path, max_health)
-        self.input_buffer = []
         self.speed = speed
 
-        # Cache pour limites d'écran
         self._screen_bounds = pygame.Rect(0, 0, WIDTH, HEIGHT)
 
-        # ===== CLIENT-SIDE PREDICTION =====
-        # Historique des inputs envoyés mais pas encore confirmés par le serveur
-        self.pending_inputs = []
+        self.target_pos = self.pos.copy()
+        self.render_pos = self.pos.copy()
 
-        # Référence au MapRenderer pour les collisions (à setter depuis Game)
+        self.pending_inputs = []
+        self.last_processed_seq = -1
         self.map_renderer = None
 
     @staticmethod
@@ -93,24 +91,21 @@ class Player(BasePlayer):
     def reconcile_with_server(self, server_state):
         server_x = server_state.get("x")
         server_y = server_state.get("y")
-        server_seq = server_state.get("last_processed_input", None)
+        server_seq = server_state.get("last_input_seq", -1)
 
-        # correction de la position
-        self.pos.x = server_x
-        self.pos.y = server_y
+        self.pos.update(server_x, server_y)
 
-        # MAJ du dernier input traité par le serveur
-        if server_seq is not None:
+        if server_seq > self.last_processed_seq:
             self.last_processed_seq = server_seq
 
-        # purge du buffer des inputs déjà traités
-        self.input_buffer = [
-            i for i in self.input_buffer if i["seq"] > self.last_processed_seq
+        self.pending_inputs = [
+            inp for inp in self.pending_inputs if inp["seq"] > self.last_processed_seq
         ]
 
-        # rejeu des inputs restants
-        for i in self.input_buffer:
-            self.apply_input(i, i["dt"])
+        for inp in self.pending_inputs:
+            self.apply_input(inp, inp["dt"])
+
+        self.target_pos = self.pos.copy()
 
     def take_damage(self, damage):
         remaining_health = self.life.lose_health(damage)
@@ -124,12 +119,14 @@ class Player(BasePlayer):
     def on_death(self):
         print(f"Player {self.player_id} is dead at {self.get_position()}")
 
-    def update(self, dt):
+    def update(self, dt, *args, **kwargs):
         """
-        Update pour le joueur local.
-        NE PAS utiliser l'interpolateur, la position est gérée par apply_input.
+        Update pour le joueur local. le render_pos rattrape le self.pos <- la position réel
         """
-        # Juste synchroniser le rect avec la position
+        SMOOTHING = 0.2
+        delta = self.pos - self.render_pos
+        self.render_pos += delta * SMOOTHING
+
         self.rect.center = (int(self.pos.x), int(self.pos.y))
 
     def draw(self, screen):
