@@ -1,11 +1,10 @@
 import asyncio
 import time
 import logging
-from typing import Dict, Set, Callable, Optional, List
+from typing import Dict, Callable, List
 
-import pygame
 
-from config import TICK_INTERVAL
+from config import TICK_INTERVAL, PLAYER_SPEED
 
 
 class GameInstance:
@@ -99,7 +98,7 @@ class GameInstance:
             player["last_input_seq"] = seq
 
         k = input_data.get("k", 0)
-        speed = 200.0
+        speed = PLAYER_SPEED
 
         in_up, in_down, in_left, in_right = 1, 2, 4, 8
 

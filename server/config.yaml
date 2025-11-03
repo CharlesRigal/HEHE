@@ -1,3 +1,4 @@
 host: 0.0.0.0
 port: 8888
 tick_rate: 60
+player_speed: 300

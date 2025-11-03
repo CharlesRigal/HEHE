@@ -11,7 +11,18 @@ IN_FIRE = 32
 
 
 class Player(BasePlayer):
-    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=200):
+    def update_from_server(self, server_update: dict):
+        new_target = pygame.Vector2(
+            server_update.get("x", self.pos.x),
+            server_update.get("y", self.pos.y)
+        )
+
+        if (new_target - self.pos).length() > 20:
+            print("WARNING snap to position:" + str(new_target - self.pos))
+            self.pos = new_target.copy()
+        self.interpolator.set_target(new_target)
+
+    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=400):
         super().__init__(player_id, x, y, image_path, max_health)
         self.speed = speed
 
@@ -95,6 +106,8 @@ class Player(BasePlayer):
 
         self.pos.update(server_x, server_y)
 
+        self.interpolator.set_target(pygame.Vector2(server_x, server_y))
+
         if server_seq > self.last_processed_seq:
             self.last_processed_seq = server_seq
 
@@ -104,8 +117,6 @@ class Player(BasePlayer):
 
         for inp in self.pending_inputs:
             self.apply_input(inp, inp["dt"])
-
-        self.target_pos = self.pos.copy()
 
     def take_damage(self, damage):
         remaining_health = self.life.lose_health(damage)
@@ -123,11 +134,12 @@ class Player(BasePlayer):
         """
         Update pour le joueur local. le render_pos rattrape le self.pos <- la position réel
         """
-        SMOOTHING = 0.2
+        SMOOTHING_RATE = 10.0
         delta = self.pos - self.render_pos
-        self.render_pos += delta * SMOOTHING
 
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
+        self.render_pos += delta * min(1.0, SMOOTHING_RATE * dt)
+
+        self.rect.center = (int(self.render_pos.x), int(self.render_pos.y))
 
     def draw(self, screen):
         super().draw(screen)  # sprite

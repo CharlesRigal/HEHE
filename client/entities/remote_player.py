@@ -1,7 +1,6 @@
 # remote_player.py
 import pygame
 from client.entities.base_player import BasePlayer
-from client.core.interpolator import Interpolator
 
 
 class RemotePlayer(BasePlayer):
@@ -10,7 +9,7 @@ class RemotePlayer(BasePlayer):
 
         # Vitesse d'interpolation augmentée pour suivre les joueurs à 200px/s
         # On met 400px/s pour être sûr de rattraper rapidement
-        self.interpolator = Interpolator(self.pos, speed=400.0)
+        self.interpolator.speed = 700.0
 
     def update_from_server(self, server_update: dict):
         """Mise à jour depuis serveur (snapshots espacés)"""
@@ -39,4 +38,4 @@ class RemotePlayer(BasePlayer):
     def update(self, dt: float, *args, **kwargs):
         """Update avec interpolation pour les joueurs distants"""
         self.pos = self.interpolator.update(dt)
-        super().update(dt, *args, **kwargs)
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
