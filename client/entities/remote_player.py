@@ -9,7 +9,7 @@ class RemotePlayer(BasePlayer):
 
         # Vitesse d'interpolation augmentée pour suivre les joueurs à 200px/s
         # On met 400px/s pour être sûr de rattraper rapidement
-        self.interpolator.speed = 700.0
+        self.interpolator.speed = 400.0
 
     def update_from_server(self, server_update: dict):
         """Mise à jour depuis serveur (snapshots espacés)"""

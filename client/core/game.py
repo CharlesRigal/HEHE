@@ -1,13 +1,11 @@
 import queue
 import time
-
 import pygame
 
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
 from client.network.network import NetworkClient
-
 from client.core.game_manager import GameManager
 from client.entities.remote_player import RemotePlayer
 from client.core.settings import WIDTH, HEIGHT, FPS, TICK_INTERVAL
@@ -15,6 +13,107 @@ from client.entities.player import Player
 
 
 class Game:
+    def __init__(self):
+        pygame.init()
+        self.game_manager = GameManager()
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.background = pygame.Surface(self.screen.get_size())
+        self.net = None
+        self.net_connected = False
+        pygame.display.set_caption("Fala world")
+        self.clock = pygame.time.Clock()
+        self.running = True
+        self.start_time = None
+        self.input_seq = 0
+        self.last_input_time = time.time()
+        self.last_input_send = 0.0
+        self.input_send_hz = 60.0
+        self.input_prev_mask = 0
+        self.last_sid_ack = None
+        self.msg_old = ""
+
+        self.state = "menu"
+
+        self.map_renderer = MapRenderer()
+        self.map_selector = MapSelector()
+        self.player = Player("1", WIDTH / 2, HEIGHT / 2, "client/assets/images/player.png")
+        self.player.map_renderer = self.map_renderer
+        self.enemies = []
+
+        # ===== VARIABLES POUR FIXED TIMESTEP =====
+        self.accumulator = 0.0  # Temps accumulé pour les ticks de logique
+        self.current_time = time.time()
+        self.max_frame_time = 0.25  # Protection contre la spirale de la mort
+
+    def run(self):
+        """Boucle principale avec fixed timestep"""
+        while self.running:
+            # Calculer le temps écoulé depuis la dernière frame
+            new_time = time.time()
+            frame_time = new_time - self.current_time
+            self.current_time = new_time
+
+            # Protection contre de trop grandes accumulations (spiral of death)
+            if frame_time > self.max_frame_time:
+                frame_time = self.max_frame_time
+
+            # Accumuler le temps
+            self.accumulator += frame_time
+
+            # Gérer les événements à chaque frame
+            self.handle_events()
+
+            # Pomper le réseau
+            self.pump_network()
+
+            # Exécuter autant de ticks logiques que nécessaire
+            while self.accumulator >= TICK_INTERVAL:
+                # Tick de logique à fréquence fixe
+                self.update_logic(TICK_INTERVAL)
+                self.accumulator -= TICK_INTERVAL
+
+            # Calculer l'alpha pour l'interpolation (optionnel)
+            # alpha = self.accumulator / TICK_INTERVAL
+
+            # Rendu (à chaque frame, fréquence variable)
+            self.draw()
+
+            # Limiter le FPS maximum
+            self.clock.tick(FPS)
+
+        pygame.quit()
+
+    def update_logic(self, dt):
+        """Mise à jour de la logique du jeu à fréquence fixe (60 Hz)"""
+        if self.state == "playing":
+            playing(self, tick_rate=dt)
+        elif self.state == "menu":
+            pass
+        elif self.state == "map_selection":
+            pass
+        elif self.state == "waiting_for_game":
+            pass
+        elif self.state == "game_over":
+            pass
+
+    def draw(self):
+        """Rendu graphique (fréquence variable)"""
+        if self.state in ("menu", "map_selection", "game_over"):
+            self.draw_background()
+
+        if self.state == "menu":
+            self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), WIDTH / 2, HEIGHT / 2)
+        elif self.state == "map_selection":
+            self.map_selector.draw(self.screen)
+        elif self.state == "playing":
+            self.draw_playing()
+        elif self.state == "game_over":
+            self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255, 0, 0), WIDTH / 2, HEIGHT / 2)
+
+        pygame.display.flip()
+
+    # ===== MÉTHODES INCHANGÉES CI-DESSOUS =====
+
     def build_input_message(self, inp):
         now = time.time()
         self.last_input_time = now
@@ -29,7 +128,7 @@ class Game:
 
     def send_input_if_needed(self, inp):
         if not getattr(self, "net_connected", False) or self.net is None:
-           return False
+            return False
         msg, now = self.build_input_message(inp)
         period = 1.0 / self.input_send_hz
         should_send = (now - self.last_input_send >= period) or (inp["k"] != self.input_prev_mask)
@@ -39,7 +138,6 @@ class Game:
             self.input_prev_mask = inp["k"]
             return True
         return False
-
 
     def connect_to_server(self, host="127.0.0.1", port=9000):
         if self.net is not None:
@@ -51,7 +149,7 @@ class Game:
             self.net_connected = True
             print("connected to server: ", host, port)
         except Exception as e:
-            print("Connect to server faild: ", e)
+            print("Connect to server failed: ", e)
             self.net = None
             self.net_connected = False
 
@@ -66,7 +164,6 @@ class Game:
             except Exception:
                 pass
             self.net = None
-
         self.net_connected = False
         self.client_id = None
 
@@ -76,7 +173,6 @@ class Game:
             self.client_id = msg.get("your_id")
             print("welcome, id = ", self.client_id)
             self.map_selector.set_available_maps(msg.get("available_maps"))
-
         elif t == "pong":
             pass
         elif t == "_info":
@@ -106,9 +202,6 @@ class Game:
             if self.msg_old and msg != self.msg_old:
                 print("get from server : ", msg)
                 self.msg_old = msg
-            pass
-            #TODO to game_manager
-
 
     def pump_network(self, max_msgs=50):
         if not self.net_connected or self.net is None:
@@ -123,61 +216,10 @@ class Game:
             self.msg_old = msg
             self.handle_server_message(msg)
 
-    def __init__(self):
-        pygame.init()
-        self.game_manager = GameManager()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        self.background = pygame.Surface(self.screen.get_size())
-        self.net = None
-        self.net_connected = False
-        pygame.display.set_caption("Fala world")
-        self.clock = pygame.time.Clock()
-        self.running = True
-        self.start_time = None
-        self.input_seq = 0
-        self.last_input_time = time.time()
-        self.last_input_send = 0.0
-        self.input_send_hz = 60.0
-        self.input_prev_mask = 0
-        self.last_sid_ack = None
-        self.msg_old = ""
-
-        self.state = "menu"  # menu, playing, game_over
-
-        self.map_renderer = MapRenderer()
-        self.map_selector = MapSelector()
-
-        self.player = Player("1", WIDTH / 2, HEIGHT / 2, "client/assets/images/player.png")
-
-        # ===== IMPORTANT: Donner accès au map_renderer pour les collisions =====
-        self.player.map_renderer = self.map_renderer
-
-        self.enemies = []
-
     def draw_background(self):
-        """Dessine le background"""
-        self.screen.blit(self.background,(0, 0))
-
-    def run(self):
-        """Boucle principale"""
-
-        while self.running:
-            # handle events every frame
-            self.handle_events()
-
-            # pump network BEFORE applying logic ticks
-            self.pump_network()
-
-            # run a single logical tick with fixed dt
-            playing(self, tick_rate=TICK_INTERVAL)
-
-            # render (interpolated approach optional)
-            self.draw()
-            self.clock.tick(FPS)
-        pygame.quit()
+        self.screen.blit(self.background, (0, 0))
 
     def handle_events(self):
-        """Gestion des entrées"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
@@ -191,13 +233,10 @@ class Game:
 
             if self.state == "map_selection":
                 selected_map = None
-
                 if event.type == pygame.KEYDOWN:
                     selected_map = self.map_selector.handle_key(event.key)
-
                 elif event.type == pygame.MOUSEMOTION:
                     self.map_selector.handle_hover(event.pos)
-
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     selected_map = self.map_selector.handle_click(event)
 
@@ -210,64 +249,22 @@ class Game:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                     self.state = "menu"
 
-    def update(self, dt):
-        """Logique du jeu selon l'état"""
-        if self.state == "menu":
-            pass
-
-        elif self.state == "map_selection":
-            pass
-
-        elif self.state == "waiting_for_game":
-            # Attente du message game_state du serveur
-            pass
-
-        elif self.state == "playing":
-            playing(self, tick_rate=TICK_INTERVAL)
-
-        elif self.state == "game_over":
-            pass
-
-    def draw(self):
-        """Rendu graphique"""
-        # Dessiner le background en premier
-        if self.state in ("menu", "map_selection", "game_over"):
-            self.draw_background()
-
-        if self.state == "menu":
-            self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), WIDTH / 2, HEIGHT / 2)
-        elif self.state == "map_selection":
-            self.map_selector.draw(self.screen)
-        elif self.state == "playing":
-            self.draw_playing()
-        elif self.state == "game_over":
-            self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255, 0, 0), WIDTH / 2, HEIGHT / 2)
-
-        pygame.display.flip()
-
     def draw_text(self, text, size, color, x, y):
-        """Utilitaire pour dessiner du texte centré"""
         font = pygame.font.Font(None, size)
         surf = font.render(text, True, color)
         rect = surf.get_rect(center=(x, y))
         self.screen.blit(surf, rect)
 
-
     def handle_game_update(self, msg):
-        """Traite les mises à jour d'état du jeu depuis le serveur"""
         remote_player_list = msg.get("players")
-
         if not remote_player_list:
             return
 
-        # Traiter chaque joueur
         for player_id, player_data in remote_player_list.items():
-            # player local
             if player_id == self.client_id:
                 self.player.reconcile_with_server(player_data)
                 continue
 
-            # remote player
             remote_player = self.game_manager.get_remote_player(player_id)
             if remote_player:
                 remote_player.update_from_server(player_data)
@@ -279,7 +276,6 @@ class Game:
         if not map_data:
             print("No map data received")
             return
-
         self.map_renderer.load_map(map_data)
         print(f"Map '{map_data.get('name')}' loaded successfully.")
 
@@ -289,11 +285,11 @@ class Game:
         if your_player_data:
             self.player.pos.x = your_player_data.get("x", self.player.pos.x)
             self.player.pos.y = your_player_data.get("y", self.player.pos.y)
-            self.player.life.life_current = your_player_data.get("healh", self.player.life.life_current)
+            self.player.life.life_current = your_player_data.get("health", self.player.life.life_current)
             print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
 
         all_players = msg.get("players", {})
-        all_players.pop(self.client_id)
+        all_players.pop(self.client_id, None)
         self.sync_remote_players(all_players)
 
     def handle_player_joined(self, msg):
@@ -301,7 +297,6 @@ class Game:
         print("Player join from server", player.get("id"))
         if self.client_id != player.get("id"):
             self.game_manager.add_object(RemotePlayer(player.get("id"), x=player.get("x"), y=player.get("y")))
-
 
     def handle_player_left(self, msg):
         print("Player left from server")

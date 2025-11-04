@@ -22,7 +22,7 @@ class Player(BasePlayer):
             self.pos = new_target.copy()
         self.interpolator.set_target(new_target)
 
-    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=400):
+    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300):
         super().__init__(player_id, x, y, image_path, max_health)
         self.speed = speed
 
