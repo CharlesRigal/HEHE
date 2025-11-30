@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Callable, List
 
 
-from config import TICK_INTERVAL, PLAYER_SPEED
+from server.config import TICK_INTERVAL, PLAYER_SPEED
 
 
 class GameInstance:
