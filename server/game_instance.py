@@ -13,6 +13,7 @@ class GameInstance:
         self.map_data = map_data
         self.players: Dict[str, dict] = {}
         self.pending_inputs: Dict[str, List[dict]] = {}
+        self.players_previous_state = {}
         self.running = True
         self.broadcast_callback = broadcast_callback
 
@@ -172,22 +173,38 @@ class GameInstance:
 
                 # ===== ENVOYER last_input_seq DANS game_update =====
                 if self.players:
-                    # Créer un dict avec last_input_seq inclus
                     players_state = {}
+
                     for player_id, player_data in self.players.items():
-                        players_state[player_id] = {
+
+                        current_data = {
                             "x": player_data["x"],
                             "y": player_data["y"],
                             "health": player_data["health"],
                             "alive": player_data["alive"],
-                            "last_input_seq": player_data["last_input_seq"]  # ← IMPORTANT
+                            "last_input_seq": player_data["last_input_seq"]
                         }
 
-                    await self.broadcast_to_players({
-                        "t": "game_update",
-                        "players": players_state,
-                        "timestamp": current_time,
-                    })
+                        if self.players_previous_state.get(player_id) != current_data:
+                            players_state[player_id] = current_data
+
+                    if players_state:
+                        await self.broadcast_to_players({
+                            "t": "game_update",
+                            "players": players_state,
+                            "timestamp": current_time,
+                        })
+
+                    self.players_previous_state = {
+                        player_id: {
+                            "x": player_data["x"],
+                            "y": player_data["y"],
+                            "health": player_data["health"],
+                            "alive": player_data["alive"],
+                            "last_input_seq": player_data["last_input_seq"]
+                        }
+                        for player_id, player_data in self.players.items()
+                    }
 
                 # Log périodique
                 if time.time() - self.last_stats_log >= 5:

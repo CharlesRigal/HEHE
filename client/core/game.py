@@ -262,7 +262,7 @@ class Game:
 
         for player_id, player_data in remote_player_list.items():
             if player_id == self.client_id:
-                self.player.reconcile_with_server(player_data)
+                self.player.data_from_the_server(player_data)
                 continue
 
             remote_player = self.game_manager.get_remote_player(player_id)

@@ -95,18 +95,15 @@ class Player(BasePlayer):
             "timestamp": pygame.time.get_ticks()
         })
 
-        # Limite l'historique à 60 inputs max (1 seconde à 60 FPS)
         if len(self.pending_inputs) > 60:
             self.pending_inputs = self.pending_inputs[-60:]
 
-    def reconcile_with_server(self, server_state):
+    def data_from_the_server(self, server_state):
         server_x = server_state.get("x")
         server_y = server_state.get("y")
         server_seq = server_state.get("last_input_seq", -1)
 
         self.pos.update(server_x, server_y)
-
-        self.interpolator.set_target(pygame.Vector2(server_x, server_y))
 
         if server_seq > self.last_processed_seq:
             self.last_processed_seq = server_seq
