@@ -12,14 +12,12 @@ from server.game_instance import GameInstance
 from server.map_loader import MapLoader
 from server.state import CLIENTS, INSTANCES, CLIENT_SEQ
 
-# Config logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )
 
-# Chargeur de maps global
-map_loader = MapLoader("maps")
+map_loader = MapLoader("server.maps")
 
 
 async def send_json(writer: asyncio.StreamWriter, obj: dict):
