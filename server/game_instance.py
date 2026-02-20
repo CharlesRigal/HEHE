@@ -155,6 +155,8 @@ class GameInstance:
         logging.info(f"Starting game loop for instance {self.map_id}")
         last_time = time.time()
 
+        MAX_INPUTS_PER_TICK = 10  # limite pour éviter de surcharger le serveur
+
         try:
             while self.running:
                 current_time = time.time()
@@ -164,19 +166,18 @@ class GameInstance:
                 self.dt_samples.append(dt)
                 self.tick_count += 1
 
-                # Traiter les inputs
+                # ===== TRAITER LES INPUTS =====
                 for client_id, input_list in list(self.pending_inputs.items()):
-                    for input_dict in input_list:
-                        if client_id in self.players:
+                    if client_id in self.players and input_list:
+                        # Traiter jusqu'à MAX_INPUTS_PER_TICK
+                        for _ in range(min(MAX_INPUTS_PER_TICK, len(input_list))):
+                            input_dict = input_list.pop(0)
                             self.process_input(self.players[client_id], input_dict)
-                self.pending_inputs.clear()
 
-                # ===== ENVOYER last_input_seq DANS game_update =====
+                # ===== ENVOYER L'ÉTAT AUX CLIENTS =====
                 if self.players:
                     players_state = {}
-
                     for player_id, player_data in self.players.items():
-
                         current_data = {
                             "x": player_data["x"],
                             "y": player_data["y"],
@@ -185,6 +186,7 @@ class GameInstance:
                             "last_input_seq": player_data["last_input_seq"]
                         }
 
+                        # n'envoyer que si différent de l'état précédent
                         if self.players_previous_state.get(player_id) != current_data:
                             players_state[player_id] = current_data
 
@@ -195,6 +197,7 @@ class GameInstance:
                             "timestamp": current_time,
                         })
 
+                    # Mettre à jour l'état précédent pour comparer au prochain tick
                     self.players_previous_state = {
                         player_id: {
                             "x": player_data["x"],
@@ -206,7 +209,7 @@ class GameInstance:
                         for player_id, player_data in self.players.items()
                     }
 
-                # Log périodique
+                # ===== LOG STATISTIQUES =====
                 if time.time() - self.last_stats_log >= 5:
                     if self.dt_samples:
                         avg_dt = sum(self.dt_samples) / len(self.dt_samples)
@@ -222,14 +225,15 @@ class GameInstance:
                     self.messages_sent = 0
                     self.last_stats_log = time.time()
 
-                # Attente tick
+                # ===== ATTENTE TICK =====
                 sleep_time = max(0, TICK_INTERVAL - (time.time() - current_time))
                 await asyncio.sleep(sleep_time)
 
-        except asyncio.CancelledError as e:
-            raise e
+        except asyncio.CancelledError:
+            raise
         except Exception as e:
-            raise e
+            logging.exception(f"Exception in game loop {self.map_id}: {e}")
+            raise
         finally:
             logging.info(f"Game loop stopped for instance {self.map_id}")
 

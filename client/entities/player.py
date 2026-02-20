@@ -1,6 +1,6 @@
 import pygame
 from client.entities.base_player import BasePlayer
-from client.core.settings import WIDTH, HEIGHT
+from client.core.settings import WIDTH, HEIGHT, TICK_INTERVAL
 
 # Constantes d'input
 IN_UP = 1
@@ -52,7 +52,7 @@ class Player(BasePlayer):
             mask |= IN_FIRE
         return {"k": mask}
 
-    def apply_input(self, inp, dt):
+    def apply_input(self, inp):
         """Déplacement local en fonction des inputs avec vérification de collision"""
         k = inp.get("k", 0)
         vx = vy = 0.0
@@ -69,8 +69,8 @@ class Player(BasePlayer):
             vy *= factor
 
         # Calculer la nouvelle position
-        new_x = self.pos.x + vx * dt
-        new_y = self.pos.y + vy * dt
+        new_x = self.pos.x + vx * TICK_INTERVAL
+        new_y = self.pos.y + vy * TICK_INTERVAL
 
         # Vérifier les collisions si map_renderer est disponible
         collision_detected = False
@@ -86,12 +86,11 @@ class Player(BasePlayer):
         # Sync rect
         self.rect.center = self.pos
 
-    def save_input_for_reconciliation(self, inp, dt):
+    def save_input_for_reconciliation(self, inp):
         """Sauvegarde un input pour la réconciliation future"""
         self.pending_inputs.append({
             "seq": inp.get("seq", 0),
             "k": inp["k"],
-            "dt": dt,
             "timestamp": pygame.time.get_ticks()
         })
 
@@ -99,21 +98,40 @@ class Player(BasePlayer):
             self.pending_inputs = self.pending_inputs[-60:]
 
     def data_from_the_server(self, server_state):
-        server_x = server_state.get("x")
-        server_y = server_state.get("y")
+        """
+        Réconciliation client-side prediction avec les inputs en attente.
+        - server_state contient : x, y, last_input_seq
+        """
+        server_x = server_state.get("x", self.pos.x)
+        server_y = server_state.get("y", self.pos.y)
         server_seq = server_state.get("last_input_seq", -1)
 
+        # --- Étape 1 : calcul de l'erreur de prédiction ---
+        predicted_pos = self.pos
+        server_pos = pygame.Vector2(server_x, server_y)
+        error = predicted_pos.distance_to(server_pos)
+        if error > 0:
+            pass
+        print("Prediction error:", error)
+
+        # --- Étape 2 : vérifier si la séquence serveur est déjà appliquée ---
+        if server_seq <= self.last_processed_seq:
+            # Ce serveur update est déjà traité, rien à faire
+            return
+
+        # --- Étape 3 : snap à la position serveur pour le dernier input confirmé ---
         self.pos.update(server_x, server_y)
+        self.last_processed_seq = server_seq
 
-        if server_seq > self.last_processed_seq:
-            self.last_processed_seq = server_seq
-
-        self.pending_inputs = [
-            inp for inp in self.pending_inputs if inp["seq"] > self.last_processed_seq
+        # --- Étape 4 : filtrer les inputs déjà confirmés ---
+        remaining_inputs = [
+            inp for inp in self.pending_inputs if inp["seq"] > server_seq
         ]
+        self.pending_inputs = remaining_inputs
 
+        # --- Étape 5 : réappliquer tous les inputs non confirmés --- ??
         for inp in self.pending_inputs:
-            self.apply_input(inp, inp["dt"])
+            self.apply_input(inp)
 
     def take_damage(self, damage):
         remaining_health = self.life.lose_health(damage)
