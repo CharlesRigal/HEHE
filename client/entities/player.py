@@ -32,6 +32,7 @@ class Player(BasePlayer):
 
         # Correction accumulée à drainer progressivement dans update()
         self._correction = pygame.Vector2(0, 0)
+        print(self._correction)
 
     @staticmethod
     def read_local_input():
@@ -113,7 +114,7 @@ class Player(BasePlayer):
         Réconciliation sans jamais toucher self.pos ni render_pos.
 
         On simule dans une variable temporaire ce que le serveur a
-        confirmé + les inputs non encore confirmés. On calcule l'écart
+        confirmé + les inputs non encorssssse confirmés. On calcule l'écart
         avec la prédiction locale et on accumule la correction dans
         self._correction. update() la drainera progressivement sur
         self.pos sans aucun saut visible.

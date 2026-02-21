@@ -142,7 +142,6 @@ class GameInstance:
             player["vy"] = 0.0
 
         player["last_update"] = time.time()
-        self.inputs_processed += 1
 
     async def broadcast_to_players(self, message: dict):
         """Diffuse un message à tous les joueurs de cette instance"""
