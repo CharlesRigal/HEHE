@@ -153,9 +153,9 @@ class Game:
             self.net = None
             self.net_connected = False
 
-    def join_the_server(self, maps):
+    def join_the_server(self, map):
         if self.net is not None:
-            self.net.send_join_request(maps)
+            self.net.send_join_request(map)
 
     def disconnect_from_server(self):
         if self.net is not None:
@@ -241,7 +241,6 @@ class Game:
                     selected_map = self.map_selector.handle_click(event)
 
                 if selected_map:
-                    print(f"Selected map: {selected_map}")
                     self.join_the_server(selected_map)
                     self.state = "waiting_for_game"
 
@@ -280,13 +279,23 @@ class Game:
         print(f"Map '{map_data.get('name')}' loaded successfully.")
 
     def handle_full_game_state(self, msg):
-        print("Get full game state from server")
+        """
+        FIX: reset la réconciliation après le spawn pour éviter que les
+        pending_inputs stale soient re-appliqués et téléportent le joueur.
+        """
+        #print("Get full game state from server")
         your_player_data = msg.get("your_player", {})
         if your_player_data:
             self.player.pos.x = your_player_data.get("x", self.player.pos.x)
             self.player.pos.y = your_player_data.get("y", self.player.pos.y)
+            self.player.render_pos = self.player.pos.copy()  # sync render immédiat
             self.player.life.life_current = your_player_data.get("health", self.player.life.life_current)
-            print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
+            #print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
+
+            # FIX: vider les inputs stale accumulés avant le spawn
+            self.player.pending_inputs.clear()
+            self.player.last_processed_seq = -1
+            self.input_seq = 0
 
         all_players = msg.get("players", {})
         all_players.pop(self.client_id, None)

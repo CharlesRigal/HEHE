@@ -8,7 +8,7 @@ class GameManager:
 
     def __init__(self):
         self.game_objects = []
-        self.objects_to_add = []  # Buffer pour les nouveaux objets
+        self.objects_to_add = []
 
     def add_object(self, game_object):
         """Ajouter un objet au gestionnaire"""
@@ -19,7 +19,8 @@ class GameManager:
 
     def remove_object(self, game_object):
         """Marquer un objet pour suppression"""
-        game_object.mark_for_removal()
+        if game_object is not None:
+            game_object.mark_for_removal()
 
     def update_all(self, dt, *args, **kwargs):
         """Mettre à jour tous les objets actifs"""
@@ -27,15 +28,10 @@ class GameManager:
         self.game_objects.extend(self.objects_to_add)
         self.objects_to_add.clear()
 
-
-        # Mettre à jour tous les objets actifs
         for obj in self.game_objects:
-            if isinstance(obj, RemotePlayer):
-                pass
             if obj.active:
                 obj.update(dt, *args, **kwargs)
 
-        # Nettoyer les objets marqués pour suppression
         self.game_objects = [obj for obj in self.game_objects if not obj.to_remove]
 
     def draw_all(self, screen):
@@ -43,7 +39,6 @@ class GameManager:
         for obj in self.game_objects:
             if obj.active:
                 obj.draw(screen)
-                pass
 
     def get_objects_by_type(self, object_type):
         """Récupérer tous les objets d'un type donné"""

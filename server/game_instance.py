@@ -155,7 +155,7 @@ class GameInstance:
         logging.info(f"Starting game loop for instance {self.map_id}")
         last_time = time.time()
 
-        MAX_INPUTS_PER_TICK = 10  # limite pour éviter de surcharger le serveur
+        MAX_INPUTS_PER_TICK = 60  # limite pour éviter de surcharger le serveur
 
         try:
             while self.running:
