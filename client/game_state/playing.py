@@ -8,11 +8,13 @@ def playing(game, tick_rate):
     current_time = pygame.time.get_ticks() / 1000.0
 
     inp = game.player.read_local_input()
-
     inp["seq"] = game.input_seq
     game.input_seq += 1
-
-    game.send_input_if_needed(inp)
+    if game.net_connected and game.net is not None:
+        msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}
+        if game.last_sid_ack is not None:
+            msg["ack"] = game.last_sid_ack
+        game.net.send(msg)
 
     game.player.apply_input(inp)
     game.player.save_input_for_reconciliation(inp)

@@ -8,16 +8,18 @@ from client.graphics.map_selector import MapSelector
 from client.network.network import NetworkClient
 from client.core.game_manager import GameManager
 from client.entities.remote_player import RemotePlayer
-from client.core.settings import WIDTH, HEIGHT, FPS, TICK_INTERVAL
+from client.core.settings import FPS, TICK_INTERVAL
 from client.entities.player import Player
+from client.entities.camera import Camera
 
 
 class Game:
     def __init__(self):
         pygame.init()
         self.game_manager = GameManager()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pygame.display.set_mode((1000,500), pygame.RESIZABLE)
         self.background = pygame.Surface(self.screen.get_size())
+        self.camera = Camera(self.screen)
         self.net = None
         self.net_connected = False
         pygame.display.set_caption("Fala world")
@@ -35,8 +37,8 @@ class Game:
         self.state = "menu"
 
         self.map_renderer = MapRenderer()
-        self.map_selector = MapSelector()
-        self.player = Player("1", WIDTH / 2, HEIGHT / 2, "client/assets/images/player.png")
+        self.map_selector = MapSelector(self.screen.get_width(), self.screen.get_height())
+        self.player = Player("1", 0, 0, "client/assets/images/player.png")
         self.player.map_renderer = self.map_renderer
         self.enemies = []
 
@@ -102,17 +104,15 @@ class Game:
             self.draw_background()
 
         if self.state == "menu":
-            self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), WIDTH / 2, HEIGHT / 2)
+            self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), self.screen.get_width() / 2, self.screen.get_height() / 2)
         elif self.state == "map_selection":
             self.map_selector.draw(self.screen)
         elif self.state == "playing":
             self.draw_playing()
         elif self.state == "game_over":
-            self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255, 0, 0), WIDTH / 2, HEIGHT / 2)
+            self.draw_text("Game Over - Appuie sur R pour recommencer", 40, (255, 0, 0), self.screen.get_width() / 2, self.screen.get_height() / 2)
 
         pygame.display.flip()
-
-    # ===== MÉTHODES INCHANGÉES CI-DESSOUS =====
 
     def build_input_message(self, inp):
         now = time.time()
@@ -139,7 +139,7 @@ class Game:
             return True
         return False
 
-    def connect_to_server(self, host="127.0.0.1", port=9000):
+    def connect_to_server(self, host="82.65.89.84", port=9000):
         if self.net is not None:
             return
         self.net = NetworkClient(host, port)
@@ -328,7 +328,9 @@ class Game:
                 self.update_or_create_remote_player(player_id, all_players[player_id])
 
     def draw_playing(self):
-        self.map_renderer.draw(self.screen)
+        self.camera.update(self.player.render_pos)
+
+        self.map_renderer.draw(self.screen, self.camera)
         self.player.draw(self.screen)
         self.game_manager.draw_all(self.screen)
         self.draw_hud()

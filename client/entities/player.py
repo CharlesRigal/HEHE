@@ -1,6 +1,6 @@
 import pygame
 from client.entities.base_player import BasePlayer
-from client.core.settings import WIDTH, HEIGHT, TICK_INTERVAL
+from client.core.settings import TICK_INTERVAL
 
 IN_UP = 1
 IN_DOWN = 2
@@ -23,7 +23,6 @@ class Player(BasePlayer):
     def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300):
         super().__init__(player_id, x, y, image_path, max_health)
         self.speed = speed
-        self._screen_bounds = pygame.Rect(0, 0, WIDTH, HEIGHT)
         self.target_pos = self.pos.copy()
         self.render_pos = self.pos.copy()
         self.pending_inputs = []
@@ -66,8 +65,8 @@ class Player(BasePlayer):
             collision_detected = self.map_renderer.check_collision(new_x, new_y, size=32)
 
         if not collision_detected:
-            self.pos.x = max(16, min(new_x, WIDTH - 16))
-            self.pos.y = max(16, min(new_y, HEIGHT - 16))
+            self.pos.x = max(16, min(new_x, self.map_renderer.map_surface.get_width() - 16))
+            self.pos.y = max(16, min(new_y, self.map_renderer.map_surface.get_height() - 16))
 
         self.rect.center = self.pos
 
@@ -96,8 +95,8 @@ class Player(BasePlayer):
 
         if not collision_detected:
             return pygame.Vector2(
-                max(16, min(new_x, WIDTH - 16)),
-                max(16, min(new_y, HEIGHT - 16))
+                max(16, min(new_x, self.map_renderer.map_surface.get_width() - 16)),
+                max(16, min(new_y, self.map_renderer.map_surface.get_height() - 16))
             )
         return pos.copy()
 

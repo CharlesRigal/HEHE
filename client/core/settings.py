@@ -1,5 +1,3 @@
-WIDTH = 1280
-HEIGHT = 720
 FPS = 144
 
 BLACK = (0, 0, 0)

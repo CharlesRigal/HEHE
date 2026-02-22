@@ -41,5 +41,4 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
 
 
     def draw(self, screen: pygame.Surface):
-        if self.is_alive():
-            screen.blit(self.image, self.rect)
+        screen.blit(self.image, self.rect)

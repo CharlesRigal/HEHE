@@ -8,8 +8,9 @@ class MapRenderer:
 
     def __init__(self):
         self.current_map = None
-        self.map_surface = None
+        self.map_surface: pygame.Surface|None = None
         self.collision_objects = []
+
 
         # Charger la config sprites + backgrounds
         sprite_package = resources.files("client.assets")
@@ -130,12 +131,10 @@ class MapRenderer:
         }
         return palette.get(obj_type, palette["default"])
 
-    # --- Rendu ---
-    def draw(self, screen: pygame.Surface, camera_offset=(0, 0)):
+    def draw(self, screen: pygame.Surface, camera):
         if self.map_surface:
-            screen.blit(self.map_surface, camera_offset)
+            screen.blit(self.map_surface, (camera.offset))
 
-    # --- Collisions ---
     def check_collision(self, x, y, size=32) -> bool:
         """Collision joueur (AABB)"""
         x1, x2 = x - size / 2, x + size / 2

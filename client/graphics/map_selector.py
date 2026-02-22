@@ -13,11 +13,8 @@ class MapSelector:
         self.screen_width = screen_width
         self.screen_height = screen_height
 
-        # Interface
         self.font = pygame.font.Font(None, 36)
-        #self.small_font = pygame.font.Font(None, 24)
 
-        # État de l'interface
         self.map_buttons = []
         self.button_height = 50
         self.button_margin = 10
@@ -28,7 +25,6 @@ class MapSelector:
         self.selected_map_id = None
         self._create_buttons()
 
-        # Sélectionner automatiquement la première map
         if maps:
             self.selected_map_id = next(iter(maps.keys()))
 
@@ -79,7 +75,6 @@ class MapSelector:
 
     def draw(self, screen: pygame.Surface):
         """Dessine l'interface de sélection"""
-        # Fond semi-transparent
         overlay = pygame.Surface((self.screen_width, self.screen_height))
         overlay.set_alpha(200)
         overlay.fill((0, 0, 0))
