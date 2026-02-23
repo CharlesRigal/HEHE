@@ -328,6 +328,7 @@ class Game:
                 self.update_or_create_remote_player(player_id, all_players[player_id])
 
     def draw_playing(self):
+        self.screen.fill((0, 0, 0))  # ← efface l'écran avant chaque frame
         self.camera.update(self.player.render_pos)
         self.map_renderer.draw(self.screen, self.camera)
         self.player.draw(self.screen, self.camera)
