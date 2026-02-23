@@ -329,10 +329,9 @@ class Game:
 
     def draw_playing(self):
         self.camera.update(self.player.render_pos)
-
         self.map_renderer.draw(self.screen, self.camera)
-        self.player.draw(self.screen)
-        self.game_manager.draw_all(self.screen)
+        self.player.draw(self.screen, self.camera)
+        self.game_manager.draw_all(self.screen, self.camera)
         self.draw_hud()
 
     def draw_hud(self):

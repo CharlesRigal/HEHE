@@ -7,8 +7,6 @@ class RemotePlayer(BasePlayer):
     def __init__(self, player_id, x, y, image_path="client/assets/images/remote_player.png"):
         super().__init__(player_id, x, y, image_path)
 
-        # Vitesse d'interpolation augmentée pour suivre les joueurs à 200px/s
-        # On met 400px/s pour être sûr de rattraper rapidement
         self.interpolator.speed = 400.0
 
     def update_from_server(self, server_update: dict):
@@ -39,3 +37,11 @@ class RemotePlayer(BasePlayer):
         """Update avec interpolation pour les joueurs distants"""
         self.pos = self.interpolator.update(dt)
         self.rect.center = (int(self.pos.x), int(self.pos.y))
+
+    def draw(self, screen, camera=None):
+        if camera:
+            screen_pos = camera.apply(self.pos)
+            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
+            screen.blit(self.image, rect)
+        else:
+            screen.blit(self.image, self.rect)

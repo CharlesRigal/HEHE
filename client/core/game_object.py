@@ -14,7 +14,7 @@ class GameObject(ABC):
         pass
 
     @abstractmethod
-    def draw(self, screen):
+    def draw(self, screen, camera=None):
         """Rendu obligatoire - chaque objet se dessine"""
         pass
 

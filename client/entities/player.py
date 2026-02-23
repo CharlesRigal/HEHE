@@ -169,18 +169,24 @@ class Player(BasePlayer):
         self.render_pos += delta * min(1.0, SMOOTHING_RATE * dt)
         self.rect.center = (int(self.render_pos.x), int(self.render_pos.y))
 
-    def draw(self, screen):
-        super().draw(screen)
-        self._draw_health_bar(screen)
-        if self.pending_inputs:
-            font = pygame.font.Font(None, 20)
-            text = font.render(f"Pending: {len(self.pending_inputs)}", True, (255, 255, 0))
-            screen.blit(text, (self.rect.centerx - 30, self.rect.top - 25))
+    def draw(self, screen, camera=None):
+        if camera:
+            screen_pos = camera.apply(self.render_pos)
+            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
+            screen.blit(self.image, rect)
+            self._draw_health_bar(screen, screen_pos)
+            if self.pending_inputs:
+                font = pygame.font.Font(None, 20)
+                text = font.render(f"Pending: {len(self.pending_inputs)}", True, (255, 255, 0))
+                screen.blit(text, (screen_pos.x - 30, screen_pos.y - rect.height // 2 - 25))
+        else:
+            super().draw(screen)
+            self._draw_health_bar(screen, self.render_pos)
 
-    def _draw_health_bar(self, screen, bar_width=50, bar_height=5):
+    def _draw_health_bar(self, screen, screen_pos, bar_width=50, bar_height=5):
         if self.life.get_health() < self.life.get_max_health():
-            bar_x = self.rect.centerx - bar_width // 2
-            bar_y = self.rect.top - 10
+            bar_x = screen_pos.x - bar_width // 2
+            bar_y = screen_pos.y - 26  # au-dessus du sprite
             pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
             health_width = int(bar_width * (self.life.get_health() / self.life.get_max_health()))
             if health_width > 0:

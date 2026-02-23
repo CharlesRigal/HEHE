@@ -133,7 +133,7 @@ class MapRenderer:
 
     def draw(self, screen: pygame.Surface, camera):
         if self.map_surface:
-            screen.blit(self.map_surface, (camera.offset))
+            screen.blit(self.map_surface, (-camera.offset.x, -camera.offset.y))
 
     def check_collision(self, x, y, size=32) -> bool:
         """Collision joueur (AABB)"""

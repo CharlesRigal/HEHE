@@ -39,6 +39,10 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
     def update(self,dt, *args, **kwargs):
         pass
 
-
-    def draw(self, screen: pygame.Surface):
-        screen.blit(self.image, self.rect)
+    def draw(self, screen: pygame.Surface, camera=None):
+        if camera:
+            screen_pos = camera.apply(self.pos)
+            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
+            screen.blit(self.image, rect)
+        else:
+            screen.blit(self.image, self.rect)

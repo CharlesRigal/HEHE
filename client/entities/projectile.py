@@ -24,5 +24,11 @@ class Projectile(GameObject):
                 self.timer > self.lifetime):
             self.mark_for_removal()
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, (255, 255, 0), self.rect)
+    def draw(self, screen, camera=None):
+        if camera:
+            screen_x = self.rect.x - camera.offset.x
+            screen_y = self.rect.y - camera.offset.y
+            pygame.draw.rect(screen, (255, 255, 0),
+                             (screen_x, screen_y, self.rect.width, self.rect.height))
+        else:
+            pygame.draw.rect(screen, (255, 255, 0), self.rect)

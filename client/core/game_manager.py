@@ -34,11 +34,10 @@ class GameManager:
 
         self.game_objects = [obj for obj in self.game_objects if not obj.to_remove]
 
-    def draw_all(self, screen):
-        """Dessiner tous les objets actifs"""
+    def draw_all(self, screen, camera=None):
         for obj in self.game_objects:
             if obj.active:
-                obj.draw(screen)
+                obj.draw(screen, camera)
 
     def get_objects_by_type(self, object_type):
         """Récupérer tous les objets d'un type donné"""
