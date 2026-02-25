@@ -2,6 +2,7 @@ import queue
 import time
 import pygame
 
+from client.entities.magical_draw import MagicalDraw
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
@@ -38,7 +39,7 @@ class Game:
 
         self.map_renderer = MapRenderer()
         self.map_selector = MapSelector(self.screen.get_width(), self.screen.get_height())
-        self.player = Player("1", 0, 0, "client/assets/images/player.png")
+        self.player = Player("1", 0, 0, "client/assets/images/player.png", magical_board=MagicalDraw(self.screen))
         self.player.map_renderer = self.map_renderer
         self.enemies = []
 

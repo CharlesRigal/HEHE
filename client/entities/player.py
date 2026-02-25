@@ -1,15 +1,18 @@
 import pygame
 from client.entities.base_player import BasePlayer
 from client.core.settings import TICK_INTERVAL
+from client.entities.magical_draw import MagicalDraw
 
 IN_UP = 1
 IN_DOWN = 2
 IN_LEFT = 4
 IN_RIGHT = 8
-IN_FIRE = 32
+IN_BOARD = 32
+IN_DRAWING = 64
 
 
 class Player(BasePlayer):
+
     def update_from_server(self, server_update: dict):
         new_target = pygame.Vector2(
             server_update.get("x", self.pos.x),
@@ -20,8 +23,10 @@ class Player(BasePlayer):
             self.pos = new_target.copy()
         self.interpolator.set_target(new_target)
 
-    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300):
+    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300,
+                 magical_board=None):
         super().__init__(player_id, x, y, image_path, max_health)
+        self.mask = 0
         self.speed = speed
         self.target_pos = self.pos.copy()
         self.render_pos = self.pos.copy()
@@ -29,19 +34,23 @@ class Player(BasePlayer):
         self.last_processed_seq = -1
         self.map_renderer = None
 
+        self.magical_board: MagicalDraw = magical_board
+
         # Correction accumulée à drainer progressivement dans update()
         self._correction = pygame.Vector2(0, 0)
         print(self._correction)
 
-    @staticmethod
-    def read_local_input():
+
+    def read_local_input(self):
         keys = pygame.key.get_pressed()
         mask = 0
         if keys[pygame.K_z] or keys[pygame.K_UP]:    mask |= IN_UP
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:  mask |= IN_DOWN
         if keys[pygame.K_q] or keys[pygame.K_LEFT]:  mask |= IN_LEFT
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]: mask |= IN_RIGHT
-        if keys[pygame.K_SPACE]:                     mask |= IN_FIRE
+        if pygame.mouse.get_pressed()[2]:            mask |= IN_BOARD
+        if pygame.mouse.get_pressed()[0]:            mask |= IN_DRAWING
+        self.mask = mask
         return {"k": mask}
 
     def apply_input(self, inp):
@@ -182,6 +191,8 @@ class Player(BasePlayer):
         else:
             super().draw(screen)
             self._draw_health_bar(screen, self.render_pos)
+        if self.mask & IN_BOARD:
+            self.magical_board.draw(screen)
 
     def _draw_health_bar(self, screen, screen_pos, bar_width=50, bar_height=5):
         if self.life.get_health() < self.life.get_max_health():

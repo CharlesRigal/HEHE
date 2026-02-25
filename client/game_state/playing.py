@@ -1,5 +1,8 @@
 import pygame
 
+from client.entities.magical_draw import MagicalDraw
+from client.entities.player import IN_BOARD, IN_DRAWING
+
 
 def playing(game, tick_rate):
     if game.start_time is None:
@@ -10,6 +13,12 @@ def playing(game, tick_rate):
     inp = game.player.read_local_input()
     inp["seq"] = game.input_seq
     game.input_seq += 1
+
+    if inp.get("k") & IN_BOARD:
+        if inp.get("k") & IN_DRAWING:
+            game.player.magical_board.add_point(pygame.mouse.get_pos())
+        else:
+            game.player.magical_board.validate_points_to_board()
 
     if game.net_connected and game.net is not None:
         msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}
