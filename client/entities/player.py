@@ -191,8 +191,7 @@ class Player(BasePlayer):
         else:
             super().draw(screen)
             self._draw_health_bar(screen, self.render_pos)
-        if self.mask & IN_BOARD:
-            self.magical_board.draw(screen)
+
 
     def _draw_health_bar(self, screen, screen_pos, bar_width=50, bar_height=5):
         if self.life.get_health() < self.life.get_max_health():

@@ -6,11 +6,12 @@ from client.entities.magical_draw import MagicalDraw
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
+from client.magic.geometry_analyzer import GeometryAnalyzer
 from client.network.network import NetworkClient
 from client.core.game_manager import GameManager
 from client.entities.remote_player import RemotePlayer
 from client.core.settings import FPS, TICK_INTERVAL
-from client.entities.player import Player
+from client.entities.player import Player, IN_BOARD
 from client.entities.camera import Camera
 
 
@@ -34,6 +35,8 @@ class Game:
         self.input_prev_mask = 0
         self.last_sid_ack = None
         self.msg_old = ""
+
+        self.geometry_analyzer = GeometryAnalyzer()
 
         self.state = "menu"
 
@@ -334,6 +337,8 @@ class Game:
         self.map_renderer.draw(self.screen, self.camera)
         self.player.draw(self.screen, self.camera)
         self.game_manager.draw_all(self.screen, self.camera)
+        if self.player.mask & IN_BOARD:
+            self.screen.blit(self.player.magical_board.draw(), (0, 0))
         self.draw_hud()
 
     def draw_hud(self):
