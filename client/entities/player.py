@@ -24,7 +24,7 @@ class Player(BasePlayer):
         self.interpolator.set_target(new_target)
 
     def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300,
-                 magical_board=None):
+                 magical_draw=None):
         super().__init__(player_id, x, y, image_path, max_health)
         self.mask = 0
         self.speed = speed
@@ -34,7 +34,7 @@ class Player(BasePlayer):
         self.last_processed_seq = -1
         self.map_renderer = None
 
-        self.magical_board: MagicalDraw = magical_board
+        self.magical_draw: MagicalDraw = magical_draw
 
         # Correction accumulée à drainer progressivement dans update()
         self._correction = pygame.Vector2(0, 0)

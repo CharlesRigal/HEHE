@@ -1,8 +1,6 @@
 import pygame
-from pygame.examples.scrap_clipboard import screen
 
 from client.entities.player import IN_BOARD, IN_DRAWING
-from client.magic.geometry_analyzer import GeometryAnalyzer
 
 
 def playing(game, tick_rate):
@@ -17,11 +15,13 @@ def playing(game, tick_rate):
 
     if inp.get("k") & IN_BOARD:
         if inp.get("k") & IN_DRAWING:
-            game.player.magical_board.add_point(pygame.mouse.get_pos())
+            game.player.magical_draw.add_point(pygame.mouse.get_pos(), current_time)
         else:
-            strok = game.player.magical_board.validate_points_to_board()
+            strok = game.player.magical_draw.validate_points_to_board()
             if strok is not None:
-                game.geometry_analyzer.analyze(strok)
+                primitive = game.geometry_analyzer.analyze(strok)
+                if primitive:
+                    game.player.magical_draw.add_node(primitive)
 
     if game.net_connected and game.net is not None:
         msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}

@@ -40,11 +40,10 @@ class Game:
 
         self.state = "menu"
 
-        self.map_renderer = MapRenderer()
-        self.map_selector = MapSelector(self.screen.get_width(), self.screen.get_height())
-        self.player = Player("1", 0, 0, "client/assets/images/player.png", magical_board=MagicalDraw(self.screen))
+        self.map_renderer:MapRenderer = MapRenderer()
+        self.map_selector:MapSelector = MapSelector(self.screen.get_width(), self.screen.get_height())
+        self.player:Player = Player("1", 0, 0, "client/assets/images/player.png", magical_draw=MagicalDraw(self.screen))
         self.player.map_renderer = self.map_renderer
-        self.enemies = []
 
         # ===== VARIABLES POUR FIXED TIMESTEP =====
         self.accumulator = 0.0  # Temps accumulé pour les ticks de logique
@@ -338,7 +337,7 @@ class Game:
         self.player.draw(self.screen, self.camera)
         self.game_manager.draw_all(self.screen, self.camera)
         if self.player.mask & IN_BOARD:
-            self.screen.blit(self.player.magical_board.draw(), (0, 0))
+            self.screen.blit(self.player.magical_draw.draw(), (0, 0))
         self.draw_hud()
 
     def draw_hud(self):
