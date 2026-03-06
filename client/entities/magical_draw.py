@@ -49,8 +49,8 @@ class MagicalDraw:
                 pygame.draw.line(
                     self.surface,
                     (255, 255, 255, 180),
-                    p1,
-                    p2,
+                    p1[0],
+                    p2[0],
                     4
                 )
 

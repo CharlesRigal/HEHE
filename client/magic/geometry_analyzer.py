@@ -1,6 +1,22 @@
 import math
 import numpy as np
 
+def _normalize_stroke(stroke):
+    normalized = []
+    for point in stroke:
+        if not isinstance(point, (list, tuple)) or len(point) < 2:
+            continue
+
+        x, y = point[0], point[1]
+
+        # Supporte les points horodates: ((x, y), t)
+        if isinstance(x, (list, tuple)) and len(x) >= 2:
+            x, y = x[0], x[1]
+
+        normalized.append((x, y))
+
+    return normalized
+
 def is_closed(stroke, threshold=15):
     if len(stroke) < 3:
         return False
@@ -168,21 +184,22 @@ class GeometryAnalyzer:
 
     @staticmethod
     def _analyze_stroke(stroke):
-        if len(stroke) < 2:
+        stroke_xy = _normalize_stroke(stroke)
+        if len(stroke_xy) < 2:
             return None
 
-        simplified = rdp(stroke, epsilon=5)
+        simplified = rdp(stroke_xy, epsilon=5)
         if len(simplified) == 2:
             return Segment(simplified[0], simplified[1])
 
-        if is_closed(stroke):
-            circle_data = detect_circle(stroke)
+        if is_closed(stroke_xy):
+            circle_data = detect_circle(stroke_xy)
             if circle_data:
                 center, radius = circle_data
-                return Circle(stroke, center=tuple(center.tolist()), radius=float(radius))
+                return Circle(stroke_xy, center=tuple(center.tolist()), radius=float(radius))
 
-            triangle_vertices = detect_triangle(stroke)
+            triangle_vertices = detect_triangle(stroke_xy)
             if triangle_vertices:
-                return Triangle(stroke, triangle_vertices)
+                return Triangle(stroke_xy, triangle_vertices)
 
         return None
