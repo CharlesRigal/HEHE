@@ -1,23 +1,29 @@
 import pygame
 from pygame.surface import SurfaceType
+from typing import TypeAlias
 
-from client.magic.graph_geo import GraphGeo
+from client.magic.graph_geo import GraphGeo, MagicalNode
+from client.magic.primitives import Segment
+
+ScreenPoint: TypeAlias = tuple[int, int]
+TimedPoint: TypeAlias = tuple[ScreenPoint, float]
+Stroke: TypeAlias = list[TimedPoint]
 
 
 class MagicalDraw:
-    def get_strokes(self):
+    def get_strokes(self) -> list[Stroke]:
         return list(self._point_list)
 
     def __init__(self, screen):
-        self._point_list: list[list[(int, int)]] = []
-        self._points: list[(int, int)] = []
+        self._point_list: list[Stroke] = []
+        self._points: Stroke = []
         self._magical_graph: GraphGeo = GraphGeo()
         self.surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA).convert_alpha()
 
     def add_node(self, primitive):
         self._magical_graph.add_node(primitive)
 
-    def add_point(self, point, current_time):
+    def add_point(self, point: ScreenPoint, current_time: float) -> None:
         if not self._points:
             self._points.append((point, current_time))
             return
@@ -29,13 +35,13 @@ class MagicalDraw:
         if dx * dx + dy * dy > 9:  # distance > 3px
             self._points.append((point, current_time))
 
-    def validate_points_to_board(self):
+    def validate_points_to_board(self) -> None:
         if self._points:
             self._point_list.append(self._points)
-            to_return = self._point_list
             self._points = []
-            return to_return
-        return None
+
+    def clear_board(self) -> None:
+        self._point_list = []
 
     def draw(self) -> SurfaceType:
         self.surface.fill((0, 0, 0, 0))
@@ -53,6 +59,12 @@ class MagicalDraw:
                     p2[0],
                     4
                 )
+
+        symplified_strock: MagicalNode|None = self._magical_graph.get_head()
+        while symplified_strock is not None:
+            if isinstance(symplified_strock, Segment):
+                line:Segment = symplified_strock
+                pygame.draw.line(self.surface, (255, 0, 255, 90), line.start, symplified_strock.end, 80)
 
         return self.surface
 

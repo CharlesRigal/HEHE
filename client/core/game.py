@@ -33,6 +33,7 @@ class Game:
         self.last_input_send = 0.0
         self.input_send_hz = 60.0
         self.input_prev_mask = 0
+        self.prev_board_pressed = False
         self.last_sid_ack = None
         self.msg_old = ""
 

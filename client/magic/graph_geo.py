@@ -1,4 +1,15 @@
 
+
+
+class MagicalNode:
+    def __init__(self, primitive, parent = None):
+        self.primitive = primitive
+        self.parent = parent
+        self.child = None
+
+    def set_child(self,child):
+        self.child = child
+
 class GraphGeo:
     def __init__(self):
         self._root_node:MagicalNode|None = None
@@ -12,13 +23,5 @@ class GraphGeo:
                 node = node.child
             node.child = MagicalNode(primitive)
 
-
-class MagicalNode:
-    def __init__(self, primitive, parent = None):
-        self.primitive = primitive
-        self.parent = parent
-        self.child = None
-
-    def set_child(self,child):
-        self.child = child
-
+    def get_head(self) -> MagicalNode:
+        return self._root_node

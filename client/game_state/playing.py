@@ -17,11 +17,12 @@ def playing(game, tick_rate):
         if inp.get("k") & IN_DRAWING:
             game.player.magical_draw.add_point(pygame.mouse.get_pos(), current_time)
         else:
-            strok = game.player.magical_draw.validate_points_to_board()
-            if strok is not None:
-                primitive = game.geometry_analyzer.analyze(strok)
-                if primitive:
-                    game.player.magical_draw.add_node(primitive)
+            game.player.magical_draw.validate_points_to_board()
+    else:
+        primitive = game.geometry_analyzer.analyze(game.player.magical_draw.get_strokes())
+        if primitive:
+            game.player.magical_draw.add_node(primitive)
+        # game.player.magical_draw.clear_board()
 
     if game.net_connected and game.net is not None:
         msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}
