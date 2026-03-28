@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from client.magic.primitives import Circle, Segment, Triangle
+from client.magic.primitives import Arrow, Circle, RuneFire, Segment, Triangle
+from client.magic.recognition.complex_composers import ComplexShapeComposer
 from client.magic.recognition.pipeline import PrimitiveRecognitionEngine
 from client.magic.recognition.types import (
     HeuristicDetector,
@@ -54,12 +55,17 @@ class GeometryAnalyzer:
     def register_dollar_template(self, label: str, points: Sequence[Point]) -> None:
         self._engine.register_dollar_template(label, points)
 
+    def register_complex_composer(self, label: str, composer: ComplexShapeComposer) -> None:
+        self._engine.register_complex_composer(label, composer)
+
 
 __all__ = [
     "GeometryAnalyzer",
     "Segment",
     "Circle",
     "Triangle",
+    "Arrow",
+    "RuneFire",
     "RecognitionConfig",
     "ShapeDefinition",
 ]

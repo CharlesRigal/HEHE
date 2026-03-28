@@ -28,6 +28,11 @@ class MapSelector:
         if maps:
             self.selected_map_id = next(iter(maps.keys()))
 
+    def resize(self, screen_width: int, screen_height: int):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self._create_buttons()
+
     def _create_buttons(self):
         """Crée les boutons pour chaque map"""
         self.map_buttons = []

@@ -6,6 +6,9 @@ class Camera:
         self.screen = screen
         self.offset = pygame.Vector2(0, 0)
 
+    def set_screen(self, screen):
+        self.screen = screen
+
     def update(self, target_pos):
         screen_w, screen_h = self.screen.get_size()
 

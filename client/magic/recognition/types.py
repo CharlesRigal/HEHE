@@ -54,6 +54,8 @@ class RecognitionConfig:
     segment_threshold: float = 0.60
     circle_threshold: float = 0.64
     triangle_threshold: float = 0.60
+    arrow_threshold: float = 0.62
+    rune_fire_threshold: float = 0.64
     heuristic_weight: float = 0.70
     dollar_weight: float = 0.30
     shape_thresholds: dict[str, float] = field(default_factory=dict)
@@ -70,6 +72,8 @@ class RecognitionConfig:
             "segment": self.segment_threshold,
             "circle": self.circle_threshold,
             "triangle": self.triangle_threshold,
+            "arrow": self.arrow_threshold,
+            "rune_fire": self.rune_fire_threshold,
         }
         return legacy_thresholds.get(key, default)
 

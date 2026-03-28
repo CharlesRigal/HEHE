@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from client.magic.primitives import Circle, Segment, Triangle
+from client.magic.primitives import Arrow, Circle, RuneFire, Segment, Triangle, ZigZag
 
 Point = tuple[float, float]
 PriorityRule = Callable[["PriorityContext"], dict[int, float]]
@@ -38,6 +38,14 @@ class PriorityContext:
     centers: dict[int, Point]
     distances_to_anchor: dict[int, float]
     clockwise_angles: dict[int, float]
+
+
+@dataclass(slots=True)
+class CircleReadingPlan:
+    anchor_circle_index: int
+    ordered_subsymbol_indices: list[int]
+    center: Point
+    radial_step: float
 
 
 class GraphGeo:
@@ -211,6 +219,31 @@ class GraphGeo:
         ranked.sort(key=lambda item: (int(item[1] / radial_step), item[2], item[1]))
         return [idx for idx, _, _ in ranked]
 
+    def build_circle_reading_plan(
+        self,
+        circle_index: int | None = None,
+        radial_step_ratio: float = 0.2,
+    ) -> CircleReadingPlan | None:
+        anchor_index = self.get_anchor_circle_index() if circle_index is None else circle_index
+        if anchor_index is None or anchor_index < 0 or anchor_index >= len(self._nodes):
+            return None
+
+        anchor = self._nodes[anchor_index].primitive
+        if not isinstance(anchor, Circle) or anchor.center is None or anchor.radius is None:
+            return None
+
+        radial_step = max(1.0, anchor.radius * max(0.05, radial_step_ratio))
+        ordered = self.get_contained_clockwise_indices(
+            circle_index=anchor_index,
+            radial_step_ratio=radial_step_ratio,
+        )
+        return CircleReadingPlan(
+            anchor_circle_index=anchor_index,
+            ordered_subsymbol_indices=ordered,
+            center=tuple(anchor.center),
+            radial_step=radial_step,
+        )
+
     def build_priority_context(self, circle_index: int | None = None) -> PriorityContext:
         centers = {idx: self._primitive_center(node.primitive) for idx, node in enumerate(self._nodes)}
         anchor_index = self.get_anchor_circle_index() if circle_index is None else circle_index
@@ -315,8 +348,9 @@ class GraphGeo:
     def _clockwise_angle_from_up(center: Point, point: Point) -> float:
         dx = point[0] - center[0]
         dy = point[1] - center[1]
-        angle = math.atan2(dy, dx)
-        return (math.pi / 2.0 - angle) % (2.0 * math.pi)
+        # Ecran pygame: axe Y vers le bas.
+        # atan2(dx, -dy) donne 0 vers le haut et augmente en sens horaire.
+        return math.atan2(dx, -dy) % (2.0 * math.pi)
 
     def _scene_diagonal(self) -> float:
         all_points: list[Point] = []
@@ -336,6 +370,14 @@ class GraphGeo:
         if isinstance(container, Triangle):
             center = self._primitive_center(target)
             return self._point_in_triangle(center, container.vertices[0], container.vertices[1], container.vertices[2])
+        if isinstance(container, RuneFire) and len(container.vertices) >= 3:
+            center = self._primitive_center(target)
+            return self._point_in_triangle(
+                center,
+                container.vertices[0],
+                container.vertices[1],
+                container.vertices[2],
+            )
         return False
 
     def _intersects(self, left: Any, right: Any) -> bool:
@@ -413,6 +455,19 @@ class GraphGeo:
             vx = sum(point[0] for point in primitive.vertices) / len(primitive.vertices)
             vy = sum(point[1] for point in primitive.vertices) / len(primitive.vertices)
             return (vx, vy)
+        if isinstance(primitive, RuneFire) and primitive.vertices:
+            vx = sum(point[0] for point in primitive.vertices) / len(primitive.vertices)
+            vy = sum(point[1] for point in primitive.vertices) / len(primitive.vertices)
+            return (vx, vy)
+        if isinstance(primitive, ZigZag) and primitive.vertices:
+            vx = sum(point[0] for point in primitive.vertices) / len(primitive.vertices)
+            vy = sum(point[1] for point in primitive.vertices) / len(primitive.vertices)
+            return (vx, vy)
+        if isinstance(primitive, Arrow):
+            return (
+                (primitive.tail[0] + primitive.tip[0]) * 0.5,
+                (primitive.tail[1] + primitive.tip[1]) * 0.5,
+            )
         points = self._primitive_points(primitive)
         if not points:
             return (0.0, 0.0)
@@ -427,6 +482,18 @@ class GraphGeo:
             return [primitive.start, primitive.end, middle]
         if isinstance(primitive, Triangle):
             return list(primitive.vertices) + [self._primitive_center(primitive)]
+        if isinstance(primitive, RuneFire):
+            points = list(primitive.vertices) + [self._primitive_center(primitive)]
+            for start, end in primitive.cuts[:3]:
+                points.append(((start[0] + end[0]) * 0.5, (start[1] + end[1]) * 0.5))
+            return points
+        if isinstance(primitive, ZigZag):
+            if not primitive.vertices:
+                return []
+            middle = primitive.vertices[len(primitive.vertices) // 2]
+            return [primitive.vertices[0], middle, primitive.vertices[-1]]
+        if isinstance(primitive, Arrow):
+            return [primitive.tail, primitive.tip, primitive.left_head, primitive.right_head]
         if isinstance(primitive, Circle) and primitive.center is not None and primitive.radius is not None:
             cx, cy = primitive.center
             r = primitive.radius
@@ -450,6 +517,21 @@ class GraphGeo:
             return [tuple(primitive.start), tuple(primitive.end)]
         if isinstance(primitive, Triangle):
             return [tuple(point) for point in primitive.vertices]
+        if isinstance(primitive, RuneFire):
+            points: list[Point] = [tuple(point) for point in primitive.vertices[:3]]
+            for start, end in primitive.cuts:
+                points.extend([tuple(start), tuple(end)])
+            return points
+        if isinstance(primitive, ZigZag):
+            return [tuple(point) for point in primitive.vertices]
+        if isinstance(primitive, Arrow):
+            return [
+                tuple(primitive.tail),
+                tuple(primitive.tip),
+                tuple(primitive.left_head),
+                tuple(primitive.tip),
+                tuple(primitive.right_head),
+            ]
         if isinstance(primitive, Circle):
             if primitive._points:
                 return [tuple(point) for point in primitive._points]
@@ -473,6 +555,16 @@ class GraphGeo:
     def _primitive_edges(self, primitive: Any) -> list[tuple[Point, Point]]:
         if isinstance(primitive, Segment):
             return [(tuple(primitive.start), tuple(primitive.end))]
+        if isinstance(primitive, RuneFire) and len(primitive.vertices) >= 3:
+            vertices = [tuple(point) for point in primitive.vertices[:3]]
+            edges: list[tuple[Point, Point]] = [
+                (vertices[0], vertices[1]),
+                (vertices[1], vertices[2]),
+                (vertices[2], vertices[0]),
+            ]
+            for start, end in primitive.cuts[:3]:
+                edges.append((tuple(start), tuple(end)))
+            return edges
         points = self._primitive_points(primitive)
         if len(points) < 2:
             return []

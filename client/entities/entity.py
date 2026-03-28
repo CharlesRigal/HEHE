@@ -42,9 +42,6 @@ class Life:
             return 0
         return (self.life_current / self.life_max) * 100
 
-    def life_current(self):
-        return self.life_current
-
     def reset_health(self):
         """Remet la vie au maximum"""
         self.life_current = self.life_max

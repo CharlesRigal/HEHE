@@ -4,8 +4,10 @@ import os
 from pygame.surface import SurfaceType
 from typing import TypeAlias
 
+from client.entities.recognition_effect_renderer import RecognitionEffectRenderer
+from client.magic.circle_symbol_executor import CircleSubSymbolExecutor
 from client.magic.graph_geo import GraphGeo, MagicalNode
-from client.magic.primitives import Segment, Circle, Triangle
+from client.magic.primitives import Arrow, RuneFire, Segment, Circle, Triangle, ZigZag
 
 ScreenPoint: TypeAlias = tuple[int, int]
 TimedPoint: TypeAlias = tuple[ScreenPoint, float]
@@ -28,6 +30,16 @@ class MagicalDraw:
         self._point_list: list[Stroke] = []
         self._points: Stroke = []
         self._magical_graph: GraphGeo = GraphGeo()
+        self._circle_symbol_executor = CircleSubSymbolExecutor()
+        self._recognition_effect_renderer = RecognitionEffectRenderer()
+        self._primitive_drawers = {
+            Segment: self._draw_segment_primitive,
+            ZigZag: self._draw_zigzag_primitive,
+            Circle: self._draw_circle_primitive,
+            Triangle: self._draw_triangle_primitive,
+            RuneFire: self._draw_rune_fire_primitive,
+            Arrow: self._draw_arrow_primitive,
+        }
         self.surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA).convert_alpha()
         self._clear_delay_seconds = clear_delay_seconds
         self._clear_at: float | None = None
@@ -36,8 +48,36 @@ class MagicalDraw:
         self._stroke_length = 0.0
         self._last_segment_speed = 0.0
 
+    def resize_surface(self, size: tuple[int, int]) -> None:
+        width = max(1, int(size[0]))
+        height = max(1, int(size[1]))
+        if self.surface.get_size() == (width, height):
+            return
+
+        previous = self.surface
+        resized = pygame.Surface((width, height), pygame.SRCALPHA).convert_alpha()
+        resized.blit(previous, (0, 0))
+        self.surface = resized
+
     def add_node(self, primitive):
         self._magical_graph.add_node(primitive)
+        self._try_execute_circle_subsymbols(primitive)
+        now = pygame.time.get_ticks() / 1000.0
+        self._recognition_effect_renderer.spawn(primitive, now)
+
+    def _try_execute_circle_subsymbols(self, primitive) -> None:
+        if not isinstance(primitive, Circle):
+            return
+
+        circle_index = len(self._magical_graph.iter_primitives()) - 1
+        plan = self._magical_graph.build_circle_reading_plan(circle_index=circle_index)
+        if plan is None or not plan.ordered_subsymbol_indices:
+            return
+
+        self._circle_symbol_executor.execute_reading_plan(
+            plan=plan,
+            primitives=self._magical_graph.iter_primitives(),
+        )
 
     def _load_magic_sound(self):
         try:
@@ -199,6 +239,56 @@ class MagicalDraw:
         spark_color = (245, 245, 255, self._clamp_alpha((130 + 100 * pulse) * fade))
         pygame.draw.circle(self.surface, spark_color, (spark_x, spark_y), spark_r)
 
+    def _draw_segment_primitive(self, primitive: Segment) -> None:
+        pygame.draw.line(self.surface, (170, 70, 255, 95), primitive.start, primitive.end, 6)
+        pygame.draw.line(self.surface, (245, 235, 255, 170), primitive.start, primitive.end, 2)
+
+    def _draw_zigzag_primitive(self, primitive: ZigZag) -> None:
+        if len(primitive.vertices) < 2:
+            return
+        pts = [(int(x), int(y)) for x, y in primitive.vertices]
+        pygame.draw.lines(self.surface, (170, 70, 255, 95), False, pts, 6)
+        pygame.draw.lines(self.surface, (245, 235, 255, 170), False, pts, 2)
+
+    def _draw_circle_primitive(self, primitive: Circle) -> None:
+        if primitive.center is None or primitive.radius is None:
+            return
+        center = (int(primitive.center[0]), int(primitive.center[1]))
+        radius = max(1, int(primitive.radius))
+        pygame.draw.circle(self.surface, (170, 70, 255, 95), center, radius + 2, 6)
+        pygame.draw.circle(self.surface, (245, 235, 255, 170), center, radius, 2)
+
+    def _draw_triangle_primitive(self, primitive: Triangle) -> None:
+        if len(primitive.vertices) < 3:
+            return
+        pts = [(int(x), int(y)) for x, y in primitive.vertices[:3]]
+        pygame.draw.polygon(self.surface, (170, 70, 255, 95), pts, 6)
+        pygame.draw.polygon(self.surface, (245, 235, 255, 170), pts, 2)
+
+    def _draw_rune_fire_primitive(self, primitive: RuneFire) -> None:
+        if len(primitive.vertices) < 3:
+            return
+        pts = [(int(x), int(y)) for x, y in primitive.vertices[:3]]
+        pygame.draw.polygon(self.surface, (235, 90, 40, 125), pts, 6)
+        pygame.draw.polygon(self.surface, (255, 230, 210, 180), pts, 2)
+        for cut_start, cut_end in primitive.cuts[:3]:
+            start = (int(cut_start[0]), int(cut_start[1]))
+            end = (int(cut_end[0]), int(cut_end[1]))
+            pygame.draw.line(self.surface, (235, 90, 40, 125), start, end, 6)
+            pygame.draw.line(self.surface, (255, 230, 210, 180), start, end, 2)
+
+    def _draw_arrow_primitive(self, primitive: Arrow) -> None:
+        tip = (int(primitive.tip[0]), int(primitive.tip[1]))
+        tail = (int(primitive.tail[0]), int(primitive.tail[1]))
+        left = (int(primitive.left_head[0]), int(primitive.left_head[1]))
+        right = (int(primitive.right_head[0]), int(primitive.right_head[1]))
+        pygame.draw.line(self.surface, (170, 70, 255, 95), tail, tip, 6)
+        pygame.draw.line(self.surface, (170, 70, 255, 95), tip, left, 6)
+        pygame.draw.line(self.surface, (170, 70, 255, 95), tip, right, 6)
+        pygame.draw.line(self.surface, (245, 235, 255, 170), tail, tip, 2)
+        pygame.draw.line(self.surface, (245, 235, 255, 170), tip, left, 2)
+        pygame.draw.line(self.surface, (245, 235, 255, 170), tip, right, 2)
+
     def draw(self) -> SurfaceType:
         self.surface.fill((0, 0, 0, 0))
         now = pygame.time.get_ticks() / 1000.0
@@ -221,20 +311,12 @@ class MagicalDraw:
         simplified_stroke: MagicalNode | None = self._magical_graph.get_head()
         while simplified_stroke is not None:
             primitive = simplified_stroke.primitive
-            if isinstance(primitive, Segment):
-                pygame.draw.line(self.surface, (170, 70, 255, 95), primitive.start, primitive.end, 6)
-                pygame.draw.line(self.surface, (245, 235, 255, 170), primitive.start, primitive.end, 2)
-            elif isinstance(primitive, Circle) and primitive.center is not None and primitive.radius is not None:
-                center = (int(primitive.center[0]), int(primitive.center[1]))
-                radius = max(1, int(primitive.radius))
-                pygame.draw.circle(self.surface, (170, 70, 255, 95), center, radius + 2, 6)
-                pygame.draw.circle(self.surface, (245, 235, 255, 170), center, radius, 2)
-            elif isinstance(primitive, Triangle) and len(primitive.vertices) >= 3:
-                pts = [(int(x), int(y)) for x, y in primitive.vertices[:3]]
-                pygame.draw.polygon(self.surface, (170, 70, 255, 95), pts, 6)
-                pygame.draw.polygon(self.surface, (245, 235, 255, 170), pts, 2)
+            drawer = self._primitive_drawers.get(type(primitive))
+            if drawer is not None:
+                drawer(primitive)
             simplified_stroke = simplified_stroke.child
 
+        self._recognition_effect_renderer.draw(self.surface, now)
         return self.surface
 
 

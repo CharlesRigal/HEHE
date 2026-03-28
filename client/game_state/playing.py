@@ -44,11 +44,7 @@ def playing(game, tick_rate):
 
     game.prev_board_pressed = board_pressed
 
-    if game.net_connected and game.net is not None:
-        msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}
-        if game.last_sid_ack is not None:
-            msg["ack"] = game.last_sid_ack
-        game.net.send(msg)
+    game.send_input_if_needed(inp)
 
     game.player.apply_input(inp)
     game.player.save_input_for_reconciliation(inp)

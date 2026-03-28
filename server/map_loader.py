@@ -1,10 +1,8 @@
 # server/map_loader.py
+import logging
 import yaml
 import importlib.resources as resources
 
-maps_package = resources.files("server.maps")
-
-import pathlib
 from typing import Dict, Optional
 
 
@@ -28,10 +26,10 @@ class MapLoader:
 
                 map_id = map_file.stem  # nom du fichier sans extension
                 self.loaded_maps[map_id] = map_data
-                print(f"Loaded map: {map_id} - {map_data.get('name', 'Unnamed')}")
+                logging.info(f"Loaded map: {map_id} - {map_data.get('name', 'Unnamed')}")
 
             except Exception as e:
-                print(f"Error loading map {map_file}: {e}")
+                logging.exception(f"Error loading map {map_file}: {e}")
 
     def get_map(self, map_id: str) -> Optional[dict]:
         """Récupère une map par son ID"""

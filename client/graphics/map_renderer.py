@@ -1,4 +1,5 @@
 from importlib import resources
+import logging
 import pygame
 import yaml
 
@@ -36,7 +37,7 @@ class MapRenderer:
                 try:
                     img = pygame.image.load(str(asset_file)).convert_alpha()
                 except FileNotFoundError:
-                    print(f"[WARN] Sprite introuvable: {conf['image']}")
+                    logging.warning(f"Sprite introuvable: {conf['image']}")
                     return None
 
                 scale = conf.get("scale", 1.0)
@@ -45,7 +46,7 @@ class MapRenderer:
                     img = pygame.transform.scale(img, (int(w * scale), int(h * scale)))
 
                 self.loaded_sprites[obj_type] = img
-                print(f"[INFO] Sprite chargé: {obj_type}")
+                logging.info(f"Sprite chargé: {obj_type}")
 
             return self.loaded_sprites[obj_type]
         return None
@@ -60,11 +61,11 @@ class MapRenderer:
             try:
                 img = pygame.image.load(str(asset_file)).convert()
             except FileNotFoundError:
-                print(f"[WARN] Background introuvable: {self.background_config[bg_name]}")
+                logging.warning(f"Background introuvable: {self.background_config[bg_name]}")
                 return None
 
             self.loaded_backgrounds[bg_name] = img
-            print(f"[INFO] Background chargé: {bg_name}")
+            logging.info(f"Background chargé: {bg_name}")
 
         return self.loaded_backgrounds[bg_name]
 
@@ -98,7 +99,7 @@ class MapRenderer:
         else:
             # Fallback couleur
             self.map_surface.fill((50, 50, 50))
-            print("[INFO] Aucun background trouvé, couleur grise appliquée")
+            logging.info("Aucun background trouvé, couleur grise appliquée")
 
         # Dessiner les objets
         for obj in self.collision_objects:

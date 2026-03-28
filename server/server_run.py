@@ -296,8 +296,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        raise e
-        logging.warning(f"Error with {client_id}: {e}")
+        logging.exception(f"Error with {client_id}: {e}")
     finally:
         await cleanup_client(client_id)
 

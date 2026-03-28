@@ -29,6 +29,18 @@ def point_to_segment_distance(point: Point, seg_start: Point, seg_end: Point) ->
     return euclidean_distance(point, proj)
 
 
+def turn_angle(a: Point, b: Point, c: Point) -> float:
+    v1 = (b[0] - a[0], b[1] - a[1])
+    v2 = (c[0] - b[0], c[1] - b[1])
+    n1 = math.hypot(v1[0], v1[1])
+    n2 = math.hypot(v2[0], v2[1])
+    if n1 <= 1e-9 or n2 <= 1e-9:
+        return 0.0
+    dot_value = (v1[0] * v2[0] + v1[1] * v2[1]) / (n1 * n2)
+    dot_value = max(-1.0, min(1.0, dot_value))
+    return math.acos(dot_value)
+
+
 def path_length(points: Sequence[Point]) -> float:
     if len(points) < 2:
         return 0.0

@@ -1,5 +1,6 @@
 import pygame
 import os
+import logging
 from client.entities.base_player import BasePlayer
 from client.core.settings import TICK_INTERVAL
 from client.entities.magical_draw import MagicalDraw
@@ -31,7 +32,7 @@ class Player(BasePlayer):
             server_update.get("y", self.pos.y)
         )
         if (new_target - self.pos).length() > 20:
-            print("WARNING snap to position:" + str(new_target - self.pos))
+            logging.warning(f"Snap to position delta={new_target - self.pos}")
             self.pos = new_target.copy()
         self.interpolator.set_target(new_target)
 
@@ -49,7 +50,6 @@ class Player(BasePlayer):
         self.magical_draw: MagicalDraw = magical_draw
 
         self._correction = pygame.Vector2(0, 0)
-        print(self._correction)
         self.health_bar_ui = PlayerHealthBar()
         self._damage_sound = self._load_damage_sound()
         self._last_damage_sound_ms = -100000
@@ -168,7 +168,7 @@ class Player(BasePlayer):
 
     def on_death(self):
         super().on_death()
-        print(f"Player {self.player_id} is dead at {self.get_position()}")
+        logging.info(f"Player {self.player_id} is dead at {self.get_position()}")
 
     def _load_damage_sound(self):
         try:

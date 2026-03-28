@@ -1,5 +1,6 @@
 from abc import ABC
 import math
+import logging
 
 import pygame
 
@@ -20,7 +21,7 @@ class Enemy(GameObject, Damagable, ABC):
     def on_death(self):
         self.active = False
         self.to_remove = True
-        print("Enemy defeated!")
+        logging.info("Enemy defeated")
 
     def travel_to_player(self, player_entity, dt):
         """Version précise : mouvement vectoriel lisse."""

@@ -1,5 +1,6 @@
 import queue
 import time
+import logging
 import pygame
 
 from client.entities.magical_draw import MagicalDraw
@@ -37,6 +38,7 @@ class Game:
         self.prev_board_pressed = False
         self.last_sid_ack = None
         self.msg_old = ""
+        self.last_unknown_msg = None
 
         self.geometry_analyzer = GeometryAnalyzer()
 
@@ -152,9 +154,9 @@ class Game:
             self.net.connect()
             self.net.start()
             self.net_connected = True
-            print("connected to server: ", host, port)
+            logging.info(f"Connected to server: {host}:{port}")
         except Exception as e:
-            print("Connect to server failed: ", e)
+            logging.warning(f"Connect to server failed: {e}")
             self.net = None
             self.net_connected = False
 
@@ -173,19 +175,20 @@ class Game:
         self.client_id = None
 
     def handle_server_message(self, msg):
+        self.msg_old = msg
         t = msg.get("t")
         if t == "welcome":
             self.client_id = msg.get("your_id")
-            print("welcome, id = ", self.client_id)
+            logging.info(f"Welcome, id={self.client_id}")
             self.map_selector.set_available_maps(msg.get("available_maps"))
         elif t == "pong":
             pass
         elif t == "_info":
             if msg.get("event") == "server_closed":
-                print("The server closed the connection")
+                logging.info("The server closed the connection")
                 self.disconnect_from_server()
         elif t == "_error":
-            print("Network error")
+            logging.warning("Network error")
             self.disconnect_from_server()
         elif t == "_exit":
             self.disconnect_from_server()
@@ -204,9 +207,9 @@ class Game:
             available_maps = msg.get("maps", {})
             self.map_selector.set_available_maps(available_maps)
         else:
-            if self.msg_old and msg != self.msg_old:
-                print("get from server : ", msg)
-                self.msg_old = msg
+            if msg != self.last_unknown_msg:
+                logging.info(f"Unhandled server message: {msg}")
+                self.last_unknown_msg = msg
 
     def pump_network(self, max_msgs=50):
         if not self.net_connected or self.net is None:
@@ -218,14 +221,35 @@ class Game:
                 break
             except AttributeError:
                 pass
-            self.msg_old = msg
             self.handle_server_message(msg)
 
     def draw_background(self):
         self.screen.blit(self.background, (0, 0))
 
+    def resize_window(self, width: int, height: int):
+        width = max(320, int(width))
+        height = max(240, int(height))
+
+        self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+        self.background = pygame.Surface((width, height))
+        self.camera.set_screen(self.screen)
+        self.map_selector.resize(width, height)
+        if self.player and self.player.magical_draw:
+            self.player.magical_draw.resize_surface((width, height))
+
     def handle_events(self):
+        window_size_changed_event = getattr(pygame, "WINDOWSIZECHANGED", -1)
+
         for event in pygame.event.get():
+            if event.type == pygame.VIDEORESIZE or event.type == window_size_changed_event:
+                width = getattr(event, "w", None)
+                height = getattr(event, "h", None)
+                if width is None or height is None:
+                    width = getattr(event, "x", self.screen.get_width())
+                    height = getattr(event, "y", self.screen.get_height())
+                self.resize_window(width, height)
+                continue
+
             if event.type == pygame.QUIT:
                 self.running = False
                 self.disconnect_from_server()
@@ -270,7 +294,7 @@ class Game:
             if remote_player:
                 remote_player.update_from_server(player_data)
             else:
-                print(f"[WARN] Remote player {player_id} not found in game_manager")
+                logging.warning(f"Remote player {player_id} not found in game_manager")
 
         remote_enemy_list = msg.get("enemies", {})
         self.sync_remote_enemies(remote_enemy_list)
@@ -278,10 +302,10 @@ class Game:
     def handle_map_data(self, msg: dict):
         map_data = msg.get("map")
         if not map_data:
-            print("No map data received")
+            logging.warning("No map data received")
             return
         self.map_renderer.load_map(map_data)
-        print(f"Map '{map_data.get('name')}' loaded successfully.")
+        logging.info(f"Map '{map_data.get('name')}' loaded successfully")
 
     def handle_full_game_state(self, msg):
         """
@@ -310,12 +334,12 @@ class Game:
 
     def handle_player_joined(self, msg):
         player = msg.get("player")
-        print("Player join from server", player.get("id"))
+        logging.info(f"Player join from server: {player.get('id')}")
         if self.client_id != player.get("id"):
             self.game_manager.add_object(RemotePlayer(player.get("id"), x=player.get("x"), y=player.get("y")))
 
     def handle_player_left(self, msg):
-        print("Player left from server")
+        logging.info("Player left from server")
         player_to_remove = self.game_manager.get_remote_player(msg.get("player_id"))
         self.game_manager.remove_object(player_to_remove)
 

@@ -2,7 +2,8 @@ import asyncio
 import time
 import logging
 import math
-from typing import Dict, Callable, List
+from collections import deque
+from typing import Dict, Callable
 
 
 from server.config import TICK_INTERVAL, PLAYER_SPEED
@@ -13,7 +14,7 @@ class GameInstance:
         self.map_id = map_id
         self.map_data = map_data
         self.players: Dict[str, dict] = {}
-        self.pending_inputs: Dict[str, List[dict]] = {}
+        self.pending_inputs: Dict[str, deque[dict]] = {}
         self.players_previous_state = {}
         self.enemies: Dict[str, dict] = {}
         self.enemies_previous_state = {}
@@ -77,7 +78,7 @@ class GameInstance:
     def add_input(self, client_id: str, input_data: dict):
         """Ajoute un input en attente pour un joueur"""
         if client_id in self.players:
-            self.pending_inputs.setdefault(client_id, []).append(input_data)
+            self.pending_inputs.setdefault(client_id, deque()).append(input_data)
 
     def _spawn_map_enemies(self):
         spawn_points = self.map_data.get("enemy_spawn_points", [])
@@ -325,8 +326,9 @@ class GameInstance:
                     if client_id in self.players and input_list:
                         # Traiter jusqu'à MAX_INPUTS_PER_TICK
                         for _ in range(min(MAX_INPUTS_PER_TICK, len(input_list))):
-                            input_dict = input_list.pop(0)
+                            input_dict = input_list.popleft()
                             self.process_input(self.players[client_id], input_dict)
+                            self.inputs_processed += 1
                 self._update_enemies()
 
                 # ===== ENVOYER L'ÉTAT AUX CLIENTS =====
