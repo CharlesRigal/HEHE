@@ -135,6 +135,12 @@ class MagicalDraw:
     def has_primitives(self) -> bool:
         return self._magical_graph.get_head() is not None
 
+    def get_spatial_relations(self):
+        return self._magical_graph.build_spatial_relations()
+
+    def get_priority_primitives(self):
+        return self._magical_graph.resolve_priority_primitives()
+
     def schedule_clear(self, current_time: float) -> None:
         self._clear_at = current_time + self._clear_delay_seconds
 

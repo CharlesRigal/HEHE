@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+from typing import Sequence
 
 from client.magic.recognition.preprocessing import (
     clamp,
@@ -8,31 +10,66 @@ from client.magic.recognition.preprocessing import (
     euclidean_distance,
     simplify_to_vertices,
 )
-from client.magic.recognition.types import NormalizedStroke, Point, RecognizerResult
+from client.magic.recognition.types import HeuristicDetector, NormalizedStroke, Point, RecognizerResult
+
+
+@dataclass(slots=True)
+class HeuristicRule:
+    label: str
+    detector: HeuristicDetector
+    requires_closed: bool | None = None
 
 
 class HeuristicPrimitiveRecognizer:
     """
-    Détection géométrique analytique avec score de confiance.
+    Détection géométrique analytique avec règles enregistrables.
     """
+
+    def __init__(self, rules: Sequence[HeuristicRule] | None = None):
+        self._rules: list[HeuristicRule] = []
+        if rules is None:
+            self._register_default_rules()
+        else:
+            for rule in rules:
+                self.register_rule(rule.label, rule.detector, requires_closed=rule.requires_closed)
+
+    def register_rule(self, label: str, detector: HeuristicDetector, requires_closed: bool | None = None) -> None:
+        normalized = (label or "").strip().lower()
+        if not normalized:
+            raise ValueError("Heuristic rule label must not be empty")
+        self._rules = [rule for rule in self._rules if rule.label != normalized]
+        self._rules.append(HeuristicRule(label=normalized, detector=detector, requires_closed=requires_closed))
+
+    def clear_rules(self) -> None:
+        self._rules.clear()
 
     def recognize(self, stroke: NormalizedStroke) -> list[RecognizerResult]:
         candidates: list[RecognizerResult] = []
 
-        segment = self._recognize_segment(stroke)
-        if segment is not None:
-            candidates.append(segment)
+        for rule in self._rules:
+            if rule.requires_closed is True and not stroke.is_closed:
+                continue
+            if rule.requires_closed is False and stroke.is_closed:
+                continue
 
-        if stroke.is_closed:
-            circle = self._recognize_circle(stroke)
-            if circle is not None:
-                candidates.append(circle)
-
-            triangle = self._recognize_triangle(stroke)
-            if triangle is not None:
-                candidates.append(triangle)
+            candidate = rule.detector(stroke)
+            if candidate is None:
+                continue
+            if candidate.label != rule.label:
+                candidate = RecognizerResult(
+                    label=rule.label,
+                    score=candidate.score,
+                    source=candidate.source,
+                    payload=dict(candidate.payload),
+                )
+            candidates.append(candidate)
 
         return candidates
+
+    def _register_default_rules(self) -> None:
+        self.register_rule("segment", self._recognize_segment)
+        self.register_rule("circle", self._recognize_circle, requires_closed=True)
+        self.register_rule("triangle", self._recognize_triangle, requires_closed=True)
 
     def _recognize_segment(self, stroke: NormalizedStroke) -> RecognizerResult | None:
         points = stroke.points
@@ -186,3 +223,4 @@ class HeuristicPrimitiveRecognizer:
         max_gap = max(wrapped[idx + 1] - wrapped[idx] for idx in range(len(angles)))
         coverage = 2 * math.pi - max_gap
         return clamp((coverage - math.pi) / math.pi)
+

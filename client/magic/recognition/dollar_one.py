@@ -40,6 +40,7 @@ class DollarOneRecognizer:
         angle_precision_deg: float = 2.0,
         closed_angle_range_deg: float = 180.0,
         closed_shift_steps: int = 24,
+        register_default_templates: bool = True,
     ):
         self.num_points = num_points
         self.square_size = square_size
@@ -48,7 +49,8 @@ class DollarOneRecognizer:
         self.closed_angle_range = math.radians(closed_angle_range_deg)
         self.closed_shift_steps = max(4, closed_shift_steps)
         self.templates: list[DollarOneTemplate] = []
-        self._register_default_templates()
+        if register_default_templates:
+            self.register_default_templates()
 
     def add_template(self, label: str, points: Sequence[Point]) -> None:
         is_closed = self._is_closed_path(points)
@@ -173,7 +175,7 @@ class DollarOneRecognizer:
         start_end_ratio = euclidean_distance(points[0], end) / total_path
         return best <= threshold and start_end_ratio <= 0.45
 
-    def _register_default_templates(self) -> None:
+    def register_default_templates(self) -> None:
         self.add_template("line", self._line_template())
         self.add_template("triangle", self._triangle_template())
         self.add_template("circle", self._circle_template())

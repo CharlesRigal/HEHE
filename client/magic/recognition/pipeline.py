@@ -2,20 +2,28 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from client.magic.primitives import Circle, Segment, Triangle
+from client.magic.recognition.default_shapes import build_default_shape_registry
 from client.magic.recognition.dollar_one import DollarOneRecognizer
 from client.magic.recognition.heuristic import HeuristicPrimitiveRecognizer
-from client.magic.recognition.preprocessing import centroid, euclidean_distance, normalize_stroke, simplify_to_vertices
-from client.magic.recognition.types import NormalizedStroke, RecognitionConfig, RecognizerResult
+from client.magic.recognition.preprocessing import normalize_stroke
+from client.magic.recognition.shape_registry import ShapeRegistry
+from client.magic.recognition.types import (
+    HeuristicDetector,
+    NormalizedStroke,
+    Point,
+    RecognitionConfig,
+    RecognizerResult,
+    ShapeDefinition,
+)
 
 
 class PrimitiveRecognitionEngine:
     """
-    Orchestrateur de reconnaissance:
+    Pipeline modulaire de reconnaissance:
     - normalisation des strokes
-    - reconnaissance géométrique heuristique
-    - reconnaissance $1 (template matching)
-    - fusion et décision finale
+    - agrégation de candidats (heuristique + $1)
+    - fusion/scoring via registre de formes
+    - construction de primitive via builder dédié
     """
 
     def __init__(
@@ -23,21 +31,43 @@ class PrimitiveRecognitionEngine:
         config: RecognitionConfig | None = None,
         heuristic: HeuristicPrimitiveRecognizer | None = None,
         dollar_one: DollarOneRecognizer | None = None,
+        shape_registry: ShapeRegistry | None = None,
     ):
         self.config = config or RecognitionConfig()
         self.heuristic = heuristic or HeuristicPrimitiveRecognizer()
         self.dollar_one = dollar_one or DollarOneRecognizer()
-        self._thresholds = {
-            "segment": self.config.segment_threshold,
-            "circle": self.config.circle_threshold,
-            "triangle": self.config.triangle_threshold,
-        }
-        self._dollar_label_map = {
-            "line": "segment",
-            "segment": "segment",
-            "circle": "circle",
-            "triangle": "triangle",
-        }
+        self.shape_registry = shape_registry or build_default_shape_registry(self.config)
+
+    def register_shape(
+        self,
+        shape: ShapeDefinition,
+        *,
+        heuristic_detector: HeuristicDetector | None = None,
+        dollar_templates: Sequence[Sequence[Point]] | None = None,
+    ) -> None:
+        self.shape_registry.register(shape)
+        if heuristic_detector is not None:
+            self.heuristic.register_rule(
+                label=shape.label,
+                detector=heuristic_detector,
+                requires_closed=shape.requires_closed,
+            )
+        if dollar_templates:
+            for template in dollar_templates:
+                self.dollar_one.add_template(shape.label, template)
+
+    def register_heuristic_rule(
+        self,
+        label: str,
+        detector: HeuristicDetector,
+        *,
+        requires_closed: bool | None = None,
+    ) -> None:
+        self.heuristic.register_rule(label=label, detector=detector, requires_closed=requires_closed)
+
+    def register_dollar_template(self, label: str, points: Sequence[Point]) -> None:
+        canonical = self.shape_registry.canonical_label(label) or label.strip().lower()
+        self.dollar_one.add_template(canonical, points)
 
     def recognize_strokes(self, strokes: Sequence[Sequence[Any]]) -> list[Any]:
         primitives: list[Any] = []
@@ -71,41 +101,51 @@ class PrimitiveRecognitionEngine:
         dollar_candidate: RecognizerResult | None,
     ) -> RecognizerResult | None:
         by_label: dict[str, dict[str, Any]] = {}
+        heuristic_labels: set[str] = set()
 
         for candidate in heuristic_candidates:
-            slot = by_label.setdefault(candidate.label, {"score": 0.0, "payload": {}, "sources": []})
-            slot["score"] += candidate.score * self.config.heuristic_weight
-            if candidate.payload:
-                slot["payload"] = candidate.payload
-            slot["sources"].append("heuristic")
+            canonical = self.shape_registry.canonical_label(candidate.label)
+            if canonical is None:
+                continue
+            heuristic_labels.add(canonical)
+            weight = self.config.get_source_weight(candidate.source, default=self.config.heuristic_weight)
+            self._accumulate_candidate(by_label, canonical, candidate, weight)
 
         if dollar_candidate is not None:
-            mapped = self._dollar_label_map.get(dollar_candidate.label.lower())
-            if mapped is not None:
-                slot = by_label.setdefault(mapped, {"score": 0.0, "payload": {}, "sources": []})
-                has_heuristic_for_label = "heuristic" in slot["sources"]
-                if has_heuristic_for_label:
-                    slot["score"] += dollar_candidate.score * self.config.dollar_weight
-                else:
-                    # Si l'heuristique n'a rien trouvé, on permet à $1
-                    # de décider seul avec un poids fort.
-                    slot["score"] += dollar_candidate.score * 0.90
-                slot["sources"].append("$1")
-                slot["payload"].setdefault("dollar", dollar_candidate.payload)
+            canonical = self.shape_registry.canonical_label(dollar_candidate.label)
+            if canonical is not None:
+                has_heuristic_for_label = canonical in heuristic_labels
+                weight = self.config.get_source_weight("$1") if has_heuristic_for_label else self.config.fallback_source_weight
+                dollar_payload = {"dollar": dollar_candidate.payload} if dollar_candidate.payload else {}
+                self._accumulate_candidate(
+                    by_label,
+                    canonical,
+                    RecognizerResult(
+                        label=canonical,
+                        score=dollar_candidate.score,
+                        source="$1",
+                        payload=dollar_payload,
+                    ),
+                    weight,
+                )
 
         if not by_label:
             return None
 
         for label, slot in by_label.items():
-            sources = set(slot["sources"])
-            if {"heuristic", "$1"}.issubset(sources):
-                slot["score"] = min(1.0, slot["score"] + 0.08)
-
-            if label in {"circle", "triangle"} and not stroke.is_closed:
-                slot["score"] *= 0.65
+            shape = self.shape_registry.get(label)
+            if shape is None:
+                continue
+            if len(set(slot["sources"])) >= 2:
+                slot["score"] = min(1.0, slot["score"] + shape.multi_source_bonus)
+            if shape.requires_closed is True and not stroke.is_closed:
+                slot["score"] *= shape.open_penalty
 
         best_label, best_slot = max(by_label.items(), key=lambda item: item[1]["score"])
-        threshold = self._thresholds.get(best_label, 0.65)
+        shape = self.shape_registry.get(best_label)
+        if shape is None:
+            return None
+        threshold = self.config.get_shape_threshold(best_label, shape.threshold)
         best_score = best_slot["score"]
 
         if best_score < threshold:
@@ -119,51 +159,23 @@ class PrimitiveRecognitionEngine:
             payload=best_slot["payload"],
         )
 
-    def _build_primitive(self, stroke: NormalizedStroke, winner: RecognizerResult) -> Any | None:
-        label = winner.label
-        payload = winner.payload or {}
-        points = list(stroke.points)
-
-        if label == "segment":
-            start = payload.get("start", points[0])
-            end = payload.get("end", points[-1])
-            return Segment(
-                start=tuple(start),
-                end=tuple(end),
-                confidence=float(winner.score),
-                source=winner.source,
-            )
-
-        if label == "circle":
-            center = payload.get("center", centroid(points))
-            radius = payload.get("radius")
-            if radius is None:
-                radius = self._mean_radius(points, center)
-            return Circle(
-                _points=points,
-                center=tuple(center),
-                radius=float(radius),
-                confidence=float(winner.score),
-                source=winner.source,
-            )
-
-        if label == "triangle":
-            vertices = payload.get("vertices")
-            if not vertices:
-                vertices = simplify_to_vertices(points, target_vertices=3)
-            if not vertices:
-                return None
-            return Triangle(
-                _points=points,
-                vertices=[tuple(v) for v in vertices],
-                confidence=float(winner.score),
-                source=winner.source,
-            )
-
-        return None
-
     @staticmethod
-    def _mean_radius(points: list[tuple[float, float]], center: tuple[float, float]) -> float:
-        if not points:
-            return 0.0
-        return sum(euclidean_distance(point, center) for point in points) / len(points)
+    def _accumulate_candidate(
+        by_label: dict[str, dict[str, Any]],
+        label: str,
+        candidate: RecognizerResult,
+        weight: float,
+    ) -> None:
+        if weight <= 0.0:
+            return
+        slot = by_label.setdefault(label, {"score": 0.0, "payload": {}, "sources": []})
+        slot["score"] += candidate.score * weight
+        if candidate.payload:
+            slot["payload"].update(candidate.payload)
+        slot["sources"].append(candidate.source)
+
+    def _build_primitive(self, stroke: NormalizedStroke, winner: RecognizerResult) -> Any | None:
+        shape = self.shape_registry.get(winner.label)
+        if shape is None:
+            return None
+        return shape.builder(stroke, winner)
