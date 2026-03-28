@@ -14,9 +14,13 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
         self.player_id = player_id
 
         self.pos = pygame.Vector2(x, y)
+        self.direction = 0
 
-        self.image = pygame.image.load(image_path).convert_alpha()
-        self.rect = self.image.get_rect(center=(x, y))
+
+        self.image_right = pygame.image.load(image_path).convert_alpha()
+        self.image_left = pygame.transform.flip(self.image_right, True, False)
+        self.previous_image = self.image_right # for the player direction and initialized to right
+        self.rect = self.image_right.get_rect(center=(x, y))
 
         self.life = Life(max_health)
 
@@ -38,6 +42,12 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
     @abstractmethod
     def update(self,dt, *args, **kwargs):
         pass
+
+    def update_direction_from_velocity(self, vx: float):
+        if vx < 0:
+            self.direction = -1
+        elif vx > 0:
+            self.direction = 1
 
     def draw(self, screen: pygame.Surface, camera=None):
         if camera:

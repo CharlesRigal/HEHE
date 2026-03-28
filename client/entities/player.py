@@ -23,7 +23,7 @@ class Player(BasePlayer):
             self.pos = new_target.copy()
         self.interpolator.set_target(new_target)
 
-    def __init__(self, player_id, x, y, image_path="client/assets/images/player.png", max_health=100, speed=300,
+    def __init__(self, player_id, x, y, image_path="client/assets/images/full_mage.png", max_health=100, speed=300,
                  magical_draw=None):
         super().__init__(player_id, x, y, image_path, max_health)
         self.mask = 0
@@ -36,7 +36,6 @@ class Player(BasePlayer):
 
         self.magical_draw: MagicalDraw = magical_draw
 
-        # Correction accumulée à drainer progressivement dans update()
         self._correction = pygame.Vector2(0, 0)
         print(self._correction)
 
@@ -55,16 +54,7 @@ class Player(BasePlayer):
 
     def apply_input(self, inp):
         """Applique un input sur self.pos"""
-        k = inp.get("k", 0)
-        vx = vy = 0.0
-        if k & IN_UP:    vy -= self.speed
-        if k & IN_DOWN:  vy += self.speed
-        if k & IN_LEFT:  vx -= self.speed
-        if k & IN_RIGHT: vx += self.speed
-
-        if vx != 0 and vy != 0:
-            vx *= 0.70710678
-            vy *= 0.70710678
+        vy, vx = self.get_input_and_return(inp)
 
         new_x = self.pos.x + vx * TICK_INTERVAL
         new_y = self.pos.y + vy * TICK_INTERVAL
@@ -79,11 +69,8 @@ class Player(BasePlayer):
 
         self.rect.center = self.pos
 
-    def _simulate_input_on(self, pos: pygame.Vector2, inp: dict) -> pygame.Vector2:
-        """
-        Même physique que apply_input mais sur un vecteur externe.
-        self.pos n'est JAMAIS touché.
-        """
+
+    def get_input_and_return(self, inp) -> tuple:
         k = inp.get("k", 0)
         vx = vy = 0.0
         if k & IN_UP:    vy -= self.speed
@@ -91,10 +78,19 @@ class Player(BasePlayer):
         if k & IN_LEFT:  vx -= self.speed
         if k & IN_RIGHT: vx += self.speed
 
+        self.update_direction_from_velocity(vx)
+
         if vx != 0 and vy != 0:
             vx *= 0.70710678
             vy *= 0.70710678
+        return vy, vx
 
+    def _simulate_input_on(self, pos: pygame.Vector2, inp: dict) -> pygame.Vector2:
+        """
+        Même physique que apply_input mais sur un vecteur externe.
+        self.pos n'est JAMAIS touché.
+        """
+        vy, vx = self.get_input_and_return(inp)
         new_x = pos.x + vx * TICK_INTERVAL
         new_y = pos.y + vy * TICK_INTERVAL
 
@@ -181,8 +177,18 @@ class Player(BasePlayer):
     def draw(self, screen, camera=None):
         if camera:
             screen_pos = camera.apply(self.render_pos)
-            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
-            screen.blit(self.image, rect)
+            rect = self.image_right.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
+
+            if self.direction > -1:
+                image = self.image_right
+                self.previous_image = image
+            elif self.direction < 1:
+                image = self.image_left
+                self.previous_image = image
+            else:
+                image = self.previous_image
+
+            screen.blit(image, rect)
             self._draw_health_bar(screen, screen_pos)
             if self.pending_inputs:
                 font = pygame.font.Font(None, 20)

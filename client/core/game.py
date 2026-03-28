@@ -43,7 +43,7 @@ class Game:
 
         self.map_renderer:MapRenderer = MapRenderer()
         self.map_selector:MapSelector = MapSelector(self.screen.get_width(), self.screen.get_height())
-        self.player:Player = Player("1", 0, 0, "client/assets/images/player.png", magical_draw=MagicalDraw(self.screen))
+        self.player:Player = Player("1", 0, 0, "client/assets/images/full_mage.png", magical_draw=MagicalDraw(self.screen))
         self.player.map_renderer = self.map_renderer
 
         # ===== VARIABLES POUR FIXED TIMESTEP =====
