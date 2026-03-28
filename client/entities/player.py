@@ -1,7 +1,9 @@
 import pygame
+import os
 from client.entities.base_player import BasePlayer
 from client.core.settings import TICK_INTERVAL
 from client.entities.magical_draw import MagicalDraw
+from client.ui.health_bar import PlayerHealthBar
 
 IN_UP = 1
 IN_DOWN = 2
@@ -12,6 +14,16 @@ IN_DRAWING = 64
 
 
 class Player(BasePlayer):
+    DAMAGE_SOUND_PATHS = [
+        "sounds/damage_recived.flac",
+        "sounds/damage_received.flac",
+        "client/assets/sounds/damage_recived.flac",
+        "client/assets/sounds/damage_received.flac",
+        "client/assets/sounds/damage_recived.ogg",
+        "client/assets/sounds/damage_received.ogg",
+        "client/assets/sounds/damage_recived.wav",
+        "client/assets/sounds/damage_received.wav",
+    ]
 
     def update_from_server(self, server_update: dict):
         new_target = pygame.Vector2(
@@ -38,6 +50,9 @@ class Player(BasePlayer):
 
         self._correction = pygame.Vector2(0, 0)
         print(self._correction)
+        self.health_bar_ui = PlayerHealthBar()
+        self._damage_sound = self._load_damage_sound()
+        self._last_damage_sound_ms = -100000
 
 
     def read_local_input(self):
@@ -54,7 +69,8 @@ class Player(BasePlayer):
 
     def apply_input(self, inp):
         """Applique un input sur self.pos"""
-        vy, vx = self.get_input_and_return(inp)
+        vy, vx = self.compute_velocity(inp)
+        self.update_direction_from_velocity(vx)
 
         new_x = self.pos.x + vx * TICK_INTERVAL
         new_y = self.pos.y + vy * TICK_INTERVAL
@@ -70,15 +86,14 @@ class Player(BasePlayer):
         self.rect.center = self.pos
 
 
-    def get_input_and_return(self, inp) -> tuple:
+    def compute_velocity(self, inp) -> tuple:
+        """Calcul pur des composantes de vitesse pour l'input donné."""
         k = inp.get("k", 0)
         vx = vy = 0.0
         if k & IN_UP:    vy -= self.speed
         if k & IN_DOWN:  vy += self.speed
         if k & IN_LEFT:  vx -= self.speed
         if k & IN_RIGHT: vx += self.speed
-
-        self.update_direction_from_velocity(vx)
 
         if vx != 0 and vy != 0:
             vx *= 0.70710678
@@ -90,7 +105,8 @@ class Player(BasePlayer):
         Même physique que apply_input mais sur un vecteur externe.
         self.pos n'est JAMAIS touché.
         """
-        vy, vx = self.get_input_and_return(inp)
+        vy, vx = self.compute_velocity(inp)
+        # Simulation reste pure : on ne change pas la direction ici.
         new_x = pos.x + vx * TICK_INTERVAL
         new_y = pos.y + vy * TICK_INTERVAL
 
@@ -126,6 +142,15 @@ class Player(BasePlayer):
         server_x   = server_state.get("x", self.pos.x)
         server_y   = server_state.get("y", self.pos.y)
         server_seq = server_state.get("last_input_seq", -1)
+        previous_health = self.life.life_current
+        server_health = server_state.get("health", previous_health)
+        if server_health < previous_health:
+            self._play_damage_received_sound()
+        self.life.life_current = server_health
+        server_alive = server_state.get("alive", self.alive)
+        if self.alive and not server_alive:
+            self.on_death()
+        self.alive = server_alive
 
         if server_seq <= self.last_processed_seq:
             return
@@ -141,17 +166,37 @@ class Player(BasePlayer):
         # Si les simulations sont identiques → correction ≈ (0, 0)
         self._correction += sim - self.pos
 
-    def take_damage(self, damage):
-        remaining_health = self.life.lose_health(damage)
-        if self.life.is_dead():
-            self.on_death()
-        return remaining_health
-
-    def heal(self, amount):
-        return self.life.heal(amount)
-
     def on_death(self):
+        super().on_death()
         print(f"Player {self.player_id} is dead at {self.get_position()}")
+
+    def _load_damage_sound(self):
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+        except Exception:
+            return None
+
+        for path in self.DAMAGE_SOUND_PATHS:
+            if not os.path.exists(path):
+                continue
+            try:
+                return pygame.mixer.Sound(path)
+            except Exception:
+                continue
+        return None
+
+    def _play_damage_received_sound(self):
+        if not self._damage_sound:
+            return
+        now_ms = pygame.time.get_ticks()
+        if now_ms - self._last_damage_sound_ms < 120:
+            return
+        self._last_damage_sound_ms = now_ms
+        try:
+            self._damage_sound.play()
+        except Exception:
+            pass
 
     def update(self, dt, *args, **kwargs):
         """
@@ -175,35 +220,23 @@ class Player(BasePlayer):
         self.rect.center = (int(self.render_pos.x), int(self.render_pos.y))
 
     def draw(self, screen, camera=None):
-        if camera:
-            screen_pos = camera.apply(self.render_pos)
-            rect = self.image_right.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
-
-            if self.direction > -1:
-                image = self.image_right
-                self.previous_image = image
-            elif self.direction < 1:
-                image = self.image_left
-                self.previous_image = image
-            else:
-                image = self.previous_image
-
-            screen.blit(image, rect)
-            self._draw_health_bar(screen, screen_pos)
-            if self.pending_inputs:
-                font = pygame.font.Font(None, 20)
-                text = font.render(f"Pending: {len(self.pending_inputs)}", True, (255, 255, 0))
-                screen.blit(text, (screen_pos.x - 30, screen_pos.y - rect.height // 2 - 25))
+        if self.direction > -1:
+            image = self.image_right
+            self.previous_image = image
+        elif self.direction < 1:
+            image = self.image_left
+            self.previous_image = image
         else:
-            super().draw(screen)
-            self._draw_health_bar(screen, self.render_pos)
+            image = self.previous_image
 
-
-    def _draw_health_bar(self, screen, screen_pos, bar_width=50, bar_height=5):
-        if self.life.get_health() < self.life.get_max_health():
-            bar_x = screen_pos.x - bar_width // 2
-            bar_y = screen_pos.y - 26  # au-dessus du sprite
-            pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width, bar_height))
-            health_width = int(bar_width * (self.life.get_health() / self.life.get_max_health()))
-            if health_width > 0:
-                pygame.draw.rect(screen, (0, 255, 0), (bar_x, bar_y, health_width, bar_height))
+        self.current_image = image
+        screen_pos, rect = self.draw_sprite(screen, camera, pos=self.render_pos, image=image)
+        if camera and self.pending_inputs:
+            font = pygame.font.Font(None, 20)
+            text = font.render(f"Pending: {len(self.pending_inputs)}", True, (255, 255, 0))
+            screen.blit(text, (screen_pos.x - 30, screen_pos.y - rect.height // 2 - 25))
+        self.health_bar_ui.draw(
+            screen,
+            self.life.get_health(),
+            self.life.get_max_health()
+        )

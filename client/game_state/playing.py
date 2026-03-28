@@ -13,16 +13,36 @@ def playing(game, tick_rate):
     inp["seq"] = game.input_seq
     game.input_seq += 1
 
-    if inp.get("k") & IN_BOARD:
-        if inp.get("k") & IN_DRAWING:
+    board_pressed = bool(inp.get("k") & IN_BOARD)
+    drawing_pressed = bool(inp.get("k") & IN_DRAWING)
+
+    if board_pressed:
+        game.player.magical_draw.cancel_clear()
+        if drawing_pressed:
             game.player.magical_draw.add_point(pygame.mouse.get_pos(), current_time)
         else:
             game.player.magical_draw.validate_points_to_board()
-    else:
-        primitive = game.geometry_analyzer.analyze(game.player.magical_draw.get_strokes())
-        if primitive:
-            game.player.magical_draw.add_node(primitive)
-        # game.player.magical_draw.clear_board()
+    elif game.prev_board_pressed:
+        game.player.magical_draw.validate_points_to_board()
+        primitives = game.geometry_analyzer.analyze(game.player.magical_draw.get_strokes())
+        has_primitive = False
+        if primitives:
+            if isinstance(primitives, list):
+                for primitive in primitives:
+                    game.player.magical_draw.add_node(primitive)
+                has_primitive = len(primitives) > 0
+            else:
+                game.player.magical_draw.add_node(primitives)
+                has_primitive = True
+
+        if has_primitive:
+            # Dès qu'une primitive est reconnue, on retire les traits bruts.
+            game.player.magical_draw.clear_board()
+            game.player.magical_draw.cancel_clear()
+        else:
+            game.player.magical_draw.schedule_clear(current_time)
+
+    game.prev_board_pressed = board_pressed
 
     if game.net_connected and game.net is not None:
         msg = {"t": "in", "seq": inp["seq"], "k": inp["k"]}

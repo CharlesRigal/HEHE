@@ -128,6 +128,10 @@ async def handle_join_message(client_id: str, msg: dict):
         asyncio.create_task(INSTANCES[map_id].game_loop())
 
     instance = INSTANCES[map_id]
+    if not instance.running:
+        # Instance connue mais loop arrêtée (ex: plus aucun joueur)
+        instance.running = True
+        asyncio.create_task(instance.game_loop())
 
     # send the map to the client
     if client_id in CLIENTS:
@@ -151,7 +155,8 @@ async def handle_join_message(client_id: str, msg: dict):
         await send_json(writer, {
             "t": "game_state",
             "your_player": player,
-            "players": instance.players
+            "players": instance.players,
+            "enemies": instance.get_enemies_state()
         })
 
     # Notifier les autres joueurs de cette instance
@@ -196,8 +201,8 @@ async def cleanup_client(client_id: str):
         # Si l'instance est vide, on peut la fermer (optionnel)
         if not instance.players:
             instance.stop()
-            # On peut garder l'instance pour les prochains joueurs
-            # ou la supprimer : INSTANCES.pop(instance.map_id, None)
+            INSTANCES.pop(instance.map_id, None)
+            logging.info(f"Removed empty instance {instance.map_id}")
 
         logging.info(f"Cleaned up player {client_id} from instance {instance.map_id}")
 

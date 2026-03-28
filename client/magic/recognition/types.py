@@ -20,6 +20,7 @@ class NormalizedStroke:
     bbox: tuple[float, float, float, float]
     diagonal: float
     start_end_distance: float
+    closure_distance: float
     is_closed: bool
 
 
@@ -40,4 +41,3 @@ class RecognitionConfig:
     triangle_threshold: float = 0.60
     heuristic_weight: float = 0.70
     dollar_weight: float = 0.30
-

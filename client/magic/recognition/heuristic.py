@@ -87,7 +87,7 @@ class HeuristicPrimitiveRecognizer:
         aspect_score = clamp(1.0 - abs(1.0 - aspect) / 0.55)
 
         coverage_score = self._circle_coverage_score(points, center)
-        closure_score = clamp(1.0 - stroke.start_end_distance / max(4.0, stroke.diagonal * 0.2))
+        closure_score = clamp(1.0 - stroke.closure_distance / max(4.0, stroke.diagonal * 0.2))
 
         score = clamp(
             radial_score * 0.45
@@ -136,7 +136,7 @@ class HeuristicPrimitiveRecognizer:
         compactness = (4.0 * math.sqrt(3.0) * area) / (perimeter * perimeter)
         compactness_score = clamp(compactness / 0.60)
         area_score = clamp(area / max(1.0, stroke.diagonal * stroke.diagonal * 0.18))
-        closure_score = clamp(1.0 - stroke.start_end_distance / max(4.0, stroke.diagonal * 0.2))
+        closure_score = clamp(1.0 - stroke.closure_distance / max(4.0, stroke.diagonal * 0.2))
 
         score = clamp(
             balance_score * 0.35
@@ -186,4 +186,3 @@ class HeuristicPrimitiveRecognizer:
         max_gap = max(wrapped[idx + 1] - wrapped[idx] for idx in range(len(angles)))
         coverage = 2 * math.pi - max_gap
         return clamp((coverage - math.pi) / math.pi)
-

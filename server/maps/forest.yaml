@@ -14,6 +14,11 @@ spawn_points:
   - x: 1130
     y: 150
 
+enemy_spawn_points:
+  - id: enemy_1
+    x: 900
+    y: 350
+
 # Objets de collision dans la map
 objects:
 #  # Rocher en haut à gauche

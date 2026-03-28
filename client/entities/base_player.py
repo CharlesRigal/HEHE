@@ -4,11 +4,12 @@ import pygame
 
 from client.core.game_object import GameObject
 from client.core.interpolator import Interpolator
+from client.entities.damagable import Damagable
 from client.entities.entity import Life
 from client.network.server_updatable import ServerUpdatable
 
 
-class BasePlayer(ServerUpdatable, GameObject, ABC):
+class BasePlayer(ServerUpdatable, GameObject, Damagable, ABC):
     def __init__(self, player_id: str, x: float, y: float, image_path: str, max_health=100):
         super().__init__()
         self.player_id = player_id
@@ -19,7 +20,8 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
 
         self.image_right = pygame.image.load(image_path).convert_alpha()
         self.image_left = pygame.transform.flip(self.image_right, True, False)
-        self.previous_image = self.image_right # for the player direction and initialized to right
+        self.previous_image = self.image_right  # for the player direction and initialized to right
+        self.current_image = self.image_right
         self.rect = self.image_right.get_rect(center=(x, y))
 
         self.life = Life(max_health)
@@ -43,16 +45,30 @@ class BasePlayer(ServerUpdatable, GameObject, ABC):
     def update(self,dt, *args, **kwargs):
         pass
 
+    def get_draw_position(self):
+        return self.pos
+
+    def get_draw_image(self):
+        return self.current_image or self.image_right
+
+    def draw_sprite(self, screen: pygame.Surface, camera=None, pos=None, image=None):
+        draw_pos = pos if pos is not None else self.get_draw_position()
+        sprite = image if image is not None else self.get_draw_image()
+        screen_pos = camera.apply(draw_pos) if camera else draw_pos
+        rect = sprite.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
+        screen.blit(sprite, rect)
+        return screen_pos, rect
+
     def update_direction_from_velocity(self, vx: float):
         if vx < 0:
             self.direction = -1
+            self.current_image = self.image_left
         elif vx > 0:
             self.direction = 1
+            self.current_image = self.image_right
 
     def draw(self, screen: pygame.Surface, camera=None):
-        if camera:
-            screen_pos = camera.apply(self.pos)
-            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
-            screen.blit(self.image, rect)
-        else:
-            screen.blit(self.image, self.rect)
+        self.draw_sprite(screen, camera)
+
+    def on_death(self):
+        self.alive = False

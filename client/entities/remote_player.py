@@ -4,10 +4,16 @@ from client.entities.base_player import BasePlayer
 
 
 class RemotePlayer(BasePlayer):
-    def __init__(self, player_id, x, y, image_path="client/assets/images/remote_player.png"):
+    DEFAULT_SPRITE_PATH = "client/assets/images/full_mage.png"
+    REMOTE_ALPHA = 180
+
+    def __init__(self, player_id, x, y, image_path=DEFAULT_SPRITE_PATH):
         super().__init__(player_id, x, y, image_path)
 
         self.interpolator.speed = 400.0
+        self.previous_pos = self.pos.copy()
+        self.image_right.set_alpha(self.REMOTE_ALPHA)
+        self.image_left.set_alpha(self.REMOTE_ALPHA)
 
     def update_from_server(self, server_update: dict):
         """Mise à jour depuis serveur (snapshots espacés)"""
@@ -35,13 +41,8 @@ class RemotePlayer(BasePlayer):
 
     def update(self, dt: float, *args, **kwargs):
         """Update avec interpolation pour les joueurs distants"""
+        self.previous_pos = self.pos.copy()
         self.pos = self.interpolator.update(dt)
+        delta = self.pos - self.previous_pos
+        self.update_direction_from_velocity(delta.x)
         self.rect.center = (int(self.pos.x), int(self.pos.y))
-
-    def draw(self, screen, camera=None):
-        if camera:
-            screen_pos = camera.apply(self.pos)
-            rect = self.image.get_rect(center=(int(screen_pos.x), int(screen_pos.y)))
-            screen.blit(self.image, rect)
-        else:
-            screen.blit(self.image, self.rect)

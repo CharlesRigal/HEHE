@@ -14,6 +14,21 @@ def euclidean_distance(a: Point, b: Point) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
 
 
+def point_to_segment_distance(point: Point, seg_start: Point, seg_end: Point) -> float:
+    px, py = point
+    ax, ay = seg_start
+    bx, by = seg_end
+    abx = bx - ax
+    aby = by - ay
+    denom = abx * abx + aby * aby
+    if denom <= 1e-9:
+        return euclidean_distance(point, seg_start)
+    t = ((px - ax) * abx + (py - ay) * aby) / denom
+    t = max(0.0, min(1.0, t))
+    proj = (ax + abx * t, ay + aby * t)
+    return euclidean_distance(point, proj)
+
+
 def path_length(points: Sequence[Point]) -> float:
     if len(points) < 2:
         return 0.0
@@ -126,8 +141,14 @@ def normalize_stroke(
     bbox = bounding_box(points)
     diagonal = max(1e-6, bbox_diagonal(bbox))
     start_end = euclidean_distance(points[0], points[-1])
+    closure_distance = _end_to_path_closure_distance(points)
     closure_threshold = max(8.0, diagonal * closed_ratio)
-    is_closed = len(points) >= 4 and start_end <= closure_threshold
+    start_end_to_path_ratio = start_end / max(stroke_path, 1e-6)
+    is_closed = (
+        len(points) >= 4
+        and closure_distance <= closure_threshold
+        and start_end_to_path_ratio <= 0.45
+    )
 
     return NormalizedStroke(
         points=points,
@@ -136,6 +157,7 @@ def normalize_stroke(
         bbox=bbox,
         diagonal=diagonal,
         start_end_distance=start_end,
+        closure_distance=closure_distance,
         is_closed=is_closed,
     )
 
@@ -147,6 +169,23 @@ def perpendicular_distance(point: Point, line_start: Point, line_end: Point) -> 
     numerator = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
     denominator = math.hypot(y2 - y1, x2 - x1)
     return numerator / (denominator + 1e-9)
+
+
+def _end_to_path_closure_distance(points: Sequence[Point]) -> float:
+    if len(points) < 2:
+        return float("inf")
+
+    end = points[-1]
+    best = euclidean_distance(points[0], end)
+
+    if len(points) >= 3:
+        for point in points[:-2]:
+            best = min(best, euclidean_distance(point, end))
+
+        for idx in range(len(points) - 2):
+            best = min(best, point_to_segment_distance(end, points[idx], points[idx + 1]))
+
+    return best
 
 
 def rdp(points: Sequence[Point], epsilon: float) -> list[Point]:

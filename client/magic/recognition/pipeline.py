@@ -57,7 +57,7 @@ class PrimitiveRecognitionEngine:
             return None
 
         heuristic_candidates = self.heuristic.recognize(stroke)
-        dollar_candidate = self.dollar_one.recognize(stroke.points)
+        dollar_candidate = self.dollar_one.recognize(stroke.points, is_closed=stroke.is_closed)
         merged = self._merge_candidates(stroke, heuristic_candidates, dollar_candidate)
         if merged is None:
             return None

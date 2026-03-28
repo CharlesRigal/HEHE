@@ -9,6 +9,7 @@ from client.graphics.map_selector import MapSelector
 from client.magic.geometry_analyzer import GeometryAnalyzer
 from client.network.network import NetworkClient
 from client.core.game_manager import GameManager
+from client.entities.remote_enemy import RemoteEnemy
 from client.entities.remote_player import RemotePlayer
 from client.core.settings import FPS, TICK_INTERVAL
 from client.entities.player import Player, IN_BOARD
@@ -259,10 +260,7 @@ class Game:
         self.screen.blit(surf, rect)
 
     def handle_game_update(self, msg):
-        remote_player_list = msg.get("players")
-        if not remote_player_list:
-            return
-
+        remote_player_list = msg.get("players", {})
         for player_id, player_data in remote_player_list.items():
             if player_id == self.client_id:
                 self.player.data_from_the_server(player_data)
@@ -273,6 +271,9 @@ class Game:
                 remote_player.update_from_server(player_data)
             else:
                 print(f"[WARN] Remote player {player_id} not found in game_manager")
+
+        remote_enemy_list = msg.get("enemies", {})
+        self.sync_remote_enemies(remote_enemy_list)
 
     def handle_map_data(self, msg: dict):
         map_data = msg.get("map")
@@ -294,6 +295,7 @@ class Game:
             self.player.pos.y = your_player_data.get("y", self.player.pos.y)
             self.player.render_pos = self.player.pos.copy()  # sync render immédiat
             self.player.life.life_current = your_player_data.get("health", self.player.life.life_current)
+            self.player.alive = your_player_data.get("alive", self.player.alive)
             #print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
 
             # FIX: vider les inputs stale accumulés avant le spawn
@@ -304,6 +306,7 @@ class Game:
         all_players = msg.get("players", {})
         all_players.pop(self.client_id, None)
         self.sync_remote_players(all_players)
+        self.sync_remote_enemies(msg.get("enemies", {}))
 
     def handle_player_joined(self, msg):
         player = msg.get("player")
@@ -331,13 +334,28 @@ class Game:
             if player_id != self.client_id:
                 self.update_or_create_remote_player(player_id, all_players[player_id])
 
+    def update_or_create_remote_enemy(self, enemy_id, enemy_data):
+        remote_enemy = self.game_manager.get_remote_enemy(enemy_id)
+        if remote_enemy:
+            remote_enemy.update_from_server(enemy_data)
+        else:
+            new_enemy = RemoteEnemy(enemy_id, x=enemy_data.get("x"), y=enemy_data.get("y"))
+            new_enemy.update_from_server(enemy_data)
+            self.game_manager.add_object(new_enemy)
+
+    def sync_remote_enemies(self, all_enemies):
+        for enemy_id, enemy_data in all_enemies.items():
+            self.update_or_create_remote_enemy(enemy_id, enemy_data)
+
     def draw_playing(self):
         self.screen.fill((0, 0, 0))  # ← efface l'écran avant chaque frame
         self.camera.update(self.player.render_pos)
         self.map_renderer.draw(self.screen, self.camera)
         self.player.draw(self.screen, self.camera)
         self.game_manager.draw_all(self.screen, self.camera)
-        if self.player.mask & IN_BOARD:
+        now = pygame.time.get_ticks() / 1000.0
+        board_pressed = bool(self.player.mask & IN_BOARD)
+        if self.player.magical_draw.should_render(now, board_pressed):
             self.screen.blit(self.player.magical_draw.draw(), (0, 0))
         self.draw_hud()
 
