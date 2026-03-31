@@ -15,9 +15,6 @@ spawn_points:
     y: 150
 
 enemy_spawn_points:
-  - id: enemy_1
-    x: 900
-    y: 350
 
 # Objets de collision dans la map
 objects:
@@ -25,8 +22,7 @@ objects:
 #  - id: 1
 #    type: rock
 #    name: "Gros rocher"9
-#    points:
-#      - [100, 100]
+#    s      - [100, 100]
 #      - [200, 100]
 #      - [200, 200]
 #      - [100, 200]

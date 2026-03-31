@@ -3,10 +3,11 @@ import time
 import logging
 import math
 from collections import deque
-from typing import Dict, Callable
+from typing import Any, Dict, Callable
 
 
 from server.config import TICK_INTERVAL, PLAYER_SPEED
+from server.spells.default_spells import build_default_spell_registry
 
 
 class GameInstance:
@@ -33,6 +34,14 @@ class GameInstance:
         )
         self.enemy_attack_damage = 12
         self.enemy_attack_cooldown = 1.1
+        self.active_spells: list[dict] = []
+        self.fire_rune_tick_damage = 12
+        self.fire_rune_tick_interval = 0.20
+        self.fire_rune_duration = 2.4
+        self.fire_rune_min_radius = 12.0
+        self.fire_rune_max_radius = 320.0
+        self.fire_rune_max_cast_distance = 520.0
+        self.spell_registry = build_default_spell_registry()
 
         # Stats monitoring
         self.tick_count = 0
@@ -57,6 +66,8 @@ class GameInstance:
             "y": y,
             "vx": 0.0,
             "vy": 0.0,
+            "facing_x": 1.0,
+            "facing_y": 0.0,
             "health": 100,
             "max_health": 100,
             "alive": True,
@@ -79,6 +90,153 @@ class GameInstance:
         """Ajoute un input en attente pour un joueur"""
         if client_id in self.players:
             self.pending_inputs.setdefault(client_id, deque()).append(input_data)
+
+    @staticmethod
+    def _clamp(value: float, minimum: float, maximum: float) -> float:
+        return max(minimum, min(maximum, value))
+
+    def add_spell_cast(self, client_id: str, spell_data: dict):
+        if client_id not in self.players:
+            return
+
+        player = self.players[client_id]
+        if not player.get("alive", True):
+            return
+
+        spell_id, payload, modifiers = self._decode_spell_cast_message(spell_data)
+        if spell_id is None:
+            return
+
+        cast_handler = self.spell_registry.get_cast_handler(spell_id)
+        if cast_handler is None:
+            return
+        cast_handler(self, client_id, payload, modifiers)
+
+    def _decode_spell_cast_message(
+        self,
+        spell_data: dict[str, Any],
+    ) -> tuple[str | None, dict[str, Any], list[dict[str, Any]]]:
+        spell_id = spell_data.get("spell_id", spell_data.get("spell"))
+        if not isinstance(spell_id, str) or not spell_id:
+            return None, {}, []
+
+        payload = spell_data.get("payload", {})
+        if not isinstance(payload, dict):
+            payload = {}
+
+        # Compatibilité avec l'ancien format (paramètres au niveau racine).
+        for key in ("texture_radius", "hitbox_radius", "damage_per_tick", "tick_interval", "duration"):
+            if key in spell_data and key not in payload:
+                payload[key] = spell_data[key]
+
+        modifiers: list[dict[str, Any]] = []
+        raw_modifiers = spell_data.get("modifiers", [])
+        if isinstance(raw_modifiers, list):
+            for raw_modifier in raw_modifiers:
+                if not isinstance(raw_modifier, dict):
+                    continue
+                modifier_id = raw_modifier.get("id", raw_modifier.get("modifier_id"))
+                if not isinstance(modifier_id, str) or not modifier_id:
+                    continue
+                modifier_payload = raw_modifier.get("payload", {})
+                if not isinstance(modifier_payload, dict):
+                    modifier_payload = {}
+                modifiers.append(
+                    {
+                        "id": modifier_id,
+                        "payload": modifier_payload,
+                    }
+                )
+
+        return spell_id, payload, modifiers
+
+    def _apply_server_spell_modifiers(
+        self,
+        spell_id: str,
+        base_params: dict[str, float],
+        modifiers: list[dict[str, Any]],
+    ) -> dict[str, float]:
+        params = dict(base_params)
+        for modifier in modifiers:
+            modifier_id = modifier.get("id")
+            if not isinstance(modifier_id, str):
+                continue
+            strength = self._extract_modifier_strength(modifier, 1.0)
+
+            if modifier_id == "power":
+                params["damage_per_tick"] = float(params.get("damage_per_tick", 0.0)) * (1.0 + 0.22 * strength)
+            elif modifier_id == "reach":
+                params["cast_distance_bonus"] = float(params.get("cast_distance_bonus", 0.0)) + 18.0 * strength
+                has_base = self._extract_modifier_payload_float(modifier, "has_base", 0.0) >= 0.5
+                base_score = self._clamp(self._extract_modifier_payload_float(modifier, "base_score", 0.0), 0.0, 1.0)
+                base_length = max(0.0, self._extract_modifier_payload_float(modifier, "base_length", 0.0))
+                direction_x = self._extract_modifier_payload_float(modifier, "direction_x", 0.0)
+                direction_y = self._extract_modifier_payload_float(modifier, "direction_y", 0.0)
+                vector_length = max(0.0, self._extract_modifier_payload_float(modifier, "vector_length", 0.0))
+                shape_pressure = max(0.0, self._extract_modifier_payload_float(modifier, "shape_pressure", 0.0))
+                speed_seed = max(0.0, self._extract_modifier_payload_float(modifier, "speed_seed", 0.0))
+
+                direction_norm = math.hypot(direction_x, direction_y)
+                if direction_norm > 1e-6:
+                    direction_x /= direction_norm
+                    direction_y /= direction_norm
+
+                base_factor = 1.0 + (0.22 * base_score if has_base else 0.0)
+                pressure_factor = 1.0 + (0.18 * base_score if has_base else 0.0)
+                speed_bonus = (vector_length * 0.18 + speed_seed * 32.0) * strength
+                if has_base:
+                    speed_bonus += (base_length * 0.10 + base_score * 24.0) * strength
+
+                params["motion_vector_x"] = float(params.get("motion_vector_x", 0.0)) + direction_x * strength * base_factor
+                params["motion_vector_y"] = float(params.get("motion_vector_y", 0.0)) + direction_y * strength * base_factor
+                params["shape_pressure"] = float(params.get("shape_pressure", 0.0)) + shape_pressure * strength * pressure_factor
+                params["move_speed_bonus"] = float(params.get("move_speed_bonus", 0.0)) + speed_bonus
+            elif modifier_id == "volatility":
+                params["tick_interval"] = float(params.get("tick_interval", self.fire_rune_tick_interval)) * max(
+                    0.45,
+                    1.0 - 0.10 * strength,
+                )
+                params["duration"] = float(params.get("duration", self.fire_rune_duration)) * max(
+                    0.50,
+                    1.0 - 0.08 * strength,
+                )
+            elif modifier_id == "precision":
+                params["damage_per_tick"] = float(params.get("damage_per_tick", 0.0)) * (1.0 + 0.08 * strength)
+            elif modifier_id == "stability":
+                params["duration"] = float(params.get("duration", self.fire_rune_duration)) * (1.0 + 0.14 * strength)
+                params["tick_interval"] = float(params.get("tick_interval", self.fire_rune_tick_interval)) * (
+                    1.0 + 0.05 * strength
+                )
+
+        _ = spell_id
+        return params
+
+    @staticmethod
+    def _extract_modifier_strength(modifier: dict[str, Any], fallback: float = 1.0) -> float:
+        payload = modifier.get("payload", {})
+        if not isinstance(payload, dict):
+            return fallback
+        raw = payload.get("strength", fallback)
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = fallback
+        return max(0.1, min(3.0, value))
+
+    @staticmethod
+    def _extract_modifier_payload_float(
+        modifier: dict[str, Any],
+        key: str,
+        fallback: float = 0.0,
+    ) -> float:
+        payload = modifier.get("payload", {})
+        if not isinstance(payload, dict):
+            return fallback
+        raw = payload.get(key, fallback)
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return fallback
 
     def _spawn_map_enemies(self):
         spawn_points = self.map_data.get("enemy_spawn_points", [])
@@ -218,6 +376,54 @@ class GameInstance:
         enemy["last_attack_at"] = now
         enemy["attack_seq"] += 1
 
+    def _update_active_spells(self, now: float):
+        if not self.active_spells:
+            return
+
+        next_spells: list[dict] = []
+        map_width, map_height = self.map_data.get("size", [1280, 720])
+        for spell in self.active_spells:
+            spell["remaining"] -= TICK_INTERVAL
+            if spell["remaining"] <= 0.0:
+                continue
+
+            velocity_x = float(spell.get("velocity_x", 0.0))
+            velocity_y = float(spell.get("velocity_y", 0.0))
+            if abs(velocity_x) > 1e-6 or abs(velocity_y) > 1e-6:
+                x = float(spell.get("x", 0.0)) + velocity_x * TICK_INTERVAL
+                y = float(spell.get("y", 0.0)) + velocity_y * TICK_INTERVAL
+                radius_x = max(
+                    1.0,
+                    float(
+                        spell.get(
+                            "hitbox_radius_x",
+                            spell.get("hitbox_radius", self.fire_rune_min_radius),
+                        )
+                    ),
+                )
+                radius_y = max(
+                    1.0,
+                    float(
+                        spell.get(
+                            "hitbox_radius_y",
+                            spell.get("hitbox_radius", self.fire_rune_min_radius),
+                        )
+                    ),
+                )
+                spell["x"] = self._clamp(x, radius_x, max(radius_x, map_width - radius_x))
+                spell["y"] = self._clamp(y, radius_y, max(radius_y, map_height - radius_y))
+
+            tick_interval = max(0.05, float(spell.get("tick_interval", self.fire_rune_tick_interval)))
+            spell_id = str(spell.get("spell_id", spell.get("spell", "")))
+            tick_handler = self.spell_registry.get_tick_handler(spell_id)
+            while now >= spell["next_tick_at"] and spell["remaining"] > 0.0:
+                if tick_handler is not None:
+                    tick_handler(self, spell)
+                spell["next_tick_at"] += tick_interval
+            next_spells.append(spell)
+
+        self.active_spells = next_spells
+
     def _check_collision_with_objects(self, x: float, y: float, player_size: float = 32) -> bool:
         """Vérifie les collisions avec les objets de la map"""
         objects = self.map_data.get('objects', [])
@@ -275,6 +481,12 @@ class GameInstance:
             vx *= diag
             vy *= diag
 
+        if vx != 0.0 or vy != 0.0:
+            norm = math.hypot(vx, vy)
+            if norm > 1e-9:
+                player["facing_x"] = vx / norm
+                player["facing_y"] = vy / norm
+
         # Calculer la nouvelle position
         new_x = player["x"] + vx * TICK_INTERVAL
         new_y = player["y"] + vy * TICK_INTERVAL
@@ -330,6 +542,7 @@ class GameInstance:
                             self.process_input(self.players[client_id], input_dict)
                             self.inputs_processed += 1
                 self._update_enemies()
+                self._update_active_spells(current_time)
 
                 # ===== ENVOYER L'ÉTAT AUX CLIENTS =====
                 if self.players:

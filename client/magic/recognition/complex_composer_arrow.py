@@ -138,6 +138,10 @@ class ArrowComplexComposer:
                 right_head=right_head,
                 confidence=score,
                 source="complex",
+                meta={
+                    "recognition_score": float(score),
+                    "recognition_source": "complex",
+                },
             )
             if score > best_score:
                 best_score = score
@@ -198,6 +202,10 @@ class ArrowComplexComposer:
                 right_head=right_head,
                 confidence=score,
                 source="complex",
+                meta={
+                    "recognition_score": float(score),
+                    "recognition_source": "complex",
+                },
             )
             if score > best_score:
                 best_score = score

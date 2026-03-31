@@ -245,6 +245,10 @@ class FireRuneComplexComposer:
             cuts=cuts,
             confidence=score,
             source="complex",
+            meta={
+                "recognition_score": float(score),
+                "recognition_source": "complex",
+            },
         )
 
     @staticmethod

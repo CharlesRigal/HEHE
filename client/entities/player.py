@@ -70,6 +70,8 @@ class Player(BasePlayer):
     def apply_input(self, inp):
         """Applique un input sur self.pos"""
         vy, vx = self.compute_velocity(inp)
+        if vx != 0.0 or vy != 0.0:
+            self.facing = pygame.Vector2(vx, vy).normalize()
         self.update_direction_from_velocity(vx)
 
         new_x = self.pos.x + vx * TICK_INTERVAL

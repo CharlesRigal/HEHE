@@ -7,10 +7,12 @@ from typing import TypeAlias
 from client.entities.recognition_effect_renderer import RecognitionEffectRenderer
 from client.magic.circle_symbol_executor import CircleSubSymbolExecutor
 from client.magic.graph_geo import GraphGeo, MagicalNode
-from client.magic.primitives import Arrow, RuneFire, Segment, Circle, Triangle, ZigZag
+from client.magic.primitives import Arrow, ArrowWithBase, RuneFire, Segment, Circle, Triangle, ZigZag
+from client.magic.rune_registry import RuneRegistry
+from client.magic.spell_pipeline import GraphSpellPipeline
 
 ScreenPoint: TypeAlias = tuple[int, int]
-TimedPoint: TypeAlias = tuple[ScreenPoint, float]
+TimedPoint: TypeAlias = tuple[ScreenPoint, float, float | None]
 Stroke: TypeAlias = list[TimedPoint]
 
 
@@ -22,16 +24,44 @@ class MagicalDraw:
         "client/assets/sounds/magic.ogg",
         "client/assets/sounds/magic.wav",
     ]
+    CAST_SOUND_PATHS = [
+        "sound/fire_blast.flac",
+        "songs/fire_blast.flac",
+        "client/assets/sounds/fire_blast.flac",
+        "client/assets/sounds/fire_blast.ogg",
+        "client/assets/sounds/fire_blast.wav",
+    ]
 
     def get_strokes(self) -> list[Stroke]:
         return list(self._point_list)
 
-    def __init__(self, screen, clear_delay_seconds: float = 0.75):
+    def drain_resolved_spells(self) -> list[object]:
+        resolved = self._resolved_spells
+        self._resolved_spells = []
+        return resolved
+
+    def debug_snapshot(self) -> dict[str, int | bool]:
+        return {
+            "strokes": len(self._point_list),
+            "active_points": len(self._points),
+            "primitives": len(self._magical_graph.iter_primitives()),
+            "order_effects": self._recognition_effect_renderer.order_effect_count(),
+            "clear_waiting": self._clear_at is not None,
+        }
+
+    def __init__(
+        self,
+        screen,
+        clear_delay_seconds: float = 0.75,
+        rune_registry: RuneRegistry | None = None,
+    ):
         self._point_list: list[Stroke] = []
         self._points: Stroke = []
         self._magical_graph: GraphGeo = GraphGeo()
         self._circle_symbol_executor = CircleSubSymbolExecutor()
+        self._graph_spell_pipeline = GraphSpellPipeline(rune_registry=rune_registry)
         self._recognition_effect_renderer = RecognitionEffectRenderer()
+        self._resolved_spells: list[object] = []
         self._primitive_drawers = {
             Segment: self._draw_segment_primitive,
             ZigZag: self._draw_zigzag_primitive,
@@ -39,12 +69,15 @@ class MagicalDraw:
             Triangle: self._draw_triangle_primitive,
             RuneFire: self._draw_rune_fire_primitive,
             Arrow: self._draw_arrow_primitive,
+            ArrowWithBase: self._draw_arrow_with_base_primitive,
         }
         self.surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA).convert_alpha()
         self._clear_delay_seconds = clear_delay_seconds
         self._clear_at: float | None = None
         self._magic_sound = self._load_magic_sound()
         self._magic_channel = None
+        self._spell_cast_sound = self._load_sound(self.CAST_SOUND_PATHS)
+        self._last_spell_cast_sound_ms = -100000
         self._stroke_length = 0.0
         self._last_segment_speed = 0.0
 
@@ -74,19 +107,36 @@ class MagicalDraw:
         if plan is None or not plan.ordered_subsymbol_indices:
             return
 
-        self._circle_symbol_executor.execute_reading_plan(
+        primitives = self._magical_graph.iter_primitives()
+        execution = self._circle_symbol_executor.execute_reading_plan(
             plan=plan,
-            primitives=self._magical_graph.iter_primitives(),
+            primitives=primitives,
         )
+        if execution:
+            now = pygame.time.get_ticks() / 1000.0
+            self._recognition_effect_renderer.spawn_execution_order(
+                execution=execution,
+                primitives=primitives,
+                now=now,
+                duration=2.9,
+            )
+        result = self._graph_spell_pipeline.process_circle_plan(
+            plan=plan,
+            primitives=primitives,
+            execution=execution,
+            graph=self._magical_graph,
+        )
+        if result is not None:
+            self._resolved_spells.append(result)
 
-    def _load_magic_sound(self):
+    def _load_sound(self, paths: list[str]):
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init()
         except Exception:
             return None
 
-        for path in self.MAGIC_SOUND_PATHS:
+        for path in paths:
             if not os.path.exists(path):
                 continue
             try:
@@ -94,6 +144,9 @@ class MagicalDraw:
             except Exception:
                 continue
         return None
+
+    def _load_magic_sound(self):
+        return self._load_sound(self.MAGIC_SOUND_PATHS)
 
     def _ensure_magic_channel(self):
         if not self._magic_sound:
@@ -143,9 +196,15 @@ class MagicalDraw:
             right = volume * (1.0 + pan)
         channel.set_volume(max(0.0, left), max(0.0, right))
 
-    def add_point(self, point: ScreenPoint, current_time: float) -> None:
+    def add_point(
+        self,
+        point: ScreenPoint,
+        current_time: float,
+        pressure: float | None = None,
+    ) -> None:
+        normalized_pressure = self._sanitize_pressure(pressure)
         if not self._points:
-            self._points.append((point, current_time))
+            self._points.append((point, current_time, normalized_pressure))
             self._stroke_length = 0.0
             self._last_segment_speed = 0.0
             self._update_magic_audio(point, current_time, 0.0, 0.016)
@@ -156,7 +215,7 @@ class MagicalDraw:
         dy = point[1] - last[0][1]
 
         if dx * dx + dy * dy > 9:  # distance > 3px
-            self._points.append((point, current_time))
+            self._points.append((point, current_time, normalized_pressure))
             segment_length = math.hypot(dx, dy)
             dt = current_time - last[1]
             self._update_magic_audio(point, current_time, segment_length, dt)
@@ -168,9 +227,25 @@ class MagicalDraw:
         self._stop_magic_audio()
 
     def clear_board(self) -> None:
+        self._magical_graph = GraphGeo()
+        self._resolved_spells = []
+        self._recognition_effect_renderer.clear()
         self._point_list = []
         self._points = []
+        self._clear_at = None
         self._stop_magic_audio()
+
+    def play_spell_cast_sound(self) -> None:
+        if not self._spell_cast_sound:
+            return
+        now_ms = pygame.time.get_ticks()
+        if now_ms - self._last_spell_cast_sound_ms < 90:
+            return
+        self._last_spell_cast_sound_ms = now_ms
+        try:
+            self._spell_cast_sound.play()
+        except Exception:
+            pass
 
     def has_primitives(self) -> bool:
         return self._magical_graph.get_head() is not None
@@ -181,8 +256,9 @@ class MagicalDraw:
     def get_priority_primitives(self):
         return self._magical_graph.resolve_priority_primitives()
 
-    def schedule_clear(self, current_time: float) -> None:
-        self._clear_at = current_time + self._clear_delay_seconds
+    def schedule_clear(self, current_time: float, delay_seconds: float | None = None) -> None:
+        delay = self._clear_delay_seconds if delay_seconds is None else max(0.0, float(delay_seconds))
+        self._clear_at = current_time + delay
 
     def cancel_clear(self) -> None:
         self._clear_at = None
@@ -205,6 +281,24 @@ class MagicalDraw:
     @staticmethod
     def _clamp_alpha(value: float) -> int:
         return max(0, min(255, int(value)))
+
+    @staticmethod
+    def _sanitize_pressure(value: float | None) -> float | None:
+        if value is None:
+            return None
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        if numeric < 0.0:
+            return 0.0
+        if numeric > 1.0:
+            if numeric <= 1024.0:
+                return max(0.0, min(1.0, numeric / 1024.0))
+            if numeric <= 4096.0:
+                return max(0.0, min(1.0, numeric / 4096.0))
+            return 1.0
+        return numeric
 
     def _draw_magic_segment(
         self,
@@ -277,7 +371,7 @@ class MagicalDraw:
             pygame.draw.line(self.surface, (235, 90, 40, 125), start, end, 6)
             pygame.draw.line(self.surface, (255, 230, 210, 180), start, end, 2)
 
-    def _draw_arrow_primitive(self, primitive: Arrow) -> None:
+    def _draw_arrow_primitive(self, primitive: Arrow | ArrowWithBase) -> None:
         tip = (int(primitive.tip[0]), int(primitive.tip[1]))
         tail = (int(primitive.tail[0]), int(primitive.tail[1]))
         left = (int(primitive.left_head[0]), int(primitive.left_head[1]))
@@ -288,6 +382,13 @@ class MagicalDraw:
         pygame.draw.line(self.surface, (245, 235, 255, 170), tail, tip, 2)
         pygame.draw.line(self.surface, (245, 235, 255, 170), tip, left, 2)
         pygame.draw.line(self.surface, (245, 235, 255, 170), tip, right, 2)
+
+    def _draw_arrow_with_base_primitive(self, primitive: ArrowWithBase) -> None:
+        self._draw_arrow_primitive(primitive)
+        base_start = (int(primitive.base_start[0]), int(primitive.base_start[1]))
+        base_end = (int(primitive.base_end[0]), int(primitive.base_end[1]))
+        pygame.draw.line(self.surface, (255, 180, 70, 130), base_start, base_end, 7)
+        pygame.draw.line(self.surface, (255, 245, 225, 210), base_start, base_end, 2)
 
     def draw(self) -> SurfaceType:
         self.surface.fill((0, 0, 0, 0))
@@ -318,5 +419,3 @@ class MagicalDraw:
 
         self._recognition_effect_renderer.draw(self.surface, now)
         return self.surface
-
-

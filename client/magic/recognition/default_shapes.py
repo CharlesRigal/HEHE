@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from client.magic.primitives import Arrow, Circle, RuneFire, Segment, Triangle
+from client.magic.primitives import Arrow, ArrowWithBase, Circle, RuneFire, Segment, Triangle
 from client.magic.recognition.preprocessing import (
     centroid,
     euclidean_distance,
@@ -56,6 +56,17 @@ def build_default_shape_registry(config: RecognitionConfig) -> ShapeRegistry:
     )
     registry.register(
         ShapeDefinition(
+            label="arrow_with_base",
+            aliases=("fleche_base", "direction_arrow"),
+            threshold=config.get_shape_threshold("arrow_with_base", config.get_shape_threshold("arrow", 0.62)),
+            builder=build_arrow_with_base_primitive,
+            requires_closed=False,
+            open_penalty=1.0,
+            multi_source_bonus=config.multi_source_bonus,
+        )
+    )
+    registry.register(
+        ShapeDefinition(
             label="rune_fire",
             aliases=("rune_feu", "fire_rune"),
             threshold=config.get_shape_threshold("rune_fire", 0.64),
@@ -75,11 +86,13 @@ def build_segment_primitive(stroke: NormalizedStroke, winner: RecognizerResult) 
     payload = winner.payload or {}
     start = payload.get("start", points[0])
     end = payload.get("end", points[-1])
+    meta = _build_primitive_meta(stroke, winner)
     return Segment(
         start=tuple(start),
         end=tuple(end),
         confidence=float(winner.score),
         source=winner.source,
+        meta=meta,
     )
 
 
@@ -92,12 +105,14 @@ def build_circle_primitive(stroke: NormalizedStroke, winner: RecognizerResult) -
     radius = payload.get("radius")
     if radius is None:
         radius = _mean_radius(points, center)
+    meta = _build_primitive_meta(stroke, winner)
     return Circle(
         _points=points,
         center=tuple(center),
         radius=float(radius),
         confidence=float(winner.score),
         source=winner.source,
+        meta=meta,
     )
 
 
@@ -111,11 +126,13 @@ def build_triangle_primitive(stroke: NormalizedStroke, winner: RecognizerResult)
         vertices = simplify_to_vertices(points, target_vertices=3)
     if not vertices:
         return None
+    meta = _build_primitive_meta(stroke, winner)
     return Triangle(
         _points=points,
         vertices=[tuple(v) for v in vertices],
         confidence=float(winner.score),
         source=winner.source,
+        meta=meta,
     )
 
 
@@ -139,6 +156,7 @@ def build_arrow_primitive(stroke: NormalizedStroke, winner: RecognizerResult) ->
         if left_head is None or right_head is None:
             return None
 
+    meta = _build_primitive_meta(stroke, winner)
     return Arrow(
         _points=points,
         tail=tuple(tail),
@@ -147,6 +165,7 @@ def build_arrow_primitive(stroke: NormalizedStroke, winner: RecognizerResult) ->
         right_head=tuple(right_head),
         confidence=float(winner.score),
         source=winner.source,
+        meta=meta,
     )
 
 
@@ -185,13 +204,82 @@ def build_rune_fire_primitive(stroke: NormalizedStroke, winner: RecognizerResult
         for start, end in cuts:
             points.extend([start, end])
 
+    meta = _build_primitive_meta(stroke, winner)
     return RuneFire(
         _points=points,
         vertices=vertices[:3],
         cuts=cuts[:3],
         confidence=float(winner.score),
         source=winner.source,
+        meta=meta,
     )
+
+
+def build_arrow_with_base_primitive(stroke: NormalizedStroke, winner: RecognizerResult) -> ArrowWithBase | None:
+    payload = winner.payload or {}
+    required_keys = ("tail", "tip", "left_head", "right_head", "base_start", "base_end")
+    if not all(key in payload for key in required_keys):
+        return None
+
+    def as_point(value: object) -> tuple[float, float] | None:
+        if not isinstance(value, (list, tuple)) or len(value) < 2:
+            return None
+        try:
+            return (float(value[0]), float(value[1]))
+        except (TypeError, ValueError):
+            return None
+
+    tail = as_point(payload.get("tail"))
+    tip = as_point(payload.get("tip"))
+    left_head = as_point(payload.get("left_head"))
+    right_head = as_point(payload.get("right_head"))
+    base_start = as_point(payload.get("base_start"))
+    base_end = as_point(payload.get("base_end"))
+    if None in (tail, tip, left_head, right_head, base_start, base_end):
+        return None
+
+    points = list(stroke.points) or [
+        tail,
+        tip,
+        left_head,
+        tip,
+        right_head,
+        base_start,
+        base_end,
+    ]
+    meta = _build_primitive_meta(stroke, winner)
+    return ArrowWithBase(
+        _points=points,
+        tail=tail,
+        tip=tip,
+        left_head=left_head,
+        right_head=right_head,
+        base_start=base_start,
+        base_end=base_end,
+        confidence=float(winner.score),
+        source=winner.source,
+        meta=meta,
+    )
+
+
+def _build_primitive_meta(
+    stroke: NormalizedStroke,
+    winner: RecognizerResult,
+    extra: dict[str, float | int | str | bool] | None = None,
+) -> dict[str, float | int | str | bool]:
+    meta: dict[str, float | int | str | bool] = {
+        "recognition_score": float(winner.score),
+        "recognition_source": winner.source,
+        "stroke_closed": bool(stroke.is_closed),
+        "stroke_path_length": float(stroke.path_length),
+        "stroke_diagonal": float(stroke.diagonal),
+    }
+    for key, value in (stroke.features or {}).items():
+        if isinstance(value, (int, float)):
+            meta[f"drawing_{key}"] = float(value)
+    if extra:
+        meta.update(extra)
+    return meta
 
 
 def _mean_radius(points: list[tuple[float, float]], center: tuple[float, float]) -> float:

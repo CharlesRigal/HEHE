@@ -19,7 +19,11 @@ def playing(game, tick_rate):
     if board_pressed:
         game.player.magical_draw.cancel_clear()
         if drawing_pressed:
-            game.player.magical_draw.add_point(pygame.mouse.get_pos(), current_time)
+            game.player.magical_draw.add_point(
+                pygame.mouse.get_pos(),
+                current_time,
+                pressure=inp.get("pressure"),
+            )
         else:
             game.player.magical_draw.validate_points_to_board()
     elif game.prev_board_pressed:
@@ -35,10 +39,13 @@ def playing(game, tick_rate):
                 game.player.magical_draw.add_node(primitives)
                 has_primitive = True
 
+        resolved_spells = game.player.magical_draw.drain_resolved_spells()
+        if resolved_spells:
+            for spell in resolved_spells:
+                game.handle_resolved_spell(spell)
+
         if has_primitive:
-            # Dès qu'une primitive est reconnue, on retire les traits bruts.
-            game.player.magical_draw.clear_board()
-            game.player.magical_draw.cancel_clear()
+            game.player.magical_draw.schedule_clear(current_time, delay_seconds=3.0)
         else:
             game.player.magical_draw.schedule_clear(current_time)
 

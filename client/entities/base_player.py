@@ -16,6 +16,7 @@ class BasePlayer(ServerUpdatable, GameObject, Damagable, ABC):
 
         self.pos = pygame.Vector2(x, y)
         self.direction = 0
+        self.facing = pygame.Vector2(1.0, 0.0)
 
 
         self.image_right = pygame.image.load(image_path).convert_alpha()
@@ -50,6 +51,11 @@ class BasePlayer(ServerUpdatable, GameObject, Damagable, ABC):
 
     def get_draw_image(self):
         return self.current_image or self.image_right
+
+    def get_facing_vector(self) -> pygame.Vector2:
+        if self.facing.length_squared() <= 1e-9:
+            return pygame.Vector2(1.0, 0.0)
+        return self.facing.normalize()
 
     def draw_sprite(self, screen: pygame.Surface, camera=None, pos=None, image=None):
         draw_pos = pos if pos is not None else self.get_draw_position()

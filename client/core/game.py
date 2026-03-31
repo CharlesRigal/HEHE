@@ -7,7 +7,10 @@ from client.entities.magical_draw import MagicalDraw
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
+from client.graphics.game_menu import GameMenu
 from client.magic.geometry_analyzer import GeometryAnalyzer
+from client.magic.default_runes import build_default_rune_registry
+from client.magic.spell_execution import ClientSpellExecutionPipeline
 from client.network.network import NetworkClient
 from client.core.game_manager import GameManager
 from client.entities.remote_enemy import RemoteEnemy
@@ -41,18 +44,30 @@ class Game:
         self.last_unknown_msg = None
 
         self.geometry_analyzer = GeometryAnalyzer()
+        self.rune_registry = build_default_rune_registry()
+        self.spell_execution_pipeline = ClientSpellExecutionPipeline(rune_registry=self.rune_registry)
 
         self.state = "menu"
 
+        self.game_menu:GameMenu = GameMenu(screen_width=self.screen.get_width(), screen_height=self.screen.get_height())
+
         self.map_renderer:MapRenderer = MapRenderer()
         self.map_selector:MapSelector = MapSelector(self.screen.get_width(), self.screen.get_height())
-        self.player:Player = Player("1", 0, 0, "client/assets/images/full_mage.png", magical_draw=MagicalDraw(self.screen))
+        self.player:Player = Player(
+            "1",
+            0,
+            0,
+            "client/assets/images/full_mage.png",
+            magical_draw=MagicalDraw(self.screen, rune_registry=self.rune_registry),
+        )
         self.player.map_renderer = self.map_renderer
 
         # ===== VARIABLES POUR FIXED TIMESTEP =====
         self.accumulator = 0.0  # Temps accumulé pour les ticks de logique
         self.current_time = time.time()
         self.max_frame_time = 0.25  # Protection contre la spirale de la mort
+        self._font_cache: dict[int, pygame.font.Font] = {}
+        self.debug_mode = False
 
     def run(self):
         """Boucle principale avec fixed timestep"""
@@ -111,7 +126,7 @@ class Game:
             self.draw_background()
 
         if self.state == "menu":
-            self.draw_text("Appuie sur une touche pour jouer", 40, (255, 255, 255), self.screen.get_width() / 2, self.screen.get_height() / 2)
+            self.game_menu.draw(self.screen)
         elif self.state == "map_selection":
             self.map_selector.draw(self.screen)
         elif self.state == "playing":
@@ -254,6 +269,10 @@ class Game:
                 self.running = False
                 self.disconnect_from_server()
 
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1 and (event.mod & pygame .KMOD_CTRL):
+                self._toggle_debug_mode()
+                continue
+
             if self.state == "menu":
                 if event.type == pygame.KEYDOWN:
                     self.connect_to_server()
@@ -277,11 +296,22 @@ class Game:
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                     self.state = "menu"
 
+    def _get_font(self, size: int) -> pygame.font.Font:
+        font = self._font_cache.get(size)
+        if font is None:
+            font = pygame.font.Font(None, size)
+            self._font_cache[size] = font
+        return font
+
     def draw_text(self, text, size, color, x, y):
-        font = pygame.font.Font(None, size)
-        surf = font.render(text, True, color)
+        font = self._get_font(size)
+        surf = font.render(str(text), True, color)
         rect = surf.get_rect(center=(x, y))
         self.screen.blit(surf, rect)
+
+    def _toggle_debug_mode(self) -> None:
+        self.debug_mode = not self.debug_mode
+        logging.info(f"Debug mode: {'ON' if self.debug_mode else 'OFF'} (toggle Alt+F1)")
 
     def handle_game_update(self, msg):
         remote_player_list = msg.get("players", {})
@@ -384,6 +414,121 @@ class Game:
         self.draw_hud()
 
     def draw_hud(self):
-        self.draw_text("server_request: {}".format(self.msg_old), 20, (255, 255, 255), 100, 50)
-        count = self.game_manager.get_object_count()
-        self.draw_text(f"Objets: {count}", 20, (255, 255, 255), 100, 30)
+        if not self.debug_mode:
+            return
+
+        msg_type = "-"
+        if isinstance(self.msg_old, dict):
+            msg_type = str(self.msg_old.get("t", "?"))
+        elif self.msg_old:
+            msg_type = str(self.msg_old)
+
+        player_pos = getattr(self.player, "pos", pygame.Vector2())
+        render_pos = getattr(self.player, "render_pos", pygame.Vector2())
+        recv_q = self._safe_queue_size(getattr(self.net, "recv_q", None))
+        send_q = self._safe_queue_size(getattr(self.net, "send_q", None))
+        pending_inputs = len(getattr(self.player, "pending_inputs", []))
+        object_count = self.game_manager.get_object_count()
+        fps = self.clock.get_fps()
+        logic_backlog = int(self.accumulator / TICK_INTERVAL)
+        map_surface = getattr(self.map_renderer, "map_surface", None)
+        map_size = (
+            f"{map_surface.get_width()}x{map_surface.get_height()}"
+            if map_surface is not None
+            else "-"
+        )
+
+        magical_snapshot = {}
+        if self.player and self.player.magical_draw and hasattr(self.player.magical_draw, "debug_snapshot"):
+            magical_snapshot = self.player.magical_draw.debug_snapshot()
+
+        lines = [
+            "DEBUG MODE [Alt+F1]",
+            f"state={self.state} fps={fps:.1f} backlog={logic_backlog}",
+            f"net={'on' if self.net_connected else 'off'} send_q={send_q} recv_q={recv_q} msg={msg_type}",
+            f"objects={object_count} pending_inputs={pending_inputs}",
+            f"player=({player_pos.x:.1f},{player_pos.y:.1f}) render=({render_pos.x:.1f},{render_pos.y:.1f})",
+            f"map={map_size}",
+        ]
+        if magical_snapshot:
+            lines.append(
+                "magic "
+                f"strokes={magical_snapshot.get('strokes', 0)} "
+                f"active_points={magical_snapshot.get('active_points', 0)} "
+                f"primitives={magical_snapshot.get('primitives', 0)} "
+                f"order_fx={magical_snapshot.get('order_effects', 0)} "
+                f"clear_waiting={1 if magical_snapshot.get('clear_waiting', False) else 0}"
+            )
+
+        font = self._get_font(18)
+        line_height = 20
+        panel_padding = 8
+        max_width = max(font.size(line)[0] for line in lines) + panel_padding * 2
+        panel_height = len(lines) * line_height + panel_padding * 2
+
+        panel = pygame.Surface((max_width, panel_height), pygame.SRCALPHA)
+        panel.fill((8, 12, 18, 170))
+        pygame.draw.rect(panel, (92, 170, 255, 210), panel.get_rect(), width=1)
+        self.screen.blit(panel, (12, 12))
+
+        text_x = 12 + panel_padding
+        text_y = 12 + panel_padding
+        for line in lines:
+            surf = font.render(line, True, (230, 244, 255))
+            self.screen.blit(surf, (text_x, text_y))
+            text_y += line_height
+
+    @staticmethod
+    def _safe_queue_size(queue_obj) -> int:
+        if queue_obj is None:
+            return 0
+        try:
+            return int(queue_obj.qsize())
+        except Exception:
+            return -1
+
+    def handle_resolved_spell(self, spell: object) -> None:
+        self.spell_execution_pipeline.execute(self, spell)
+
+    def _compute_forward_cast_center(
+        self,
+        *,
+        hitbox_radius: float,
+        fallback_center: tuple[float, float],
+        distance_bonus: float = 0.0,
+    ) -> tuple[float, float]:
+        player = getattr(self, "player", None)
+        map_renderer = getattr(self, "map_renderer", None)
+        if player is None:
+            return fallback_center
+
+        try:
+            px, py = player.get_position()
+        except Exception:
+            return fallback_center
+
+        if hasattr(player, "get_facing_vector"):
+            try:
+                facing = player.get_facing_vector()
+            except Exception:
+                facing = pygame.Vector2(1.0, 0.0)
+        else:
+            facing = pygame.Vector2(1.0, 0.0)
+
+        if facing.length_squared() <= 1e-9:
+            facing = pygame.Vector2(1.0, 0.0)
+        else:
+            facing = facing.normalize()
+
+        cast_distance = max(24.0, float(hitbox_radius) + 10.0 + max(0.0, float(distance_bonus)))
+        cx = float(px + facing.x * cast_distance)
+        cy = float(py + facing.y * cast_distance)
+
+        if map_renderer and getattr(map_renderer, "map_surface", None) is not None:
+            width = map_renderer.map_surface.get_width()
+            height = map_renderer.map_surface.get_height()
+            margin = max(1.0, float(hitbox_radius))
+            cx = max(margin, min(cx, width - margin))
+            cy = max(margin, min(cy, height - margin))
+
+        return (cx, cy)

@@ -5,6 +5,7 @@ from typing import Any, Sequence
 from client.magic.primitives import Segment
 from client.magic.recognition.candidate_fusion import CandidateFusionPolicy
 from client.magic.recognition.complex_composer_arrow import ArrowComplexComposer
+from client.magic.recognition.complex_composer_arrow_with_base import ArrowWithBaseComplexComposer
 from client.magic.recognition.complex_composer_rune_fire import FireRuneComplexComposer
 from client.magic.recognition.complex_composer_engine import ComplexCompositionEngine
 from client.magic.recognition.complex_composer_types import ComplexShapeComposer, PrimitiveEntry
@@ -62,6 +63,7 @@ class PrimitiveRecognitionEngine:
 
         default_composers = complex_composers or (
             ("rune_fire", FireRuneComplexComposer()),
+            ("arrow_with_base", ArrowWithBaseComplexComposer()),
             ("arrow", ArrowComplexComposer()),
         )
         for label, composer in default_composers:
@@ -193,6 +195,7 @@ class PrimitiveRecognitionEngine:
                     end=tuple(end),
                     confidence=confidence,
                     source="polyline",
+                    meta=self._build_stroke_meta(stroke, confidence=confidence, source="polyline"),
                 )
             )
         if len(segments) < 2:
@@ -235,4 +238,35 @@ class PrimitiveRecognitionEngine:
         shape = self.shape_registry.get(winner.label)
         if shape is None:
             return None
-        return shape.builder(stroke, winner)
+        primitive = shape.builder(stroke, winner)
+        if primitive is None:
+            return None
+
+        if hasattr(primitive, "meta"):
+            current_meta = getattr(primitive, "meta", None)
+            if not isinstance(current_meta, dict):
+                current_meta = {}
+            fallback = self._build_stroke_meta(stroke, confidence=winner.score, source=winner.source)
+            for key, value in fallback.items():
+                current_meta.setdefault(key, value)
+            primitive.meta = current_meta
+        return primitive
+
+    @staticmethod
+    def _build_stroke_meta(
+        stroke: NormalizedStroke,
+        *,
+        confidence: float,
+        source: str,
+    ) -> dict[str, float | int | str | bool]:
+        meta: dict[str, float | int | str | bool] = {
+            "recognition_score": float(confidence),
+            "recognition_source": source,
+            "stroke_closed": bool(stroke.is_closed),
+            "stroke_path_length": float(stroke.path_length),
+            "stroke_diagonal": float(stroke.diagonal),
+        }
+        for key, value in (stroke.features or {}).items():
+            if isinstance(value, (int, float)):
+                meta[f"drawing_{key}"] = float(value)
+        return meta

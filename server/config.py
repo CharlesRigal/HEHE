@@ -11,3 +11,5 @@ PORT = CONFIG.get("server", {}).get("port", 9000)
 TICK_RATE = CONFIG.get("server", {}).get("tick_rate", 60)
 TICK_INTERVAL = 1.0 / TICK_RATE
 PLAYER_SPEED = CONFIG.get("server", {}).get("player_speed", 300)
+
+MENU_FONT_SIZE = CONFIG.get("menu_font_size", 36)

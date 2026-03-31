@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Sequence, TypeAlias
 
 import pygame
 from pygame.surface import SurfaceType
 
-from client.magic.primitives import Arrow, Circle, RuneFire, Segment, Triangle, ZigZag
+from client.magic.primitives import Arrow, ArrowWithBase, Circle, RuneFire, Segment, Triangle, ZigZag
 
 Point: TypeAlias = tuple[float, float]
 ScreenPoint: TypeAlias = tuple[int, int]
@@ -23,24 +23,43 @@ class RecognitionEffect:
     color: Color3
 
 
+@dataclass(slots=True)
+class ExecutionOrderEffect:
+    symbol_index: int
+    ordinal: int
+    total: int
+    center: Point
+    start_time: float
+    duration: float
+
+
 class RecognitionEffectRenderer:
     _KIND_BY_TYPE: tuple[tuple[type, str], ...] = (
         (Segment, "segment"),
         (ZigZag, "zigzag"),
         (Circle, "circle"),
         (Triangle, "triangle"),
+        (ArrowWithBase, "arrow_with_base"),
         (Arrow, "arrow"),
         (RuneFire, "rune_fire"),
     )
 
     DEFAULT_CONFIG: dict[str, tuple[float, Color3]] = {
-        "segment": (0.45, (255, 210, 120)),
-        "zigzag": (0.58, (255, 180, 90)),
-        "circle": (0.60, (120, 230, 255)),
-        "triangle": (0.56, (190, 255, 145)),
-        "arrow": (0.52, (255, 145, 220)),
-        "rune_fire": (0.62, (255, 125, 90)),
+        "segment": (0.36, (255, 240, 70)),
+        "zigzag": (0.52, (255, 95, 30)),
+        "circle": (0.58, (50, 240, 255)),
+        "triangle": (0.50, (110, 255, 90)),
+        "arrow": (0.46, (238, 90, 255)),
+        "arrow_with_base": (0.56, (255, 175, 30)),
+        "rune_fire": (0.64, (255, 55, 20)),
     }
+    ORDER_COLORS: tuple[Color3, ...] = (
+        (255, 238, 120),
+        (105, 245, 255),
+        (150, 255, 165),
+        (255, 168, 95),
+        (255, 130, 225),
+    )
 
     def __init__(
         self,
@@ -52,12 +71,15 @@ class RecognitionEffectRenderer:
             self._config.update(config)
         self._max_effects = max(1, int(max_effects))
         self._effects: list[RecognitionEffect] = []
+        self._order_effects: list[ExecutionOrderEffect] = []
+        self._font_cache: dict[int, pygame.font.Font] = {}
         self._effect_drawers = {
             "segment": self._draw_segment_effect,
             "zigzag": self._draw_zigzag_effect,
             "circle": self._draw_circle_effect,
             "triangle": self._draw_triangle_effect,
             "arrow": self._draw_arrow_effect,
+            "arrow_with_base": self._draw_arrow_with_base_effect,
             "rune_fire": self._draw_rune_fire_effect,
         }
 
@@ -80,27 +102,69 @@ class RecognitionEffectRenderer:
         if len(self._effects) > self._max_effects:
             self._effects = self._effects[-self._max_effects :]
 
-    def draw(self, surface: SurfaceType, now: float) -> None:
-        if not self._effects:
-            return
-
-        active: list[RecognitionEffect] = []
-        for effect in self._effects:
-            age = now - effect.start_time
-            if age < 0.0 or age > effect.duration:
+    def spawn_execution_order(
+        self,
+        execution: Sequence[object],
+        primitives: Sequence[object],
+        now: float,
+        *,
+        duration: float = 2.9,
+    ) -> None:
+        order_duration = max(0.5, float(duration))
+        for context in execution:
+            symbol_index = self._safe_int(getattr(context, "symbol_index", -1), -1)
+            ordinal = self._safe_int(getattr(context, "ordinal", -1), -1)
+            total = max(1, self._safe_int(getattr(context, "total", 1), 1))
+            if symbol_index < 0 or symbol_index >= len(primitives) or ordinal < 0:
                 continue
 
-            progress = age / max(effect.duration, 1e-6)
-            drawer = self._effect_drawers.get(effect.kind)
-            if drawer is not None:
-                drawer(surface, effect, progress)
+            center = self._primitive_center(primitives[symbol_index])
+            if center is None:
+                continue
 
-            active.append(effect)
+            start_offset = min(0.35, 0.06 * ordinal)
+            self._order_effects.append(
+                ExecutionOrderEffect(
+                    symbol_index=symbol_index,
+                    ordinal=ordinal,
+                    total=total,
+                    center=center,
+                    start_time=now + start_offset,
+                    duration=order_duration,
+                )
+            )
 
-        self._effects = active
+        if len(self._order_effects) > self._max_effects:
+            self._order_effects = self._order_effects[-self._max_effects :]
+
+    def order_effect_count(self) -> int:
+        return len(self._order_effects)
+
+    def draw(self, surface: SurfaceType, now: float) -> None:
+        if not self._effects and not self._order_effects:
+            return
+
+        if self._effects:
+            active: list[RecognitionEffect] = []
+            for effect in self._effects:
+                age = now - effect.start_time
+                if age < 0.0 or age > effect.duration:
+                    continue
+
+                progress = age / max(effect.duration, 1e-6)
+                drawer = self._effect_drawers.get(effect.kind)
+                if drawer is not None:
+                    drawer(surface, effect, progress)
+
+                active.append(effect)
+
+            self._effects = active
+
+        self._draw_execution_order(surface, now)
 
     def clear(self) -> None:
         self._effects.clear()
+        self._order_effects.clear()
 
     @staticmethod
     def _primitive_kind(primitive: object) -> str:
@@ -128,18 +192,151 @@ class RecognitionEffectRenderer:
     def _color_with_alpha(self, color: Color3, alpha: float) -> tuple[int, int, int, int]:
         return (color[0], color[1], color[2], self._clamp_alpha(alpha))
 
+    def _get_font(self, size: int) -> pygame.font.Font:
+        resolved_size = max(12, int(size))
+        font = self._font_cache.get(resolved_size)
+        if font is None:
+            font = pygame.font.Font(None, resolved_size)
+            self._font_cache[resolved_size] = font
+        return font
+
+    @staticmethod
+    def _safe_int(value: object, fallback: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return int(fallback)
+
+    @staticmethod
+    def _primitive_center(primitive: object) -> Point | None:
+        if isinstance(primitive, Circle) and primitive.center is not None:
+            return (float(primitive.center[0]), float(primitive.center[1]))
+        if isinstance(primitive, Segment):
+            return (
+                (float(primitive.start[0]) + float(primitive.end[0])) * 0.5,
+                (float(primitive.start[1]) + float(primitive.end[1])) * 0.5,
+            )
+        if isinstance(primitive, (Triangle, RuneFire)) and primitive.vertices:
+            count = max(1, len(primitive.vertices))
+            return (
+                float(sum(point[0] for point in primitive.vertices) / count),
+                float(sum(point[1] for point in primitive.vertices) / count),
+            )
+        if isinstance(primitive, ZigZag) and primitive.vertices:
+            mid = primitive.vertices[len(primitive.vertices) // 2]
+            return (float(mid[0]), float(mid[1]))
+        if isinstance(primitive, ArrowWithBase):
+            return (
+                (primitive.tail[0] + primitive.tip[0] + primitive.base_start[0] + primitive.base_end[0]) * 0.25,
+                (primitive.tail[1] + primitive.tip[1] + primitive.base_start[1] + primitive.base_end[1]) * 0.25,
+            )
+        if isinstance(primitive, Arrow):
+            return (
+                (float(primitive.tail[0]) + float(primitive.tip[0])) * 0.5,
+                (float(primitive.tail[1]) + float(primitive.tip[1])) * 0.5,
+            )
+
+        raw_points = getattr(primitive, "_points", None)
+        if isinstance(raw_points, list) and raw_points:
+            return (
+                float(sum(point[0] for point in raw_points) / len(raw_points)),
+                float(sum(point[1] for point in raw_points) / len(raw_points)),
+            )
+        return None
+
+    def _order_color(self, ordinal: int) -> Color3:
+        if not self.ORDER_COLORS:
+            return (255, 220, 120)
+        return self.ORDER_COLORS[max(0, ordinal) % len(self.ORDER_COLORS)]
+
+    def _draw_execution_order(self, surface: SurfaceType, now: float) -> None:
+        if not self._order_effects:
+            return
+
+        active: list[ExecutionOrderEffect] = []
+        for effect in self._order_effects:
+            age = now - effect.start_time
+            if age < 0.0 or age > effect.duration:
+                continue
+            active.append(effect)
+        self._order_effects = active
+        if not active:
+            return
+
+        ordered = sorted(active, key=lambda item: (item.ordinal, item.symbol_index))
+        for left, right in zip(ordered, ordered[1:]):
+            left_progress = max(0.0, min(1.0, (now - left.start_time) / max(left.duration, 1e-6)))
+            if left_progress <= 0.1:
+                continue
+            draw_progress = max(0.0, min(1.0, (left_progress - 0.1) / 0.8))
+            start = self._point_to_screen(left.center)
+            end_point = self._lerp_point(left.center, right.center, draw_progress)
+            end = self._point_to_screen(end_point)
+            fade = max(0.0, 1.0 - left_progress)
+            width = max(2, int(3 + 4 * fade))
+            pygame.draw.line(
+                surface,
+                (255, 235, 140, self._clamp_alpha((95.0 + 90.0 * fade) * max(0.25, fade))),
+                start,
+                end,
+                width,
+            )
+
+        for effect in ordered:
+            progress = max(0.0, min(1.0, (now - effect.start_time) / max(effect.duration, 1e-6)))
+            fade = max(0.0, 1.0 - progress)
+            pop = max(0.0, min(1.0, progress * 3.2))
+            pulse = 0.5 + 0.5 * math.sin(effect.start_time * 14.0 + progress * 18.0)
+            center = self._point_to_screen(effect.center)
+            color = self._order_color(effect.ordinal)
+
+            outer_radius = max(9, int(17 - 5 * pop + 4 * pulse * fade))
+            inner_radius = max(5, int(11 - 4 * pop + 2 * pulse * fade))
+            pygame.draw.circle(
+                surface,
+                (18, 24, 34, self._clamp_alpha(180 * fade)),
+                center,
+                outer_radius + 2,
+            )
+            pygame.draw.circle(
+                surface,
+                (color[0], color[1], color[2], self._clamp_alpha((140 + 80 * pulse) * fade)),
+                center,
+                outer_radius,
+                max(2, int(2 + 3 * fade)),
+            )
+            pygame.draw.circle(
+                surface,
+                (255, 245, 215, self._clamp_alpha((95 + 110 * pulse) * fade)),
+                center,
+                inner_radius,
+            )
+
+            font = self._get_font(max(16, int(18 + 5 * fade)))
+            text = font.render(str(effect.ordinal + 1), True, (20, 26, 33))
+            text.set_alpha(self._clamp_alpha(235 * fade))
+            text_rect = text.get_rect(center=(center[0], center[1] - 1))
+            surface.blit(text, text_rect)
+
+            if effect.total > 1:
+                info_font = self._get_font(12)
+                info_text = info_font.render(f"{effect.ordinal + 1}/{effect.total}", True, (255, 250, 225))
+                info_text.set_alpha(self._clamp_alpha(180 * fade))
+                info_rect = info_text.get_rect(midtop=(center[0], center[1] + outer_radius + 2))
+                surface.blit(info_text, info_rect)
+
     def _draw_segment_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive
         if not isinstance(primitive, Segment):
             return
 
         fade = max(0.0, 1.0 - progress)
-        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 23.0 + progress * 11.0)
+        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 23.0 + progress * 13.0)
 
         start = self._point_to_screen(primitive.start)
         end = self._point_to_screen(primitive.end)
-        outer_width = max(2, int(3 + 9 * fade))
-        core_width = max(1, int(1 + 3 * fade))
+        outer_width = max(3, int(5 + 10 * fade))
+        core_width = max(2, int(2 + 4 * fade))
 
         pygame.draw.line(
             surface,
@@ -150,7 +347,14 @@ class RecognitionEffectRenderer:
         )
         pygame.draw.line(
             surface,
-            (255, 255, 255, self._clamp_alpha(210 * fade)),
+            (255, 160, 40, self._clamp_alpha(130 * fade)),
+            start,
+            end,
+            max(2, outer_width - 2),
+        )
+        pygame.draw.line(
+            surface,
+            (255, 252, 210, self._clamp_alpha(245 * fade)),
             start,
             end,
             core_width,
@@ -158,13 +362,19 @@ class RecognitionEffectRenderer:
 
         spark_t = min(1.0, progress * 1.45)
         spark = self._point_to_screen(self._lerp_point(primitive.start, primitive.end, spark_t))
-        spark_radius = max(2, int(4 + 9 * fade))
+        spark_radius = max(3, int(6 + 10 * fade))
         pygame.draw.circle(
             surface,
             self._color_with_alpha(effect.color, 200 * fade),
             spark,
             spark_radius,
         )
+        midpoint = self._point_to_screen(self._lerp_point(primitive.start, primitive.end, 0.5))
+        mid_radius = max(1, int(2 + 5 * pulse * fade))
+        pygame.draw.circle(surface, (255, 245, 170, self._clamp_alpha(170 * fade)), midpoint, mid_radius)
+        cap_radius = max(2, int(3 + 5 * fade))
+        pygame.draw.circle(surface, (255, 235, 155, self._clamp_alpha(150 * fade)), start, cap_radius)
+        pygame.draw.circle(surface, (255, 235, 155, self._clamp_alpha(150 * fade)), end, cap_radius)
 
     def _draw_circle_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive
@@ -172,24 +382,48 @@ class RecognitionEffectRenderer:
             return
 
         fade = max(0.0, 1.0 - progress)
-        ring_radius = max(1, int(primitive.radius * (1.0 + 0.28 * progress)))
+        outer_radius = max(1, int(primitive.radius * (1.0 + 0.32 * progress)))
+        inner_radius = max(1, int(primitive.radius * (0.78 + 0.20 * (1.0 - progress))))
         center = self._point_to_screen(primitive.center)
-        width = max(1, int(2 + 10 * fade))
+        width = max(2, int(3 + 10 * fade))
+        phase = effect.start_time * 10.0 + progress * 12.0
 
         pygame.draw.circle(
             surface,
             self._color_with_alpha(effect.color, 200 * fade),
             center,
-            ring_radius,
+            outer_radius,
             width,
         )
         pygame.draw.circle(
             surface,
-            self._color_with_alpha(effect.color, 45 * fade),
+            (165, 245, 255, self._clamp_alpha(165 * fade)),
             center,
-            max(1, int(ring_radius * 0.8)),
-            0,
+            inner_radius,
+            max(1, int(1 + 6 * fade)),
         )
+        orbit_radius = max(2, int(primitive.radius * (0.95 + 0.10 * progress)))
+        orbit_x = int(primitive.center[0] + math.cos(phase) * orbit_radius)
+        orbit_y = int(primitive.center[1] + math.sin(phase) * orbit_radius)
+        pygame.draw.circle(
+            surface,
+            (220, 250, 255, self._clamp_alpha(220 * fade)),
+            (orbit_x, orbit_y),
+            max(3, int(4 + 6 * fade)),
+        )
+        orbit_x_b = int(primitive.center[0] + math.cos(phase + math.pi) * orbit_radius)
+        orbit_y_b = int(primitive.center[1] + math.sin(phase + math.pi) * orbit_radius)
+        pygame.draw.circle(
+            surface,
+            (120, 245, 255, self._clamp_alpha(190 * fade)),
+            (orbit_x_b, orbit_y_b),
+            max(2, int(3 + 4 * fade)),
+        )
+        spark_r = max(1, int(2 + 3 * fade))
+        for axis in (0.0, math.pi * 0.5, math.pi, math.pi * 1.5):
+            px = int(primitive.center[0] + math.cos(axis + phase * 0.35) * inner_radius)
+            py = int(primitive.center[1] + math.sin(axis + phase * 0.35) * inner_radius)
+            pygame.draw.circle(surface, (210, 255, 255, self._clamp_alpha(165 * fade)), (px, py), spark_r)
 
     def _draw_zigzag_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive
@@ -201,20 +435,29 @@ class RecognitionEffectRenderer:
         visible_segments = max(1, int((len(vertices) - 1) * min(1.0, progress * 1.6)))
         path_points = vertices[: visible_segments + 1]
         points = [self._point_to_screen(point) for point in path_points]
+        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 21.0 + progress * 18.0)
 
         pygame.draw.lines(
             surface,
             self._color_with_alpha(effect.color, 190 * fade),
             False,
             points,
-            max(2, int(2 + 8 * fade)),
+            max(3, int(3 + 9 * fade)),
+        )
+        ghost = [(point[0] + 2, point[1] + 2) for point in points]
+        pygame.draw.lines(
+            surface,
+            (255, 70, 35, self._clamp_alpha(95 * fade)),
+            False,
+            ghost,
+            max(2, int(2 + 7 * fade)),
         )
         pygame.draw.lines(
             surface,
-            (255, 255, 255, self._clamp_alpha(150 * fade)),
+            (255, 236, 210, self._clamp_alpha(175 * fade)),
             False,
             points,
-            max(1, int(1 + 3 * fade)),
+            max(2, int(2 + 3 * fade)),
         )
 
         tip = points[-1]
@@ -222,8 +465,18 @@ class RecognitionEffectRenderer:
             surface,
             self._color_with_alpha(effect.color, 220 * fade),
             tip,
-            max(2, int(4 + 8 * fade)),
+            max(3, int(5 + 9 * fade)),
         )
+        for index, point in enumerate(points[:-1]):
+            if index % 2 != 0:
+                continue
+            node_radius = max(1, int(2 + 3 * pulse * fade))
+            pygame.draw.circle(
+                surface,
+                (255, 205, 150, self._clamp_alpha(130 * fade)),
+                point,
+                node_radius,
+            )
 
     def _draw_triangle_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive
@@ -231,34 +484,58 @@ class RecognitionEffectRenderer:
             return
 
         fade = max(0.0, 1.0 - progress)
+        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 24.0 + progress * 16.0)
         vertices = [tuple(point) for point in primitive.vertices[:3]]
         center_x = sum(point[0] for point in vertices) / 3.0
         center_y = sum(point[1] for point in vertices) / 3.0
         center = (center_x, center_y)
-        scale = 0.82 + 0.30 * progress
+        scale = 0.84 + 0.28 * progress
 
-        scaled_vertices: list[ScreenPoint] = []
+        scaled: list[Point] = []
         for vx, vy in vertices:
             sx = center[0] + (vx - center[0]) * scale
             sy = center[1] + (vy - center[1]) * scale
-            scaled_vertices.append((int(sx), int(sy)))
+            scaled.append((sx, sy))
+        polygon = [self._point_to_screen(point) for point in scaled]
+
+        edges = [(scaled[0], scaled[1]), (scaled[1], scaled[2]), (scaled[2], scaled[0])]
+        for edge_index, (start, end) in enumerate(edges):
+            edge_progress = max(0.0, min(1.0, (progress - edge_index * 0.20) / 0.55))
+            if edge_progress <= 0.0:
+                continue
+            edge_end = self._lerp_point(start, end, edge_progress)
+            pygame.draw.line(
+                surface,
+                self._color_with_alpha(effect.color, 190 * fade),
+                self._point_to_screen(start),
+                self._point_to_screen(edge_end),
+                max(2, int(3 + 7 * fade)),
+            )
 
         pygame.draw.polygon(
             surface,
-            self._color_with_alpha(effect.color, 170 * fade),
-            scaled_vertices,
-            max(1, int(2 + 8 * fade)),
-        )
-        pygame.draw.polygon(
-            surface,
-            (255, 255, 255, self._clamp_alpha(65 * fade)),
-            scaled_vertices,
+            (120, 255, 120, self._clamp_alpha((70 + 40 * pulse) * fade)),
+            polygon,
             0,
+        )
+        for point in polygon:
+            pygame.draw.circle(
+                surface,
+                (230, 255, 225, self._clamp_alpha(150 * fade)),
+                point,
+                max(1, int(2 + 4 * fade)),
+            )
+        center_point = (int(center_x), int(center_y))
+        pygame.draw.circle(
+            surface,
+            (220, 255, 200, self._clamp_alpha(190 * fade)),
+            center_point,
+            max(2, int(3 + 4 * pulse * fade)),
         )
 
     def _draw_arrow_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive
-        if not isinstance(primitive, Arrow):
+        if not isinstance(primitive, (Arrow, ArrowWithBase)):
             return
 
         fade = max(0.0, 1.0 - progress)
@@ -268,20 +545,28 @@ class RecognitionEffectRenderer:
         left_head = tuple(primitive.left_head)
         right_head = tuple(primitive.right_head)
         beam_end = self._lerp_point(tail, tip, beam_progress)
+        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 25.0 + progress * 14.0)
 
         pygame.draw.line(
             surface,
             self._color_with_alpha(effect.color, 200 * fade),
             self._point_to_screen(tail),
             self._point_to_screen(beam_end),
-            max(2, int(2 + 9 * fade)),
+            max(3, int(4 + 10 * fade)),
+        )
+        pygame.draw.line(
+            surface,
+            (255, 205, 255, self._clamp_alpha(235 * fade)),
+            self._point_to_screen(tail),
+            self._point_to_screen(beam_end),
+            max(2, int(2 + 4 * fade)),
         )
 
         wing_progress = max(0.0, min(1.0, (progress - 0.20) / 0.80))
         if wing_progress > 0.0:
             wing_left = self._lerp_point(tip, left_head, wing_progress)
             wing_right = self._lerp_point(tip, right_head, wing_progress)
-            wing_width = max(1, int(2 + 7 * fade))
+            wing_width = max(2, int(3 + 8 * fade))
             pygame.draw.line(
                 surface,
                 self._color_with_alpha(effect.color, 185 * fade),
@@ -297,12 +582,74 @@ class RecognitionEffectRenderer:
                 wing_width,
             )
 
+        trail_1 = self._lerp_point(tail, tip, max(0.0, beam_progress - 0.18))
+        trail_2 = self._lerp_point(tail, tip, max(0.0, beam_progress - 0.35))
+        pygame.draw.circle(
+            surface,
+            (255, 195, 255, self._clamp_alpha(130 * fade)),
+            self._point_to_screen(trail_1),
+            max(1, int(2 + 4 * pulse * fade)),
+        )
+        pygame.draw.circle(
+            surface,
+            (255, 185, 250, self._clamp_alpha(90 * fade)),
+            self._point_to_screen(trail_2),
+            max(1, int(1 + 3 * fade)),
+        )
+
         tip_radius = max(2, int(5 + 10 * fade))
         pygame.draw.circle(
             surface,
             (255, 255, 255, self._clamp_alpha(220 * fade)),
             self._point_to_screen(tip),
-            tip_radius,
+            max(3, tip_radius),
+        )
+
+    def _draw_arrow_with_base_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
+        primitive = effect.primitive
+        if not isinstance(primitive, ArrowWithBase):
+            return
+
+        self._draw_arrow_effect(surface, effect, progress)
+        fade = max(0.0, 1.0 - progress)
+        base_progress = max(0.0, min(1.0, (progress - 0.16) / 0.84))
+        start = tuple(primitive.base_start)
+        end = tuple(primitive.base_end)
+        draw_end = self._lerp_point(start, end, base_progress)
+        pulse = 0.5 + 0.5 * math.sin(effect.start_time * 28.0 + progress * 12.0)
+
+        pygame.draw.line(
+            surface,
+            self._color_with_alpha(effect.color, 210 * fade),
+            self._point_to_screen(start),
+            self._point_to_screen(draw_end),
+            max(3, int(4 + 8 * fade)),
+        )
+        pygame.draw.line(
+            surface,
+            (255, 255, 245, self._clamp_alpha(150 * fade)),
+            self._point_to_screen(start),
+            self._point_to_screen(draw_end),
+            max(2, int(2 + 3 * fade)),
+        )
+        tail = self._point_to_screen(tuple(primitive.tail))
+        pygame.draw.circle(
+            surface,
+            (255, 230, 155, self._clamp_alpha(180 * fade)),
+            tail,
+            max(2, int(3 + 5 * pulse * fade)),
+        )
+        pygame.draw.circle(
+            surface,
+            (255, 230, 120, self._clamp_alpha(170 * fade)),
+            self._point_to_screen(start),
+            max(2, int(2 + 4 * fade)),
+        )
+        pygame.draw.circle(
+            surface,
+            (255, 230, 120, self._clamp_alpha(170 * fade)),
+            self._point_to_screen(end),
+            max(2, int(2 + 4 * fade)),
         )
 
     def _draw_rune_fire_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
@@ -327,9 +674,15 @@ class RecognitionEffectRenderer:
 
         pygame.draw.polygon(
             surface,
+            (255, 145, 90, self._clamp_alpha(65 * fade)),
+            scaled_vertices,
+            0,
+        )
+        pygame.draw.polygon(
+            surface,
             self._color_with_alpha(effect.color, (185 * fade) * flicker),
             scaled_vertices,
-            max(2, int(2 + 9 * fade)),
+            max(3, int(4 + 10 * fade)),
         )
 
         for cut_start, cut_end in primitive.cuts[:3]:
@@ -340,7 +693,7 @@ class RecognitionEffectRenderer:
                 self._color_with_alpha(effect.color, (210 * fade) * pulse),
                 start,
                 end,
-                max(2, int(2 + 6 * fade)),
+                max(3, int(3 + 7 * fade)),
             )
             pygame.draw.line(
                 surface,
@@ -349,3 +702,22 @@ class RecognitionEffectRenderer:
                 end,
                 max(1, int(1 + 2 * fade)),
             )
+        for spark_idx in range(3):
+            angle = effect.start_time * 6.0 + progress * 11.0 + spark_idx * (2.0 * math.pi / 3.0)
+            orbit = 6.0 + progress * 14.0 + spark_idx * 2.0
+            spark_x = int(center_x + math.cos(angle) * orbit)
+            spark_y = int(center_y + math.sin(angle) * orbit)
+            pygame.draw.circle(
+                surface,
+                (255, 225, 160, self._clamp_alpha(165 * fade)),
+                (spark_x, spark_y),
+                max(1, int(2 + 3 * fade)),
+            )
+        shock_radius = max(3, int((8.0 + progress * 42.0)))
+        pygame.draw.circle(
+            surface,
+            (255, 120, 80, self._clamp_alpha(135 * fade)),
+            (int(center_x), int(center_y)),
+            shock_radius,
+            max(1, int(2 + 4 * fade)),
+        )

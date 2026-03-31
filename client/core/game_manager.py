@@ -21,6 +21,7 @@ class GameManager:
         if isinstance(game_object, RemoteEnemy) and self.get_remote_enemy(game_object.enemy_id):
             return
 
+        game_object.set_game_manager(self)
         self.objects_to_add.append(game_object)
 
     def _all_objects(self):
@@ -57,6 +58,10 @@ class GameManager:
     def get_objects_by_type_including_pending(self, object_type):
         return [obj for obj in self._all_objects()
                 if isinstance(obj, object_type) and obj.active]
+
+    def iter_active_objects(self, include_pending: bool = False):
+        source = self._all_objects() if include_pending else self.game_objects
+        return [obj for obj in source if obj.active]
 
     def get_object_count(self):
         """Nombre total d'objets actifs"""

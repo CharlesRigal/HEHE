@@ -21,9 +21,14 @@ class CircleSubSymbolExecutor:
     le câblage d'ordre de lecture est prêt, l'effet gameplay sera ajouté plus tard.
     """
 
-    def execute_reading_plan(self, plan: CircleReadingPlan, primitives: Sequence[Any]) -> None:
+    def execute_reading_plan(
+        self,
+        plan: CircleReadingPlan,
+        primitives: Sequence[Any],
+    ) -> list[CircleSubSymbolExecutionContext]:
+        executed: list[CircleSubSymbolExecutionContext] = []
         if not plan.ordered_subsymbol_indices:
-            return
+            return executed
 
         total = len(plan.ordered_subsymbol_indices)
         for ordinal, symbol_index in enumerate(plan.ordered_subsymbol_indices):
@@ -37,6 +42,8 @@ class CircleSubSymbolExecutor:
                 total=total,
             )
             self.execute_symbol(primitive, context)
+            executed.append(context)
+        return executed
 
     def execute_symbol(self, primitive: Any, context: CircleSubSymbolExecutionContext) -> None:
         _ = primitive

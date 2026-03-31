@@ -182,6 +182,13 @@ async def handle_list_maps_message(client_id: str, msg: dict):
     })
 
 
+async def handle_cast_spell_message(client_id: str, msg: dict):
+    instance = find_player_instance(client_id)
+    if not instance:
+        return
+    instance.add_spell_cast(client_id, msg)
+
+
 async def cleanup_client(client_id: str):
     """Nettoie un client déconnecté"""
     # Supprimer de toutes les structures
@@ -272,6 +279,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
                 elif msg_type == "list_maps":
                     await handle_list_maps_message(client_id, msg)
+
+                elif msg_type == "cast_spell":
+                    await handle_cast_spell_message(client_id, msg)
 
                 elif msg_type == "chat":
                     # Chat global ou par instance

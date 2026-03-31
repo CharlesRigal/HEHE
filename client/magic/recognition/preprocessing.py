@@ -79,7 +79,8 @@ def _as_float(value: Any) -> float | None:
 
 
 def parse_stroke_sample(raw: Any) -> StrokeSample | None:
-    # Support dict extensible: {"point": [x, y], "time": t} ou {"x": x, "y": y, "t": t}
+    # Support dict extensible: {"point": [x, y], "time": t, "pressure": p}
+    # ou {"x": x, "y": y, "t": t, "p": p}
     if isinstance(raw, Mapping):
         if "point" in raw:
             point = raw.get("point")
@@ -87,32 +88,38 @@ def parse_stroke_sample(raw: Any) -> StrokeSample | None:
                 x = _as_float(point[0])
                 y = _as_float(point[1])
                 t = _as_float(raw.get("time", raw.get("t")))
+                p = _as_float(raw.get("pressure", raw.get("p")))
+                if p is None and len(point) >= 3:
+                    p = _as_float(point[2])
                 if x is not None and y is not None:
-                    return StrokeSample((x, y), t)
+                    return StrokeSample((x, y), t, _sanitize_pressure(p))
         if "x" in raw and "y" in raw:
             x = _as_float(raw.get("x"))
             y = _as_float(raw.get("y"))
             t = _as_float(raw.get("time", raw.get("t")))
+            p = _as_float(raw.get("pressure", raw.get("p")))
             if x is not None and y is not None:
-                return StrokeSample((x, y), t)
+                return StrokeSample((x, y), t, _sanitize_pressure(p))
         return None
 
-    # Support tuple horodate: ((x, y), t)
+    # Support tuple horodate: ((x, y), t) et ((x, y), t, p)
     if isinstance(raw, (list, tuple)) and len(raw) >= 2:
         first, second = raw[0], raw[1]
         if isinstance(first, (list, tuple)) and len(first) >= 2:
             x = _as_float(first[0])
             y = _as_float(first[1])
             t = _as_float(second)
+            p = _as_float(raw[2]) if len(raw) >= 3 else None
             if x is not None and y is not None:
-                return StrokeSample((x, y), t)
+                return StrokeSample((x, y), t, _sanitize_pressure(p))
 
-        # Support (x, y) et (x, y, t)
+        # Support (x, y), (x, y, t) et (x, y, t, p)
         x = _as_float(raw[0])
         y = _as_float(raw[1])
         if x is not None and y is not None:
             t = _as_float(raw[2]) if len(raw) >= 3 else None
-            return StrokeSample((x, y), t)
+            p = _as_float(raw[3]) if len(raw) >= 4 else None
+            return StrokeSample((x, y), t, _sanitize_pressure(p))
 
     return None
 
@@ -133,15 +140,18 @@ def normalize_stroke(
 
     points: list[Point] = [samples[0].point]
     times: list[float | None] = [samples[0].time]
+    pressures: list[float | None] = [samples[0].pressure]
 
     for sample in samples[1:]:
         if euclidean_distance(sample.point, points[-1]) >= min_sample_distance:
             points.append(sample.point)
             times.append(sample.time)
+            pressures.append(sample.pressure)
 
     if len(points) == 1:
         points.append(samples[-1].point)
         times.append(samples[-1].time)
+        pressures.append(samples[-1].pressure)
 
     if len(points) < 2:
         return None
@@ -161,17 +171,165 @@ def normalize_stroke(
         and closure_distance <= closure_threshold
         and start_end_to_path_ratio <= 0.45
     )
+    features = _compute_stroke_features(
+        points=points,
+        times=times,
+        pressures=pressures,
+        path=stroke_path,
+        diagonal=diagonal,
+        start_end_distance=start_end,
+    )
 
     return NormalizedStroke(
         points=points,
         times=times,
+        pressures=pressures,
         path_length=stroke_path,
         bbox=bbox,
         diagonal=diagonal,
         start_end_distance=start_end,
         closure_distance=closure_distance,
         is_closed=is_closed,
+        features=features,
     )
+
+
+def _sanitize_pressure(value: float | None) -> float | None:
+    if value is None or not math.isfinite(value):
+        return None
+    if value < 0.0:
+        return 0.0
+    if value > 1.0:
+        # Tolère les devices en échelle [0..1024] ou [0..4096]
+        if value <= 1024.0:
+            return clamp(value / 1024.0)
+        if value <= 4096.0:
+            return clamp(value / 4096.0)
+        return 1.0
+    return value
+
+
+def _compute_stroke_features(
+    *,
+    points: Sequence[Point],
+    times: Sequence[float | None],
+    pressures: Sequence[float | None],
+    path: float,
+    diagonal: float,
+    start_end_distance: float,
+) -> dict[str, float]:
+    avg_speed, max_speed, speed_variability, duration = _speed_features(points, times)
+    avg_pressure, max_pressure, pressure_variability, pressure_supported = _pressure_features(pressures)
+    symmetry_score = _symmetry_score(points, diagonal)
+
+    return {
+        "sample_count": float(len(points)),
+        "path_length": float(path),
+        "duration": float(duration),
+        "avg_speed": float(avg_speed),
+        "max_speed": float(max_speed),
+        "speed_variability": float(speed_variability),
+        "speed_norm": clamp(avg_speed / 680.0),
+        "avg_pressure": float(avg_pressure),
+        "max_pressure": float(max_pressure),
+        "pressure_variability": float(pressure_variability),
+        "pressure_norm": clamp(avg_pressure),
+        "pressure_supported": float(pressure_supported),
+        "symmetry_score": float(symmetry_score),
+        "path_efficiency": clamp(start_end_distance / max(path, 1e-6)),
+    }
+
+
+def _speed_features(
+    points: Sequence[Point],
+    times: Sequence[float | None],
+) -> tuple[float, float, float, float]:
+    speeds: list[float] = []
+    finite_times: list[float] = [time for time in times if time is not None and math.isfinite(time)]
+
+    for idx in range(1, len(points)):
+        t0 = times[idx - 1]
+        t1 = times[idx]
+        if t0 is None or t1 is None:
+            continue
+        if not math.isfinite(t0) or not math.isfinite(t1):
+            continue
+        dt = t1 - t0
+        if dt <= 1e-5:
+            continue
+        segment = euclidean_distance(points[idx - 1], points[idx])
+        if segment <= 1e-6:
+            continue
+        speed = segment / dt
+        if math.isfinite(speed):
+            speeds.append(speed)
+
+    if not speeds:
+        duration = 0.0
+        if len(finite_times) >= 2:
+            duration = max(0.0, max(finite_times) - min(finite_times))
+        return 0.0, 0.0, 0.0, duration
+
+    avg = sum(speeds) / len(speeds)
+    max_speed = max(speeds)
+    variance = sum((speed - avg) ** 2 for speed in speeds) / len(speeds)
+    std = math.sqrt(max(0.0, variance))
+    variability = clamp(std / max(avg, 1e-6))
+    if len(finite_times) >= 2:
+        duration = max(0.0, max(finite_times) - min(finite_times))
+    else:
+        duration = 0.0
+    return avg, max_speed, variability, duration
+
+
+def _pressure_features(pressures: Sequence[float | None]) -> tuple[float, float, float, float]:
+    values = [value for value in pressures if value is not None and math.isfinite(value)]
+    if not values:
+        return 0.0, 0.0, 0.0, 0.0
+
+    avg = sum(values) / len(values)
+    max_pressure = max(values)
+    variance = sum((value - avg) ** 2 for value in values) / len(values)
+    std = math.sqrt(max(0.0, variance))
+    variability = clamp(std / max(avg, 1e-6))
+    return clamp(avg), clamp(max_pressure), variability, 1.0
+
+
+def _symmetry_score(points: Sequence[Point], diagonal: float) -> float:
+    if len(points) < 4:
+        return 0.5
+
+    c = centroid(points)
+    shifted = [(point[0] - c[0], point[1] - c[1]) for point in points]
+
+    xx = sum(point[0] * point[0] for point in shifted) / len(shifted)
+    yy = sum(point[1] * point[1] for point in shifted) / len(shifted)
+    xy = sum(point[0] * point[1] for point in shifted) / len(shifted)
+    principal_axis = 0.5 * math.atan2(2.0 * xy, xx - yy + 1e-9)
+
+    errors = [
+        _reflection_error(shifted, principal_axis),
+        _reflection_error(shifted, principal_axis + (math.pi * 0.5)),
+    ]
+    best_error = min(errors)
+    norm = max(10.0, diagonal * 0.35)
+    return clamp(1.0 - best_error / norm)
+
+
+def _reflection_error(points: Sequence[Point], axis_angle: float) -> float:
+    ux = math.cos(axis_angle)
+    uy = math.sin(axis_angle)
+    total = 0.0
+
+    for px, py in points:
+        proj = px * ux + py * uy
+        parallel_x = ux * proj
+        parallel_y = uy * proj
+        reflected = (2.0 * parallel_x - px, 2.0 * parallel_y - py)
+        closest = min(euclidean_distance(reflected, candidate) for candidate in points)
+        total += closest
+
+    return total / max(len(points), 1)
 
 
 def perpendicular_distance(point: Point, line_start: Point, line_end: Point) -> float:

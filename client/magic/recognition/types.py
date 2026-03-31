@@ -10,18 +10,21 @@ Point = tuple[float, float]
 class StrokeSample:
     point: Point
     time: float | None = None
+    pressure: float | None = None
 
 
 @dataclass(slots=True)
 class NormalizedStroke:
     points: list[Point]
     times: list[float | None]
+    pressures: list[float | None]
     path_length: float
     bbox: tuple[float, float, float, float]
     diagonal: float
     start_end_distance: float
     closure_distance: float
     is_closed: bool
+    features: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -55,6 +58,7 @@ class RecognitionConfig:
     circle_threshold: float = 0.64
     triangle_threshold: float = 0.60
     arrow_threshold: float = 0.62
+    arrow_with_base_threshold: float = 0.62
     rune_fire_threshold: float = 0.64
     heuristic_weight: float = 0.70
     dollar_weight: float = 0.30
@@ -73,6 +77,7 @@ class RecognitionConfig:
             "circle": self.circle_threshold,
             "triangle": self.triangle_threshold,
             "arrow": self.arrow_threshold,
+            "arrow_with_base": self.arrow_with_base_threshold,
             "rune_fire": self.rune_fire_threshold,
         }
         return legacy_thresholds.get(key, default)

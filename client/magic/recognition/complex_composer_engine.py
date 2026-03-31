@@ -95,6 +95,17 @@ class ComplexCompositionEngine:
             entry for entry in primitive_entries if entry.stroke_index not in consumed_strokes
         ]
         for composition in selected:
+            consumed_entries = [
+                entry for entry in primitive_entries if entry.stroke_index in composition.consumed_stroke_indices
+            ]
+            self._enrich_composed_primitive_meta(
+                composition.primitive,
+                label=composition.label,
+                priority=composition.priority,
+                consumed_strokes=composition.consumed_stroke_indices,
+                consumed_entries=consumed_entries,
+                normalized_strokes=normalized_strokes,
+            )
             remaining_entries.append(
                 PrimitiveEntry(
                     primitive=composition.primitive,
@@ -102,3 +113,54 @@ class ComplexCompositionEngine:
                 )
             )
         return sorted(remaining_entries, key=lambda entry: entry.stroke_index)
+
+    @staticmethod
+    def _enrich_composed_primitive_meta(
+        primitive: object,
+        *,
+        label: str,
+        priority: float,
+        consumed_strokes: frozenset[int],
+        consumed_entries: list[PrimitiveEntry],
+        normalized_strokes: dict[int, NormalizedStroke],
+    ) -> None:
+        if not hasattr(primitive, "meta"):
+            return
+
+        existing_meta = getattr(primitive, "meta", None)
+        if not isinstance(existing_meta, dict):
+            existing_meta = {}
+
+        sums: dict[str, float] = {}
+        counts: dict[str, int] = {}
+
+        def add_numeric(key: str, value: object) -> None:
+            if not isinstance(value, (int, float)):
+                return
+            numeric = float(value)
+            sums[key] = sums.get(key, 0.0) + numeric
+            counts[key] = counts.get(key, 0) + 1
+
+        for entry in consumed_entries:
+            entry_meta = getattr(entry.primitive, "meta", None)
+            if isinstance(entry_meta, dict):
+                for key, value in entry_meta.items():
+                    add_numeric(key, value)
+
+        for stroke_index in consumed_strokes:
+            stroke = normalized_strokes.get(stroke_index)
+            if stroke is None:
+                continue
+            for key, value in (stroke.features or {}).items():
+                add_numeric(f"drawing_{key}", value)
+            add_numeric("stroke_path_length", stroke.path_length)
+            add_numeric("stroke_diagonal", stroke.diagonal)
+
+        for key, total in sums.items():
+            count = max(1, counts.get(key, 1))
+            existing_meta.setdefault(key, total / count)
+
+        existing_meta.setdefault("composition_label", label)
+        existing_meta.setdefault("composition_priority", float(priority))
+        existing_meta.setdefault("composition_strokes", float(len(consumed_strokes)))
+        primitive.meta = existing_meta

@@ -1,4 +1,5 @@
 from client.magic.recognition.complex_composer_arrow import ArrowComplexComposer
+from client.magic.recognition.complex_composer_arrow_with_base import ArrowWithBaseComplexComposer
 from client.magic.recognition.complex_composer_engine import ComplexCompositionEngine
 from client.magic.recognition.complex_composer_rune_fire import FireRuneComplexComposer
 from client.magic.recognition.complex_composer_types import (
@@ -13,5 +14,6 @@ __all__ = [
     "ComplexShapeComposer",
     "ComplexCompositionEngine",
     "ArrowComplexComposer",
+    "ArrowWithBaseComplexComposer",
     "FireRuneComplexComposer",
 ]

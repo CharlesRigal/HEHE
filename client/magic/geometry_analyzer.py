@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from client.magic.primitives import Arrow, Circle, RuneFire, Segment, Triangle
+from client.magic.primitives import Arrow, ArrowWithBase, Circle, RuneFire, Segment, Triangle
 from client.magic.recognition.complex_composers import ComplexShapeComposer
 from client.magic.recognition.pipeline import PrimitiveRecognitionEngine
 from client.magic.recognition.types import (
@@ -65,6 +65,7 @@ __all__ = [
     "Circle",
     "Triangle",
     "Arrow",
+    "ArrowWithBase",
     "RuneFire",
     "RecognitionConfig",
     "ShapeDefinition",
