@@ -283,6 +283,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 elif msg_type == "cast_spell":
                     await handle_cast_spell_message(client_id, msg)
 
+                elif msg_type == "s":
+                    instance = find_player_instance(client_id)
+                    if instance:
+                        instance.add_spell_cast_from_spec(client_id, msg)
+
                 elif msg_type == "chat":
                     # Chat global ou par instance
                     instance = find_player_instance(client_id)

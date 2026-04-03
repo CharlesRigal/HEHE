@@ -45,7 +45,16 @@ def playing(game, tick_rate):
                 game.handle_resolved_spell(spell)
 
         if has_primitive:
-            game.player.magical_draw.schedule_clear(current_time, delay_seconds=3.0)
+            # Nouveau système de SpellSpec
+            from client.magic.spell_chain import SpellChainBuilder
+            builder = SpellChainBuilder()
+            head = builder.build(game.player.magical_draw._magical_graph)
+            if head:
+                spec = builder.resolve(head)
+                if spec:
+                    game.cast_spell(spec)
+            game.player.magical_draw.clear_board()
+            game.player.magical_draw.cancel_clear()
         else:
             game.player.magical_draw.schedule_clear(current_time)
 

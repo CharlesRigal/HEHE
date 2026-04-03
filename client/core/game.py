@@ -487,6 +487,45 @@ class Game:
         except Exception:
             return -1
 
+    def cast_spell(self, spec) -> None:
+        """Lance un sort basé sur une SpellSpec."""
+        from client.magic.spell_spec import spec_to_network
+
+        logging.info(f"Spell cast: {self._format_spell_spec_for_log(spec)}")
+
+        if self.net_connected and self.net is not None:
+            try:
+                payload = spec_to_network(spec)
+                payload["t"] = "s"
+                self.net.send(payload)
+            except Exception as e:
+                logging.warning(f"Failed to send spell to server: {e}")
+        else:
+            logging.info("Spell cast locally (not connected to server)")
+
+    def _format_spell_spec_for_log(self, spec) -> str:
+        """Formate une SpellSpec pour les logs avec traçabilité des sources."""
+        parts = []
+        
+        if spec.element:
+            parts.append(f"element={spec.element.value}[{spec.element.source}]")
+        if spec.behavior:
+            parts.append(f"behavior={spec.behavior.value}[{spec.behavior.source}]")
+        if spec.direction:
+            parts.append(f"direction=({spec.direction.value.x:.2f},{spec.direction.value.y:.2f})[{spec.direction.source}]")
+        if spec.power:
+            parts.append(f"power={spec.power.value:.2f}[{spec.power.source}]")
+        if spec.shape:
+            parts.append(f"shape={spec.shape.value}[{spec.shape.source}]")
+        if spec.focused:
+            parts.append(f"focused={spec.focused.value}[{spec.focused.source}]")
+        if spec.unstable:
+            parts.append(f"unstable={spec.unstable.value}[{spec.unstable.source}]")
+        if spec.axis:
+            parts.append(f"axis=({spec.axis.value.x:.2f},{spec.axis.value.y:.2f})[{spec.axis.source}]")
+        
+        return "{" + ", ".join(parts) + "}"
+
     def handle_resolved_spell(self, spell: object) -> None:
         self.spell_execution_pipeline.execute(self, spell)
 

@@ -193,6 +193,7 @@ class GraphGeo:
         self,
         circle_index: int | None = None,
         radial_step_ratio: float = 0.2,
+        sort_by: str = "ring",
     ) -> list[int]:
         anchor_index = self.get_anchor_circle_index() if circle_index is None else circle_index
         if anchor_index is None or anchor_index < 0 or anchor_index >= len(self._nodes):
@@ -217,7 +218,16 @@ class GraphGeo:
             angle = self._clockwise_angle_from_up(center, point)
             ranked.append((idx, distance, angle))
 
-        ranked.sort(key=lambda item: (int(item[1] / radial_step), item[2], item[1]))
+        if sort_by == "ring":
+            # Tri par anneaux de distance (comportement par défaut)
+            ranked.sort(key=lambda item: (int(item[1] / radial_step), item[2], item[1]))
+        elif sort_by == "distance":
+            # Tri strict par distance au centre (nouveau mode pour SpellChain)
+            ranked.sort(key=lambda item: (item[1], item[2], item[0]))
+        else:
+            # Fallback: tri par anneaux
+            ranked.sort(key=lambda item: (int(item[1] / radial_step), item[2], item[1]))
+            
         return [idx for idx, _, _ in ranked]
 
     def build_circle_reading_plan(
