@@ -28,7 +28,7 @@ def emit_spell_spec(primitive: Any) -> SpellSpec | None:
 
 
 def _emit_rune_fire_spec(primitive: RuneFire) -> SpellSpec:
-    """RuneFire → element=fire/COMBINE, unstable=True/OVERRIDE"""
+    """RuneFire → element=fire/COMBINE, unstable=True/OVERRIDE, intensity+=1"""
     spec = SpellSpec()
     spec.element = TypedProperty(
         value="fire",
@@ -40,174 +40,229 @@ def _emit_rune_fire_spec(primitive: RuneFire) -> SpellSpec:
         source="rune_fire",
         strategy=MergeStrategy.OVERRIDE
     )
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="rune_fire",
+        strategy=MergeStrategy.ACCUMULATE
+    )
     return spec
 
 
 def _emit_arrow_spec(primitive: Arrow) -> SpellSpec:
-    """Arrow → behavior=projectile/FIRST, direction=tip-tail normalisé/FIRST"""
+    """Arrow → behavior=projectile/FIRST, direction, speed∝length, intensity+=1"""
     spec = SpellSpec()
-    
+
     spec.behavior = TypedProperty(
         value="projectile",
         source="arrow",
         strategy=MergeStrategy.FIRST
     )
-    
-    # Calculer la direction normalisée du tail vers le tip
+
     dx = primitive.tip[0] - primitive.tail[0]
     dy = primitive.tip[1] - primitive.tail[1]
     length = math.hypot(dx, dy)
-    
-    if length > 1e-6:  # Éviter la division par zéro
+
+    if length > 1e-6:
         direction = pygame.Vector2(dx / length, dy / length)
     else:
-        direction = pygame.Vector2(1.0, 0.0)  # Direction par défaut vers la droite
-    
+        direction = pygame.Vector2(1.0, 0.0)
+
     spec.direction = TypedProperty(
         value=direction,
         source="arrow",
         strategy=MergeStrategy.FIRST
     )
-    
+
+    # Vitesse proportionnelle à la longueur de la flèche
+    speed_value = min(1.0, max(0.15, length / 200.0))
+    spec.speed = TypedProperty(
+        value=speed_value,
+        source="arrow",
+        strategy=MergeStrategy.MAX
+    )
+
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="arrow",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
     return spec
 
 
 def _emit_circle_spec(primitive: Circle) -> SpellSpec:
-    """Circle → power∝radius/MAX, focused=True/OVERRIDE, shape=sphere/FIRST"""
+    """Circle → power∝radius/MAX, focused, shape=sphere, duration+=0.3, intensity+=1"""
     spec = SpellSpec()
-    
-    # Power proportionnel au rayon (normalisé entre 0 et 1)
+
     if primitive.radius is not None:
-        # Normaliser le rayon : petit cercle (10px) = 0.1, grand cercle (100px+) = 1.0
         power_value = min(1.0, max(0.1, primitive.radius / 100.0))
     else:
-        power_value = 0.5  # Valeur par défaut
-    
+        power_value = 0.5
+
     spec.power = TypedProperty(
         value=power_value,
         source="circle",
         strategy=MergeStrategy.MAX
     )
-    
+
     spec.focused = TypedProperty(
         value=True,
         source="circle",
         strategy=MergeStrategy.OVERRIDE
     )
-    
+
     spec.shape = TypedProperty(
         value="sphere",
         source="circle",
         strategy=MergeStrategy.FIRST
     )
-    
+
+    # Chaque cercle ajoute de la durée
+    spec.duration_bonus = TypedProperty(
+        value=0.3,
+        source="circle",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="circle",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
     return spec
 
 
 def _emit_triangle_spec(primitive: Triangle) -> SpellSpec:
-    """Triangle → shape=cone/FIRST, behavior=area/FIRST, direction=pointe/FIRST"""
+    """Triangle → shape=cone, behavior=area, direction, spread∝area, intensity+=1"""
     spec = SpellSpec()
-    
+
     spec.shape = TypedProperty(
         value="cone",
         source="triangle",
         strategy=MergeStrategy.FIRST
     )
-    
+
     spec.behavior = TypedProperty(
         value="area",
         source="triangle",
         strategy=MergeStrategy.FIRST
     )
-    
-    # Calculer la direction de la pointe (sommet le plus éloigné du centroïde)
+
     if len(primitive.vertices) >= 3:
-        # Calculer le centroïde
         cx = sum(v[0] for v in primitive.vertices[:3]) / 3
         cy = sum(v[1] for v in primitive.vertices[:3]) / 3
-        centroid = (cx, cy)
-        
-        # Trouver le sommet le plus éloigné du centroïde (la pointe)
+
         max_dist = 0
         tip_vertex = primitive.vertices[0]
-        
         for vertex in primitive.vertices[:3]:
             dist = math.hypot(vertex[0] - cx, vertex[1] - cy)
             if dist > max_dist:
                 max_dist = dist
                 tip_vertex = vertex
-        
-        # Direction du centroïde vers la pointe
+
         dx = tip_vertex[0] - cx
         dy = tip_vertex[1] - cy
         length = math.hypot(dx, dy)
-        
+
         if length > 1e-6:
             direction = pygame.Vector2(dx / length, dy / length)
         else:
-            direction = pygame.Vector2(0.0, -1.0)  # Vers le haut par défaut
+            direction = pygame.Vector2(0.0, -1.0)
+
+        # Spread proportionnel à l'aire du triangle
+        v = primitive.vertices[:3]
+        area = 0.5 * abs(
+            (v[1][0] - v[0][0]) * (v[2][1] - v[0][1])
+            - (v[2][0] - v[0][0]) * (v[1][1] - v[0][1])
+        )
+        spread_value = min(1.0, max(0.1, area / 10000.0))
     else:
         direction = pygame.Vector2(0.0, -1.0)
-    
+        spread_value = 0.3
+
     spec.direction = TypedProperty(
         value=direction,
         source="triangle",
         strategy=MergeStrategy.FIRST
     )
-    
+
+    spec.spread = TypedProperty(
+        value=spread_value,
+        source="triangle",
+        strategy=MergeStrategy.MAX
+    )
+
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="triangle",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
     return spec
 
 
 def _emit_segment_spec(primitive: Segment) -> SpellSpec:
-    """Segment → shape=line/FIRST, behavior=wall/FIRST, axis=vecteur segment/FIRST"""
+    """Segment → shape=line, behavior=wall, axis, intensity+=1"""
     spec = SpellSpec()
-    
+
     spec.shape = TypedProperty(
         value="line",
         source="segment",
         strategy=MergeStrategy.FIRST
     )
-    
+
     spec.behavior = TypedProperty(
         value="wall",
         source="segment",
         strategy=MergeStrategy.FIRST
     )
-    
-    # Calculer l'axe du segment (vecteur non normalisé pour conserver la longueur)
+
     dx = primitive.end[0] - primitive.start[0]
     dy = primitive.end[1] - primitive.start[1]
     axis = pygame.Vector2(dx, dy)
-    
+
     spec.axis = TypedProperty(
         value=axis,
         source="segment",
         strategy=MergeStrategy.FIRST
     )
-    
+
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="segment",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
     return spec
 
 
 def _emit_zigzag_spec(primitive: ZigZag) -> SpellSpec:
-    """ZigZag → element=lightning/COMBINE, unstable=True/OVERRIDE, behavior=area/FIRST"""
+    """ZigZag → element=lightning, unstable, behavior=area, intensity+=1"""
     spec = SpellSpec()
-    
+
     spec.element = TypedProperty(
         value="lightning",
         source="zigzag",
         strategy=MergeStrategy.COMBINE
     )
-    
+
     spec.unstable = TypedProperty(
         value=True,
         source="zigzag",
         strategy=MergeStrategy.OVERRIDE
     )
-    
+
     spec.behavior = TypedProperty(
         value="area",
         source="zigzag",
         strategy=MergeStrategy.FIRST
     )
-    
+
+    spec.intensity = TypedProperty(
+        value=1.0,
+        source="zigzag",
+        strategy=MergeStrategy.ACCUMULATE
+    )
+
     return spec

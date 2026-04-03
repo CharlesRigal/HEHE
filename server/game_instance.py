@@ -96,60 +96,16 @@ class GameInstance:
         return max(minimum, min(maximum, value))
 
     def add_spell_cast_from_spec(self, client_id: str, msg: dict) -> None:
-        """Traite un sort issu du système émergent (format compact réseau)."""
+        """Traite un sort issu du système émergent (sort paramétrique)."""
         from server.magic.spell_spec import spec_from_network
-        from server.magic.spec_router import route_spec
+        from server.spells.parametric_spell import cast_parametric_spell
 
         player = self.players.get(client_id)
         if player is None or not player.get("alive", True):
             return
 
         spec = spec_from_network(msg)
-        spell_id = route_spec(spec)
-
-        cast_handler = self.spell_registry.get_cast_handler(spell_id)
-        if cast_handler is None:
-            return
-
-        # Traduit la SpellSpec en payload + modifiers pour les handlers existants
-        payload: dict = {}
-
-        if spec.power is not None:
-            payload["power"] = spec.power
-            payload["hitbox_radius"] = self._clamp(
-                self.fire_rune_min_radius
-                + spec.power * (self.fire_rune_max_radius - self.fire_rune_min_radius),
-                self.fire_rune_min_radius,
-                self.fire_rune_max_radius,
-            )
-
-        if spec.direction is not None:
-            payload["direction_x"] = spec.direction[0]
-            payload["direction_y"] = spec.direction[1]
-
-        payload["focused"] = spec.focused
-        payload["unstable"] = spec.unstable
-
-        # Modifiers de compatibilité pour fire_rune (reach/volatility/precision)
-        modifiers: list[dict] = []
-        if spec.direction is not None:
-            modifiers.append({
-                "id": "reach",
-                "payload": {
-                    "direction_x":  spec.direction[0],
-                    "direction_y":  spec.direction[1],
-                    "has_base":     1.0,
-                    "base_score":   0.6,
-                    "vector_length": math.hypot(spec.direction[0], spec.direction[1]),
-                    "strength":     1.0,
-                },
-            })
-        if spec.unstable:
-            modifiers.append({"id": "volatility", "payload": {"strength": 1.5}})
-        if spec.focused:
-            modifiers.append({"id": "precision", "payload": {"strength": 1.5}})
-
-        cast_handler(self, client_id, payload, modifiers)
+        cast_parametric_spell(self, client_id, spec)
 
     def add_spell_cast(self, client_id: str, spell_data: dict):
         if client_id not in self.players:

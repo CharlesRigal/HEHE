@@ -14,7 +14,7 @@ spawn_points:
   - x: 1130
     y: 150
 
-enemy_spawn_points:
+# enemy_spawn_points:
 
 # Objets de collision dans la map
 objects:

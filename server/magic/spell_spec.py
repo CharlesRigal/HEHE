@@ -13,6 +13,10 @@ class ServerSpellSpec:
     focused: bool = False
     unstable: bool = False
     axis: tuple[float, float] | None = None
+    intensity: float = 1.0
+    speed: float = 0.0
+    duration_bonus: float = 0.0
+    spread: float = 0.0
 
 
 def spec_from_network(data: dict) -> ServerSpellSpec:
@@ -44,6 +48,34 @@ def spec_from_network(data: dict) -> ServerSpellSpec:
     if isinstance(ax_raw, (list, tuple)) and len(ax_raw) == 2:
         try:
             spec.axis = (float(ax_raw[0]), float(ax_raw[1]))
+        except (TypeError, ValueError):
+            pass
+
+    intn = data.get("intn")
+    if intn is not None:
+        try:
+            spec.intensity = max(0.0, float(intn))
+        except (TypeError, ValueError):
+            pass
+
+    spd = data.get("spd")
+    if spd is not None:
+        try:
+            spec.speed = max(0.0, min(1.0, float(spd)))
+        except (TypeError, ValueError):
+            pass
+
+    dur = data.get("dur")
+    if dur is not None:
+        try:
+            spec.duration_bonus = max(0.0, float(dur))
+        except (TypeError, ValueError):
+            pass
+
+    spr = data.get("spr")
+    if spr is not None:
+        try:
+            spec.spread = max(0.0, min(1.0, float(spr)))
         except (TypeError, ValueError):
             pass
 

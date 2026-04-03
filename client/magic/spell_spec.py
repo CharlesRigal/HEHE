@@ -23,7 +23,7 @@ class TypedProperty:
     strategy: MergeStrategy
 
 
-@dataclass  
+@dataclass
 class SpellSpec:
     element: TypedProperty | None = None    # fire, lightning, plasma...
     behavior: TypedProperty | None = None   # projectile, wall, area, stationary
@@ -33,6 +33,10 @@ class SpellSpec:
     focused: TypedProperty | None = None    # bool
     unstable: TypedProperty | None = None   # bool
     axis: TypedProperty | None = None       # Vector2 pour les sorts linéaires
+    intensity: TypedProperty | None = None  # float, ACCUMULATE - complexité du dessin
+    speed: TypedProperty | None = None      # float 0..1, MAX - vitesse de déplacement
+    duration_bonus: TypedProperty | None = None  # float, ACCUMULATE - bonus de durée
+    spread: TypedProperty | None = None     # float 0..1, MAX - angle de cône / zone
 
 
 # Table de fusion des éléments
@@ -47,8 +51,12 @@ def merge_spec_into(base: SpellSpec, incoming: SpellSpec) -> SpellSpec:
     """Fusionne une SpellSpec incoming dans base selon les stratégies de chaque propriété."""
     result = SpellSpec()
     
-    properties = ['element', 'behavior', 'direction', 'power', 'shape', 'focused', 'unstable', 'axis']
-    
+    properties = [
+        'element', 'behavior', 'direction', 'power', 'shape',
+        'focused', 'unstable', 'axis', 'intensity', 'speed',
+        'duration_bonus', 'spread',
+    ]
+
     for prop_name in properties:
         base_prop = getattr(base, prop_name)
         incoming_prop = getattr(incoming, prop_name)
@@ -75,20 +83,20 @@ def _merge_property(base_prop: TypedProperty, incoming_prop: TypedProperty, prop
     elif strategy == MergeStrategy.FIRST:
         return base_prop
     elif strategy == MergeStrategy.ACCUMULATE:
-        if prop_name == 'power':
-            # Pour power, on additionne mais on clamp à 1.0
-            new_value = min(1.0, float(base_prop.value or 0) + float(incoming_prop.value or 0))
+        if isinstance(base_prop.value, (int, float)) and isinstance(incoming_prop.value, (int, float)):
+            new_value = float(base_prop.value or 0) + float(incoming_prop.value or 0)
+            if prop_name == 'power':
+                new_value = min(1.0, new_value)
             return TypedProperty(
                 value=new_value,
                 source=f"{base_prop.source}+{incoming_prop.source}",
-                strategy=strategy
+                strategy=strategy,
             )
         else:
-            # Pour d'autres propriétés, concatener les sources
             return TypedProperty(
-                value=incoming_prop.value,  # Prendre la nouvelle valeur
+                value=incoming_prop.value,
                 source=f"{base_prop.source}+{incoming_prop.source}",
-                strategy=strategy
+                strategy=strategy,
             )
     elif strategy == MergeStrategy.MAX:
         if prop_name == 'power':
@@ -146,7 +154,11 @@ def _combine_elements(base_prop: TypedProperty, incoming_prop: TypedProperty) ->
 def spec_to_dict(spec: SpellSpec) -> dict:
     """Convertit une SpellSpec en dictionnaire pour la sérialisation réseau."""
     result = {}
-    properties = ['element', 'behavior', 'direction', 'power', 'shape', 'focused', 'unstable', 'axis']
+    properties = [
+        'element', 'behavior', 'direction', 'power', 'shape',
+        'focused', 'unstable', 'axis', 'intensity', 'speed',
+        'duration_bonus', 'spread',
+    ]
 
     for prop_name in properties:
         prop = getattr(spec, prop_name)
@@ -193,6 +205,15 @@ def spec_to_network(spec: SpellSpec) -> dict:
             result["ax"] = [round(v.x, 3), round(v.y, 3)]
         elif isinstance(v, (list, tuple)) and len(v) == 2:
             result["ax"] = [round(float(v[0]), 3), round(float(v[1]), 3)]
+
+    if spec.intensity is not None:
+        result["intn"] = round(float(spec.intensity.value), 3)
+    if spec.speed is not None:
+        result["spd"] = round(float(spec.speed.value), 3)
+    if spec.duration_bonus is not None:
+        result["dur"] = round(float(spec.duration_bonus.value), 3)
+    if spec.spread is not None:
+        result["spr"] = round(float(spec.spread.value), 3)
 
     return result
 
