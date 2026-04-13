@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Sequence, TypeAlias
+from typing import TypeAlias
 
 import pygame
 from pygame.surface import SurfaceType
@@ -21,16 +21,6 @@ class RecognitionEffect:
     start_time: float
     duration: float
     color: Color3
-
-
-@dataclass(slots=True)
-class ExecutionOrderEffect:
-    symbol_index: int
-    ordinal: int
-    total: int
-    center: Point
-    start_time: float
-    duration: float
 
 
 class RecognitionEffectRenderer:
@@ -53,14 +43,6 @@ class RecognitionEffectRenderer:
         "arrow_with_base": (0.56, (255, 175, 30)),
         "rune_fire": (0.64, (255, 55, 20)),
     }
-    ORDER_COLORS: tuple[Color3, ...] = (
-        (255, 238, 120),
-        (105, 245, 255),
-        (150, 255, 165),
-        (255, 168, 95),
-        (255, 130, 225),
-    )
-
     def __init__(
         self,
         config: dict[str, tuple[float, Color3]] | None = None,
@@ -71,8 +53,6 @@ class RecognitionEffectRenderer:
             self._config.update(config)
         self._max_effects = max(1, int(max_effects))
         self._effects: list[RecognitionEffect] = []
-        self._order_effects: list[ExecutionOrderEffect] = []
-        self._font_cache: dict[int, pygame.font.Font] = {}
         self._effect_drawers = {
             "segment": self._draw_segment_effect,
             "zigzag": self._draw_zigzag_effect,
@@ -102,69 +82,27 @@ class RecognitionEffectRenderer:
         if len(self._effects) > self._max_effects:
             self._effects = self._effects[-self._max_effects :]
 
-    def spawn_execution_order(
-        self,
-        execution: Sequence[object],
-        primitives: Sequence[object],
-        now: float,
-        *,
-        duration: float = 2.9,
-    ) -> None:
-        order_duration = max(0.5, float(duration))
-        for context in execution:
-            symbol_index = self._safe_int(getattr(context, "symbol_index", -1), -1)
-            ordinal = self._safe_int(getattr(context, "ordinal", -1), -1)
-            total = max(1, self._safe_int(getattr(context, "total", 1), 1))
-            if symbol_index < 0 or symbol_index >= len(primitives) or ordinal < 0:
-                continue
-
-            center = self._primitive_center(primitives[symbol_index])
-            if center is None:
-                continue
-
-            start_offset = min(0.35, 0.06 * ordinal)
-            self._order_effects.append(
-                ExecutionOrderEffect(
-                    symbol_index=symbol_index,
-                    ordinal=ordinal,
-                    total=total,
-                    center=center,
-                    start_time=now + start_offset,
-                    duration=order_duration,
-                )
-            )
-
-        if len(self._order_effects) > self._max_effects:
-            self._order_effects = self._order_effects[-self._max_effects :]
-
-    def order_effect_count(self) -> int:
-        return len(self._order_effects)
-
     def draw(self, surface: SurfaceType, now: float) -> None:
-        if not self._effects and not self._order_effects:
+        if not self._effects:
             return
 
-        if self._effects:
-            active: list[RecognitionEffect] = []
-            for effect in self._effects:
-                age = now - effect.start_time
-                if age < 0.0 or age > effect.duration:
-                    continue
+        active: list[RecognitionEffect] = []
+        for effect in self._effects:
+            age = now - effect.start_time
+            if age < 0.0 or age > effect.duration:
+                continue
 
-                progress = age / max(effect.duration, 1e-6)
-                drawer = self._effect_drawers.get(effect.kind)
-                if drawer is not None:
-                    drawer(surface, effect, progress)
+            progress = age / max(effect.duration, 1e-6)
+            drawer = self._effect_drawers.get(effect.kind)
+            if drawer is not None:
+                drawer(surface, effect, progress)
 
-                active.append(effect)
+            active.append(effect)
 
-            self._effects = active
-
-        self._draw_execution_order(surface, now)
+        self._effects = active
 
     def clear(self) -> None:
         self._effects.clear()
-        self._order_effects.clear()
 
     @staticmethod
     def _primitive_kind(primitive: object) -> str:
@@ -191,139 +129,6 @@ class RecognitionEffectRenderer:
 
     def _color_with_alpha(self, color: Color3, alpha: float) -> tuple[int, int, int, int]:
         return (color[0], color[1], color[2], self._clamp_alpha(alpha))
-
-    def _get_font(self, size: int) -> pygame.font.Font:
-        resolved_size = max(12, int(size))
-        font = self._font_cache.get(resolved_size)
-        if font is None:
-            font = pygame.font.Font(None, resolved_size)
-            self._font_cache[resolved_size] = font
-        return font
-
-    @staticmethod
-    def _safe_int(value: object, fallback: int) -> int:
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return int(fallback)
-
-    @staticmethod
-    def _primitive_center(primitive: object) -> Point | None:
-        if isinstance(primitive, Circle) and primitive.center is not None:
-            return (float(primitive.center[0]), float(primitive.center[1]))
-        if isinstance(primitive, Segment):
-            return (
-                (float(primitive.start[0]) + float(primitive.end[0])) * 0.5,
-                (float(primitive.start[1]) + float(primitive.end[1])) * 0.5,
-            )
-        if isinstance(primitive, (Triangle, RuneFire)) and primitive.vertices:
-            count = max(1, len(primitive.vertices))
-            return (
-                float(sum(point[0] for point in primitive.vertices) / count),
-                float(sum(point[1] for point in primitive.vertices) / count),
-            )
-        if isinstance(primitive, ZigZag) and primitive.vertices:
-            mid = primitive.vertices[len(primitive.vertices) // 2]
-            return (float(mid[0]), float(mid[1]))
-        if isinstance(primitive, ArrowWithBase):
-            return (
-                (primitive.tail[0] + primitive.tip[0] + primitive.base_start[0] + primitive.base_end[0]) * 0.25,
-                (primitive.tail[1] + primitive.tip[1] + primitive.base_start[1] + primitive.base_end[1]) * 0.25,
-            )
-        if isinstance(primitive, Arrow):
-            return (
-                (float(primitive.tail[0]) + float(primitive.tip[0])) * 0.5,
-                (float(primitive.tail[1]) + float(primitive.tip[1])) * 0.5,
-            )
-
-        raw_points = getattr(primitive, "_points", None)
-        if isinstance(raw_points, list) and raw_points:
-            return (
-                float(sum(point[0] for point in raw_points) / len(raw_points)),
-                float(sum(point[1] for point in raw_points) / len(raw_points)),
-            )
-        return None
-
-    def _order_color(self, ordinal: int) -> Color3:
-        if not self.ORDER_COLORS:
-            return (255, 220, 120)
-        return self.ORDER_COLORS[max(0, ordinal) % len(self.ORDER_COLORS)]
-
-    def _draw_execution_order(self, surface: SurfaceType, now: float) -> None:
-        if not self._order_effects:
-            return
-
-        active: list[ExecutionOrderEffect] = []
-        for effect in self._order_effects:
-            age = now - effect.start_time
-            if age < 0.0 or age > effect.duration:
-                continue
-            active.append(effect)
-        self._order_effects = active
-        if not active:
-            return
-
-        ordered = sorted(active, key=lambda item: (item.ordinal, item.symbol_index))
-        for left, right in zip(ordered, ordered[1:]):
-            left_progress = max(0.0, min(1.0, (now - left.start_time) / max(left.duration, 1e-6)))
-            if left_progress <= 0.1:
-                continue
-            draw_progress = max(0.0, min(1.0, (left_progress - 0.1) / 0.8))
-            start = self._point_to_screen(left.center)
-            end_point = self._lerp_point(left.center, right.center, draw_progress)
-            end = self._point_to_screen(end_point)
-            fade = max(0.0, 1.0 - left_progress)
-            width = max(2, int(3 + 4 * fade))
-            pygame.draw.line(
-                surface,
-                (255, 235, 140, self._clamp_alpha((95.0 + 90.0 * fade) * max(0.25, fade))),
-                start,
-                end,
-                width,
-            )
-
-        for effect in ordered:
-            progress = max(0.0, min(1.0, (now - effect.start_time) / max(effect.duration, 1e-6)))
-            fade = max(0.0, 1.0 - progress)
-            pop = max(0.0, min(1.0, progress * 3.2))
-            pulse = 0.5 + 0.5 * math.sin(effect.start_time * 14.0 + progress * 18.0)
-            center = self._point_to_screen(effect.center)
-            color = self._order_color(effect.ordinal)
-
-            outer_radius = max(9, int(17 - 5 * pop + 4 * pulse * fade))
-            inner_radius = max(5, int(11 - 4 * pop + 2 * pulse * fade))
-            pygame.draw.circle(
-                surface,
-                (18, 24, 34, self._clamp_alpha(180 * fade)),
-                center,
-                outer_radius + 2,
-            )
-            pygame.draw.circle(
-                surface,
-                (color[0], color[1], color[2], self._clamp_alpha((140 + 80 * pulse) * fade)),
-                center,
-                outer_radius,
-                max(2, int(2 + 3 * fade)),
-            )
-            pygame.draw.circle(
-                surface,
-                (255, 245, 215, self._clamp_alpha((95 + 110 * pulse) * fade)),
-                center,
-                inner_radius,
-            )
-
-            font = self._get_font(max(16, int(18 + 5 * fade)))
-            text = font.render(str(effect.ordinal + 1), True, (20, 26, 33))
-            text.set_alpha(self._clamp_alpha(235 * fade))
-            text_rect = text.get_rect(center=(center[0], center[1] - 1))
-            surface.blit(text, text_rect)
-
-            if effect.total > 1:
-                info_font = self._get_font(12)
-                info_text = info_font.render(f"{effect.ordinal + 1}/{effect.total}", True, (255, 250, 225))
-                info_text.set_alpha(self._clamp_alpha(180 * fade))
-                info_rect = info_text.get_rect(midtop=(center[0], center[1] + outer_radius + 2))
-                surface.blit(info_text, info_rect)
 
     def _draw_segment_effect(self, surface: SurfaceType, effect: RecognitionEffect, progress: float) -> None:
         primitive = effect.primitive

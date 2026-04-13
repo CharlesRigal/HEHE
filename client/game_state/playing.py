@@ -39,20 +39,29 @@ def playing(game, tick_rate):
                 game.player.magical_draw.add_node(primitives)
                 has_primitive = True
 
-        resolved_spells = game.player.magical_draw.drain_resolved_spells()
-        if resolved_spells:
-            for spell in resolved_spells:
-                game.handle_resolved_spell(spell)
-
         if has_primitive:
-            # Nouveau système de SpellSpec
-            from client.magic.spell_chain import SpellChainBuilder
-            builder = SpellChainBuilder()
-            head = builder.build(game.player.magical_draw._magical_graph)
-            if head:
-                spec = builder.resolve(head)
-                if spec:
-                    game.cast_spell(spec)
+            import time
+            from client.magic.resolver.resolved_spell import params_to_network_spec
+            from client.ui.spell_debug_overlay import SpellDebugData
+            ast = game.ast_builder.build(game.player.magical_draw._magical_graph)
+            resolved = game.ast_resolver.resolve(ast)
+            net_spec = params_to_network_spec(resolved)
+            game.cast_ast_spell(net_spec)
+
+            debug_data = SpellDebugData(
+                primitives=list(primitives) if isinstance(primitives, list) else [primitives],
+                spatial_relations=list(ast.spatial_relations),
+                ast=ast,
+                pass1_bags=dict(game.ast_resolver.last_pass1_bags),
+                pass2_bags=dict(game.ast_resolver.last_pass2_bags),
+                cross_entries=list(game.ast_resolver.last_cross_entries),
+                resolved_params=dict(resolved.params),
+                network_spec=dict(net_spec),
+                timestamp=time.time(),
+            )
+            game.spell_debug_overlay.set_data(debug_data)
+            game.spell_logger.log_cast(debug_data)
+
             game.player.magical_draw.clear_board()
             game.player.magical_draw.cancel_clear()
         else:

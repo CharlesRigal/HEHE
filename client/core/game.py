@@ -9,9 +9,13 @@ from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
 from client.graphics.game_menu import GameMenu
 from client.magic.geometry_analyzer import GeometryAnalyzer
-from client.magic.default_runes import build_default_rune_registry
-from client.magic.spell_execution import ClientSpellExecutionPipeline
+from client.magic.ast.ast_builder import ASTBuilder
+from client.magic.resolver.resolver import ASTResolver
+from client.magic.resolver.resolved_spell import params_to_network_spec
 from client.network.network import NetworkClient
+from client.ui.spell_debug_overlay import SpellDebugOverlay
+from client.debug.spell_logger import SpellLogger
+from client.entities.active_spell_renderer import ActiveSpellRenderer
 from client.core.game_manager import GameManager
 from client.entities.remote_enemy import RemoteEnemy
 from client.entities.remote_player import RemotePlayer
@@ -44,8 +48,8 @@ class Game:
         self.last_unknown_msg = None
 
         self.geometry_analyzer = GeometryAnalyzer()
-        self.rune_registry = build_default_rune_registry()
-        self.spell_execution_pipeline = ClientSpellExecutionPipeline(rune_registry=self.rune_registry)
+        self.ast_builder = ASTBuilder()
+        self.ast_resolver = ASTResolver()
 
         self.state = "menu"
 
@@ -58,7 +62,7 @@ class Game:
             0,
             0,
             "client/assets/images/full_mage.png",
-            magical_draw=MagicalDraw(self.screen, rune_registry=self.rune_registry),
+            magical_draw=MagicalDraw(self.screen),
         )
         self.player.map_renderer = self.map_renderer
 
@@ -68,6 +72,10 @@ class Game:
         self.max_frame_time = 0.25  # Protection contre la spirale de la mort
         self._font_cache: dict[int, pygame.font.Font] = {}
         self.debug_mode = False
+        self.spell_debug_overlay = SpellDebugOverlay(self)
+        self.spell_logger = SpellLogger()
+        self._server_spells: list[dict] = []
+        self._spell_renderer = ActiveSpellRenderer()
 
     def run(self):
         """Boucle principale avec fixed timestep"""
@@ -188,6 +196,7 @@ class Game:
             self.net = None
         self.net_connected = False
         self.client_id = None
+        self.spell_logger.close()
 
     def handle_server_message(self, msg):
         self.msg_old = msg
@@ -269,9 +278,21 @@ class Game:
                 self.running = False
                 self.disconnect_from_server()
 
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1 and (event.mod & pygame .KMOD_CTRL):
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F1 and (event.mod & pygame.KMOD_CTRL):
                 self._toggle_debug_mode()
                 continue
+
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F5:
+                self.spell_debug_overlay.toggle()
+                continue
+
+            if event.type == pygame.KEYDOWN and self.spell_debug_overlay.visible:
+                if event.key == pygame.K_LEFTBRACKET:
+                    self.spell_debug_overlay.prev_stage()
+                    continue
+                elif event.key == pygame.K_RIGHTBRACKET:
+                    self.spell_debug_overlay.next_stage()
+                    continue
 
             if self.state == "menu":
                 if event.type == pygame.KEYDOWN:
@@ -328,6 +349,9 @@ class Game:
 
         remote_enemy_list = msg.get("enemies", {})
         self.sync_remote_enemies(remote_enemy_list)
+
+        if "spells" in msg:
+            self._server_spells = msg["spells"]
 
     def handle_map_data(self, msg: dict):
         map_data = msg.get("map")
@@ -409,9 +433,11 @@ class Game:
         self.game_manager.draw_all(self.screen, self.camera)
         now = pygame.time.get_ticks() / 1000.0
         board_pressed = bool(self.player.mask & IN_BOARD)
+        self._spell_renderer.draw(self.screen, self._server_spells, self.camera)
         if self.player.magical_draw.should_render(now, board_pressed):
             self.screen.blit(self.player.magical_draw.draw(), (0, 0))
         self.draw_hud()
+        self.spell_debug_overlay.draw(self.screen)
 
     def draw_hud(self):
         if not self.debug_mode:
@@ -487,47 +513,16 @@ class Game:
         except Exception:
             return -1
 
-    def cast_spell(self, spec) -> None:
-        """Lance un sort basé sur une SpellSpec."""
-        from client.magic.spell_spec import spec_to_network
-
-        logging.info(f"Spell cast: {self._format_spell_spec_for_log(spec)}")
-
+    def cast_ast_spell(self, net_spec: dict) -> None:
+        """Lance un sort issu du pipeline AST émergent."""
+        logging.info(f"AST spell cast: {net_spec}")
         if self.net_connected and self.net is not None:
             try:
-                payload = spec_to_network(spec)
-                payload["t"] = "s"
-                self.net.send(payload)
+                self.net.send(net_spec)
             except Exception as e:
-                logging.warning(f"Failed to send spell to server: {e}")
+                logging.warning(f"Failed to send AST spell to server: {e}")
         else:
-            logging.info("Spell cast locally (not connected to server)")
-
-    def _format_spell_spec_for_log(self, spec) -> str:
-        """Formate une SpellSpec pour les logs avec traçabilité des sources."""
-        parts = []
-        
-        if spec.element:
-            parts.append(f"element={spec.element.value}[{spec.element.source}]")
-        if spec.behavior:
-            parts.append(f"behavior={spec.behavior.value}[{spec.behavior.source}]")
-        if spec.direction:
-            parts.append(f"direction=({spec.direction.value.x:.2f},{spec.direction.value.y:.2f})[{spec.direction.source}]")
-        if spec.power:
-            parts.append(f"power={spec.power.value:.2f}[{spec.power.source}]")
-        if spec.shape:
-            parts.append(f"shape={spec.shape.value}[{spec.shape.source}]")
-        if spec.focused:
-            parts.append(f"focused={spec.focused.value}[{spec.focused.source}]")
-        if spec.unstable:
-            parts.append(f"unstable={spec.unstable.value}[{spec.unstable.source}]")
-        if spec.axis:
-            parts.append(f"axis=({spec.axis.value.x:.2f},{spec.axis.value.y:.2f})[{spec.axis.source}]")
-        
-        return "{" + ", ".join(parts) + "}"
-
-    def handle_resolved_spell(self, spell: object) -> None:
-        self.spell_execution_pipeline.execute(self, spell)
+            logging.info("AST spell cast locally (not connected to server)")
 
     def _compute_forward_cast_center(
         self,

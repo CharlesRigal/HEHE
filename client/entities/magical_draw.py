@@ -5,11 +5,8 @@ from pygame.surface import SurfaceType
 from typing import TypeAlias
 
 from client.entities.recognition_effect_renderer import RecognitionEffectRenderer
-from client.magic.circle_symbol_executor import CircleSubSymbolExecutor
 from client.magic.graph_geo import GraphGeo, MagicalNode
 from client.magic.primitives import Arrow, ArrowWithBase, RuneFire, Segment, Circle, Triangle, ZigZag
-from client.magic.rune_registry import RuneRegistry
-from client.magic.spell_pipeline import GraphSpellPipeline
 
 ScreenPoint: TypeAlias = tuple[int, int]
 TimedPoint: TypeAlias = tuple[ScreenPoint, float, float | None]
@@ -35,17 +32,11 @@ class MagicalDraw:
     def get_strokes(self) -> list[Stroke]:
         return list(self._point_list)
 
-    def drain_resolved_spells(self) -> list[object]:
-        resolved = self._resolved_spells
-        self._resolved_spells = []
-        return resolved
-
     def debug_snapshot(self) -> dict[str, int | bool]:
         return {
             "strokes": len(self._point_list),
             "active_points": len(self._points),
             "primitives": len(self._magical_graph.iter_primitives()),
-            "order_effects": self._recognition_effect_renderer.order_effect_count(),
             "clear_waiting": self._clear_at is not None,
         }
 
@@ -53,15 +44,11 @@ class MagicalDraw:
         self,
         screen,
         clear_delay_seconds: float = 0.75,
-        rune_registry: RuneRegistry | None = None,
     ):
         self._point_list: list[Stroke] = []
         self._points: Stroke = []
         self._magical_graph: GraphGeo = GraphGeo()
-        self._circle_symbol_executor = CircleSubSymbolExecutor()
-        self._graph_spell_pipeline = GraphSpellPipeline(rune_registry=rune_registry)
         self._recognition_effect_renderer = RecognitionEffectRenderer()
-        self._resolved_spells: list[object] = []
         self._primitive_drawers = {
             Segment: self._draw_segment_primitive,
             ZigZag: self._draw_zigzag_primitive,
@@ -94,40 +81,8 @@ class MagicalDraw:
 
     def add_node(self, primitive):
         self._magical_graph.add_node(primitive)
-        self._try_execute_circle_subsymbols(primitive)
         now = pygame.time.get_ticks() / 1000.0
         self._recognition_effect_renderer.spawn(primitive, now)
-
-    def _try_execute_circle_subsymbols(self, primitive) -> None:
-        if not isinstance(primitive, Circle):
-            return
-
-        circle_index = len(self._magical_graph.iter_primitives()) - 1
-        plan = self._magical_graph.build_circle_reading_plan(circle_index=circle_index)
-        if plan is None or not plan.ordered_subsymbol_indices:
-            return
-
-        primitives = self._magical_graph.iter_primitives()
-        execution = self._circle_symbol_executor.execute_reading_plan(
-            plan=plan,
-            primitives=primitives,
-        )
-        if execution:
-            now = pygame.time.get_ticks() / 1000.0
-            self._recognition_effect_renderer.spawn_execution_order(
-                execution=execution,
-                primitives=primitives,
-                now=now,
-                duration=2.9,
-            )
-        result = self._graph_spell_pipeline.process_circle_plan(
-            plan=plan,
-            primitives=primitives,
-            execution=execution,
-            graph=self._magical_graph,
-        )
-        if result is not None:
-            self._resolved_spells.append(result)
 
     def _load_sound(self, paths: list[str]):
         try:
@@ -228,7 +183,6 @@ class MagicalDraw:
 
     def clear_board(self) -> None:
         self._magical_graph = GraphGeo()
-        self._resolved_spells = []
         self._recognition_effect_renderer.clear()
         self._point_list = []
         self._points = []

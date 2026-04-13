@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(python test_spell_system.py)",
-      "Bash(del test_spell_system.py)"
+      "Bash(del test_spell_system.py)",
+      "Bash(python -m client.magic.ast.ast_builder)",
+      "Bash(python -c ':*)",
+      "Bash(python -c \"from client.magic.ast import ASTNode, SpellAST, ASTBuilder; print\\('Imports OK'\\)\")",
+      "Bash(python -m client.magic.ast.symbol_registry)",
+      "Bash(python -m client.magic.resolver.resolver)",
+      "Bash(python -c \"from server.game_instance import GameInstance; print\\('OK'\\)\")",
+      "Bash(python -c \"import sys; [print\\(l.encode\\('ascii','replace'\\).decode\\(\\)\\) for l in sys.stdin]\")",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

@@ -35,6 +35,7 @@ class GameInstance:
         self.enemy_attack_damage = 12
         self.enemy_attack_cooldown = 1.1
         self.active_spells: list[dict] = []
+        self._had_spells_last_tick: bool = False
         self.fire_rune_tick_damage = 12
         self.fire_rune_tick_interval = 0.20
         self.fire_rune_duration = 2.4
@@ -436,6 +437,11 @@ class GameInstance:
 
         self.active_spells = next_spells
 
+        # Collision sort-vs-sort : compression la plus haute survit
+        if len(self.active_spells) >= 2:
+            from server.spells.parametric_spell import resolve_spell_vs_spell
+            self.active_spells = resolve_spell_vs_spell(self.active_spells)
+
     def _check_collision_with_objects(self, x: float, y: float, player_size: float = 32) -> bool:
         """Vérifie les collisions avec les objets de la map"""
         objects = self.map_data.get('objects', [])
@@ -578,7 +584,30 @@ class GameInstance:
                         if self.enemies_previous_state.get(enemy_id) != current_data:
                             enemies_state[enemy_id] = current_data
 
-                    if players_state or enemies_state:
+                    # Sorts actifs : envoyés à chaque tick quand ils existent,
+                    # ou une dernière fois vide pour signaler la fin.
+                    spells_state = []
+                    for s in self.active_spells:
+                        rx = s.get("hitbox_radius_x", s.get("hitbox_radius", 12.0))
+                        ry = s.get("hitbox_radius_y", s.get("hitbox_radius", 12.0))
+                        entry = {
+                            "x":  round(s["x"], 1),
+                            "y":  round(s["y"], 1),
+                            "r":  round(s.get("hitbox_radius", 12.0), 1),
+                            "e":  s.get("element", "neutral"),
+                            "vx": round(s.get("velocity_x", 0.0), 1),
+                            "vy": round(s.get("velocity_y", 0.0), 1),
+                            "bh": s.get("spell_id", "parametric"),
+                        }
+                        # Forme elliptique (mur) : envoyer rx/ry/angle
+                        if abs(rx - ry) > 2.0:
+                            entry["rx"] = round(rx, 1)
+                            entry["ry"] = round(ry, 1)
+                            ea = s.get("ellipse_angle", 0.0)
+                            entry["ea"] = round(math.degrees(ea))
+                        spells_state.append(entry)
+
+                    if players_state or enemies_state or spells_state or self._had_spells_last_tick:
                         message = {
                             "t": "game_update",
                             "timestamp": current_time,
@@ -587,7 +616,11 @@ class GameInstance:
                             message["players"] = players_state
                         if enemies_state:
                             message["enemies"] = enemies_state
+                        if spells_state or self._had_spells_last_tick:
+                            message["spells"] = spells_state
                         await self.broadcast_to_players(message)
+
+                    self._had_spells_last_tick = bool(spells_state)
 
                     # Mettre à jour l'état précédent pour comparer au prochain tick
                     self.players_previous_state = {

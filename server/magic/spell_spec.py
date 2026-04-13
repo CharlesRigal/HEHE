@@ -17,6 +17,8 @@ class ServerSpellSpec:
     speed: float = 0.0
     duration_bonus: float = 0.0
     spread: float = 0.0
+    compression: float = 0.0
+    fade_rate: float = 0.0
 
 
 def spec_from_network(data: dict) -> ServerSpellSpec:
@@ -76,6 +78,20 @@ def spec_from_network(data: dict) -> ServerSpellSpec:
     if spr is not None:
         try:
             spec.spread = max(0.0, min(1.0, float(spr)))
+        except (TypeError, ValueError):
+            pass
+
+    cmp = data.get("cmp")
+    if cmp is not None:
+        try:
+            spec.compression = max(0.0, float(cmp))
+        except (TypeError, ValueError):
+            pass
+
+    fdr = data.get("fdr")
+    if fdr is not None:
+        try:
+            spec.fade_rate = max(0.0, min(1.0, float(fdr)))
         except (TypeError, ValueError):
             pass
 
