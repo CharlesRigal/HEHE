@@ -79,7 +79,7 @@ class SpellLogger:
         for node_id, bag in data.pass1_bags.items():
             entries = getattr(bag, "entries", [])
             entry_strs = [
-                f"{e.tag.domain}.{e.tag.name}.{e.tag.target}={e.value:.3f}(w={e.weight:.3f})"
+                f"{e.tag.domain}.{e.tag.axis}.{e.tag.scope}={e.value:.3f}(w={e.weight:.3f})"
                 for e in entries
             ]
             lines.append(f"  {node_id}: {', '.join(entry_strs) or '(vide)'}")
@@ -92,7 +92,7 @@ class SpellLogger:
             for e in entries:
                 suffix = "[prop]" if e.source_node_id.endswith("_propagated") else ""
                 entry_strs.append(
-                    f"{e.tag.domain}.{e.tag.name}.{e.tag.target}={e.value:.3f}(w={e.weight:.3f}){suffix}"
+                    f"{e.tag.domain}.{e.tag.axis}.{e.tag.scope}={e.value:.3f}(w={e.weight:.3f}){suffix}"
                 )
             lines.append(f"  {node_id}: {', '.join(entry_strs) or '(vide)'}")
 
@@ -101,7 +101,7 @@ class SpellLogger:
             lines.append(f"Pass3 (cross-node) — {len(data.cross_entries)} entrée(s):")
             for e in data.cross_entries:
                 lines.append(
-                    f"  {e.tag.domain}.{e.tag.name}.{e.tag.target}={e.value:.3f}"
+                    f"  {e.tag.domain}.{e.tag.axis}.{e.tag.scope}={e.value:.3f}"
                     f"(w={e.weight:.3f}) src={e.source_node_id}"
                 )
         else:

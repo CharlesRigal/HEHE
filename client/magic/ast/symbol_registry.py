@@ -1,3 +1,9 @@
+"""
+symbol_registry.py — Registre des règles de résolution.
+
+Une seule règle : rule_geometric.
+Elle est enregistrée pour tous les types connus et sert de fallback universel.
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -6,28 +12,23 @@ from client.magic.ast.symbol_rules import (
     PropertyBag,
     ResolutionContext,
     SymbolRule,
-    rule_arrow,
-    rule_circle,
-    rule_rune_fire,
-    rule_segment,
-    rule_triangle,
-    rule_zigzag,
+    rule_geometric,
 )
 
 if TYPE_CHECKING:
     from client.magic.ast.ast import ASTNode
 
 
-def _rule_neutral(node: ASTNode, ctx: ResolutionContext) -> PropertyBag:
-    """Regle neutre pour les symboles inconnus : bag vide, zero effet."""
+def _rule_neutral(node: "ASTNode", ctx: ResolutionContext) -> PropertyBag:
+    """Nœud virtuel (root) : bag vide, zéro effet."""
     return PropertyBag()
 
 
 class SymbolRegistry:
     """
     Registre extensible : symbol_type -> SymbolRule.
-    Aucune regle n'est hardcodee en dehors du registre.
-    Les regles par defaut sont enregistrees a l'init.
+    Toutes les primitives utilisent rule_geometric par défaut.
+    Extensible sans modifier ce fichier via register().
     """
 
     def __init__(self) -> None:
@@ -35,26 +36,22 @@ class SymbolRegistry:
         self._register_defaults()
 
     def register(self, symbol_type: str, rule: SymbolRule) -> None:
-        """Enregistre ou ecrase une regle. Extensible sans modifier le fichier."""
         self._rules[symbol_type] = rule
 
     def get(self, symbol_type: str) -> SymbolRule:
-        """Retourne la regle ou une regle neutre si symbole inconnu."""
-        return self._rules.get(symbol_type, _rule_neutral)
+        # "root" = nœud virtuel -> neutre
+        if symbol_type == "root":
+            return _rule_neutral
+        # Tout autre symbole -> règle géométrique universelle
+        return self._rules.get(symbol_type, rule_geometric)
 
     def _register_defaults(self) -> None:
-        """Enregistre toutes les regles de symbol_rules.py."""
-        self._rules["circle"] = rule_circle
-        self._rules["arrow"] = rule_arrow
-        self._rules["arrow_with_base"] = rule_arrow  # meme logique que arrow
-        self._rules["triangle"] = rule_triangle
-        self._rules["segment"] = rule_segment
-        self._rules["zigzag"] = rule_zigzag
-        self._rules["rune_fire"] = rule_rune_fire
+        for symbol_type in ("circle", "arrow", "arrow_with_base", "triangle",
+                             "segment", "zigzag", "rune_fire"):
+            self._rules[symbol_type] = rule_geometric
 
     @property
     def registered_types(self) -> list[str]:
-        """Liste des types de symboles enregistres."""
         return list(self._rules.keys())
 
 
@@ -63,132 +60,96 @@ REGISTRY = SymbolRegistry()
 
 
 # ---------------------------------------------------------------------------
-# Validation test
+# Test de validation
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     from client.magic.ast.ast import ASTNode
-    from client.magic.ast.symbol_rules import PropertyTag, ResolutionContext
+    from client.magic.ast.symbol_rules import PropertyTag
 
-    # --- Test 1 : cercle seul (depth=0, sans enfants) → compression=0.2 + spread + fade ---
-    node_circle = ASTNode(
-        node_id="test_0_circle",
+    # Simuler un nœud avec des features géométriques typiques d'un cercle
+    circle_node = ASTNode(
+        node_id="test_circle",
         symbol_type="circle",
         primitive=None,
         depth=0,
         ordinal=0,
         sibling_count=1,
-        drawing_features={"radius_normalized": 0.8},
+        drawing_features={
+            "compactness": 0.95, "elongation": 1.05, "closure": 0.98,
+            "linearity": 0.01, "angularity": 0.0, "area_n": 0.5,
+            "scale_n": 0.7, "direction_n": 0.0, "convexity": 1.0,
+            "is_directional": 0.0, "confidence": 1.0,
+        },
     )
-    ctx_circle = ResolutionContext(node=node_circle, depth=0, child_bags=[])
+    ctx = ResolutionContext(node=circle_node, depth=0, child_bags=[])
+    bag = REGISTRY.get("circle")(circle_node, ctx)
 
-    bag = REGISTRY.get("circle")(node_circle, ctx_circle)
+    # Cercle : spread > 0, velocity = 0
+    spread = bag.net("energy", "spread")
+    velocity = bag.net("motion", "velocity")
+    assert spread > 0, f"Circle should have spread, got {spread}"
+    assert velocity == 0.0, f"Circle should have no velocity, got {velocity}"
+    print(f"[PASS] circle: spread={spread:.3f} velocity={velocity:.3f}")
 
-    cmp_entries = bag.query("energy", "compression")
-    assert len(cmp_entries) == 1, f"Expected 1 energy.compression, got {len(cmp_entries)}"
-    assert cmp_entries[0].value == 0.2, f"Expected 0.2, got {cmp_entries[0].value}"
-    print(f"[PASS] circle solo: compression = {cmp_entries[0].value}")
+    # Simuler une flèche
+    arrow_node = ASTNode(
+        node_id="test_arrow",
+        symbol_type="arrow",
+        primitive=None,
+        depth=0,
+        ordinal=0,
+        sibling_count=1,
+        drawing_features={
+            "compactness": 0.0, "elongation": 10.0, "closure": 0.0,
+            "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
+            "scale_n": 0.15, "direction_n": 0.0, "convexity": 1.0,
+            "is_directional": 1.0, "confidence": 1.0,
+        },
+    )
+    ctx_arrow = ResolutionContext(node=arrow_node, depth=0, child_bags=[])
+    bag_arrow = REGISTRY.get("arrow")(arrow_node, ctx_arrow)
 
-    spread_entries = bag.query("space", "spread")
-    assert len(spread_entries) == 1, f"Expected 1 space.spread, got {len(spread_entries)}"
-    assert abs(spread_entries[0].value - 0.8 * 0.8) < 1e-6
-    print(f"[PASS] circle solo: spread = {spread_entries[0].value:.3f}")
+    velocity_arrow = bag_arrow.net("motion", "velocity")
+    compression_arrow = bag_arrow.net("energy", "compression")
+    assert velocity_arrow > 0, f"Arrow should have velocity, got {velocity_arrow}"
+    assert compression_arrow == 0.0, f"Arrow should have no compression (no angularity, directional), got {compression_arrow}"
+    print(f"[PASS] arrow: velocity={velocity_arrow:.3f} compression={compression_arrow:.3f}")
 
-    fade_entries = bag.query("time", "fade_rate")
-    assert len(fade_entries) == 1, f"Expected 1 time.fade_rate, got {len(fade_entries)}"
-    print(f"[PASS] circle solo: fade_rate = {fade_entries[0].value}")
-
-    # --- Test 2 : cercle avec enfants → pas de spread ni fade_rate ---
-    child_bag = PropertyBag()
-    child_bag.add(PropertyTag("energy", "compression", "self"), 0.3, 1.0, "child")
-    ctx_circle_with_children = ResolutionContext(node=node_circle, depth=0, child_bags=[child_bag])
-
-    bag_wc = REGISTRY.get("circle")(node_circle, ctx_circle_with_children)
-    assert len(bag_wc.query("space", "spread")) == 0, "Circle with children should have no spread"
-    print("[PASS] circle with children: no spread")
-
-    # --- Test 3 : segment standalone (depth=0) → haute compression + axe ---
-    node_seg = ASTNode(
-        node_id="test_0_segment",
+    # Simuler un segment (non-directionnel, statique)
+    seg_node = ASTNode(
+        node_id="test_segment",
         symbol_type="segment",
         primitive=None,
         depth=0,
         ordinal=0,
         sibling_count=1,
-        drawing_features={"length_normalized": 0.6, "angle_deg": 90.0},
+        drawing_features={
+            "compactness": 0.0, "elongation": 8.0, "closure": 0.0,
+            "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
+            "scale_n": 0.12, "direction_n": 0.25, "convexity": 1.0,
+            "is_directional": 0.0, "confidence": 1.0,
+        },
     )
-    ctx_seg = ResolutionContext(node=node_seg, depth=0, child_bags=[])
-    bag_seg = REGISTRY.get("segment")(node_seg, ctx_seg)
+    ctx_seg = ResolutionContext(node=seg_node, depth=0, child_bags=[])
+    bag_seg = REGISTRY.get("segment")(seg_node, ctx_seg)
 
-    expected_cmp = 1.5 + 0.6 * 2.0  # = 2.7
-    seg_cmp = bag_seg.net("energy", "compression")
-    assert abs(seg_cmp - expected_cmp) < 1e-6, f"Expected compression={expected_cmp}, got {seg_cmp}"
-    print(f"[PASS] segment standalone: compression = {seg_cmp:.3f}")
+    velocity_seg = bag_seg.net("motion", "velocity")
+    compression_seg = bag_seg.net("energy", "compression")
+    assert velocity_seg == 0.0, f"Segment should have no velocity, got {velocity_seg}"
+    assert compression_seg > 0, f"Segment should have compression (static_cmp), got {compression_seg}"
+    print(f"[PASS] segment: velocity={velocity_seg:.3f} compression={compression_seg:.3f}")
 
-    assert len(bag_seg.query("space", "axis")) == 1
-    print(f"[PASS] segment standalone: has axis")
+    # Symbole inconnu -> rule_geometric (pas neutre)
+    bag_unknown = REGISTRY.get("new_symbol")(circle_node, ctx)
+    assert len(bag_unknown) > 0, "Unknown symbol should still use rule_geometric"
+    print("[PASS] unknown symbol -> rule_geometric (not neutral)")
 
-    # --- Test 4 : fleche standalone (depth=0) → velocity + direction ---
-    node_arrow = ASTNode(
-        node_id="test_0_arrow",
-        symbol_type="arrow",
-        primitive=None,
-        depth=0,
-        ordinal=0,
-        sibling_count=1,
-        drawing_features={"length_normalized": 0.5, "direction_x": 1.0, "direction_y": 0.0},
-    )
-    ctx_arrow = ResolutionContext(node=node_arrow, depth=0, child_bags=[])
-    bag_arrow = REGISTRY.get("arrow")(node_arrow, ctx_arrow)
+    # Nœud root virtuel -> neutre
+    root_node = ASTNode(node_id="root_v", symbol_type="root", primitive=None,
+                        depth=-1, ordinal=0, sibling_count=1)
+    ctx_root = ResolutionContext(node=root_node, depth=-1, child_bags=[])
+    bag_root = REGISTRY.get("root")(root_node, ctx_root)
+    assert len(bag_root) == 0
+    print("[PASS] root node -> empty bag")
 
-    vel = bag_arrow.net("motion", "velocity")
-    assert vel > 0, f"Expected velocity > 0, got {vel}"
-    print(f"[PASS] arrow standalone: velocity = {vel:.3f}")
-
-    dir_entries = bag_arrow.query("motion", "direction")
-    assert len(dir_entries) == 1 and dir_entries[0].tag.target == "self"
-    print(f"[PASS] arrow standalone: direction.self present")
-
-    # --- Test 5 : fleche enfant (depth=1) → direction vers parent, pas de velocity ---
-    node_arrow_child = ASTNode(
-        node_id="test_1_arrow",
-        symbol_type="arrow",
-        primitive=None,
-        depth=1,
-        ordinal=0,
-        sibling_count=1,
-        drawing_features={"length_normalized": 0.5, "direction_x": 1.0, "direction_y": 0.0},
-    )
-    ctx_arrow_child = ResolutionContext(node=node_arrow_child, depth=1, child_bags=[])
-    bag_arrow_child = REGISTRY.get("arrow")(node_arrow_child, ctx_arrow_child)
-
-    assert bag_arrow_child.net("motion", "velocity") == 0.0, "Child arrow should have no velocity"
-    dir_parent = bag_arrow_child.query("motion", "direction")
-    assert len(dir_parent) == 1 and dir_parent[0].tag.target == "parent"
-    print(f"[PASS] child arrow: direction.parent only, no velocity")
-
-    # --- Test 6 : PropertyBag.net ---
-    test_bag = PropertyBag()
-    test_bag.add(PropertyTag("energy", "compression", "self"), 2.0, 1.5, "a")
-    test_bag.add(PropertyTag("energy", "compression", "self"), 1.0, 0.5, "b")
-    expected_net = 2.0 * 1.5 + 1.0 * 0.5  # 3.5
-    assert test_bag.net("energy", "compression") == expected_net, (
-        f"Expected net={expected_net}, got {test_bag.net('energy', 'compression')}"
-    )
-    print(f"[PASS] PropertyBag.net = {expected_net}")
-
-    # --- Test 7 : symbole inconnu → bag vide ---
-    unknown_node = ASTNode(
-        node_id="test_unknown",
-        symbol_type="splork",
-        primitive=None,
-        depth=0,
-        ordinal=0,
-        sibling_count=1,
-    )
-    ctx_unknown = ResolutionContext(node=unknown_node, depth=0, child_bags=[])
-    bag_unknown = REGISTRY.get("splork")(unknown_node, ctx_unknown)
-    assert len(bag_unknown) == 0
-    print("[PASS] unknown symbol: empty bag")
-
-    print()
-    print("All symbol_registry assertions passed.")
+    print("\nAll symbol_registry assertions passed.")

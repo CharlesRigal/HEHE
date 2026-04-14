@@ -292,7 +292,7 @@ class SpellDebugOverlay:
             lines.append((f"{node_id}  ({len(entries)} entrées)", _TITLE))
             for e in entries:
                 tag = e.tag
-                label = f"    {tag.domain}.{tag.name}.{tag.target}"
+                label = f"    {tag.domain}.{tag.axis}.{tag.scope}"
                 val_str = f"= {e.value:.3f}  w={e.weight:.3f}"
                 is_prop = propagated_suffix and e.source_node_id.endswith(propagated_suffix)
                 suffix = "  [prop]" if is_prop else ""
@@ -312,7 +312,7 @@ class SpellDebugOverlay:
         for e in entries:
             tag = e.tag
             lines.append((
-                f"  {tag.domain}.{tag.name}.{tag.target}  = {e.value:.3f}  w={e.weight:.3f}",
+                f"  {tag.domain}.{tag.axis}.{tag.scope}  = {e.value:.3f}  w={e.weight:.3f}",
                 _ACTIVE,
             ))
             lines.append((f"    src: {e.source_node_id}", _DIM))

@@ -4478,3 +4478,122 @@ Pass3 (cross-node): (aucune interférence)
 Resolved: _dir_explicit=True axis_x=0.0000 axis_y=0.0000 behavior=projectile compression=0.1000 dir_x=0.9978 dir_y=0.0661 duration_bonus=0.0000 element=neutral elongation=1.0000 fade_rate=0.0000 focused=False intensity=1.0000 power=0.1000 scale_factor=1.0000 speed=0.4159 spread=0.0000 unstable=False
 Network: {"t": "s", "cmp": 0.1, "bh": "projectile", "spd": 0.4159, "pwr": 0.1, "dir": [0.9978, 0.0661]}
 
+[2026-04-14 19:06:55] === SPELL CAST ===
+Primitives (1): triangle(conf=0.94)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ triangle (depth=0) [peer]  area_n=0.16  scale_n=0.48  compactness=0.56  elongation=1.68
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.622(w=0.497), energy.spread.self=0.090(w=0.935), time.duration.self=0.162(w=0.935), space.axis.self=0.004(w=0.379), space.elongation.self=1.682(w=0.935), energy.element.self=0.500(w=0.389)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.622(w=0.497), energy.spread.self=0.090(w=0.935), time.duration.self=0.162(w=0.935), space.axis.self=0.004(w=0.379), space.elongation.self=1.682(w=0.935), energy.element.self=0.500(w=0.389)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=0.9997 axis_y=0.0224 behavior=wall compression=0.3094 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.1518 element=arcane elongation=1.6818 fade_rate=0.0423 focused=False intensity=1.0000 power=0.1491 speed=0.0000 spread=0.0846 unstable=False
+Network: {}
+
+[2026-04-14 19:06:57] === SPELL CAST ===
+Primitives (1): arrow(conf=0.76)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ arrow (depth=0) [peer]  area_n=0.77  scale_n=0.77  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_arrow: energy.compression.self=0.000(w=0.632), motion.velocity.self=0.950(w=0.632), motion.direction.self=0.987(w=0.761), space.axis.self=0.987(w=0.723), space.elongation.self=20.000(w=0.761), energy.element.self=0.750(w=0.533)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_arrow: energy.compression.self=0.000(w=0.632), motion.velocity.self=0.950(w=0.632), motion.direction.self=0.987(w=0.761), space.axis.self=0.987(w=0.723), space.elongation.self=20.000(w=0.761), energy.element.self=0.750(w=0.533)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=True axis_x=0.9969 axis_y=-0.0789 behavior=projectile compression=0.0000 dir_x=0.9969 dir_y=-0.0789 duration_bonus=0.0000 element=lightning elongation=20.0000 fade_rate=0.0000 focused=False intensity=1.0000 power=0.1202 speed=0.6008 spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-14 19:07:00] === SPELL CAST ===
+Primitives (1): rune_fire(conf=0.77)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ rune_fire (depth=0) [peer]  area_n=0.17  scale_n=0.26  compactness=1.00  elongation=1.87
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_rune_fire: energy.compression.self=0.285(w=0.252), energy.spread.self=0.116(w=0.774), time.duration.self=0.116(w=0.774), space.axis.self=0.670(w=0.361), space.elongation.self=1.875(w=0.774), energy.element.self=0.653(w=0.280)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_rune_fire: energy.compression.self=0.285(w=0.252), energy.spread.self=0.116(w=0.774), time.duration.self=0.116(w=0.774), space.axis.self=0.670(w=0.361), space.elongation.self=1.875(w=0.774), energy.element.self=0.653(w=0.280)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=-0.4803 axis_y=-0.8771 behavior=pool compression=0.0719 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0895 element=lightning elongation=1.8748 fade_rate=0.0448 focused=False intensity=1.0000 power=0.0556 speed=0.0000 spread=0.0895 unstable=False
+Network: {}
+
+[2026-04-14 19:07:02] === SPELL CAST ===
+Primitives (2): triangle(conf=0.90), circle(conf=0.85)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     └─ triangle (depth=1) [contained]  area_n=0.07  scale_n=0.32  compactness=0.51  elongation=2.15
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_triangle: energy.compression.parent=0.754(w=0.336), energy.spread.parent=0.033(w=0.900), time.duration.parent=0.065(w=0.900), space.axis.parent=0.006(w=0.482), space.elongation.parent=2.153(w=0.900), energy.element.parent=0.500(w=0.309)
+  node_1_circle: energy.compression.self=0.003(w=0.903), energy.spread.self=0.997(w=0.853), time.duration.self=1.000(w=0.853), energy.element.self=0.500(w=0.650)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_triangle: energy.compression.parent=0.754(w=0.336), energy.spread.parent=0.033(w=0.900), time.duration.parent=0.065(w=0.900), space.axis.parent=0.006(w=0.482), space.elongation.parent=2.153(w=0.900), energy.element.parent=0.500(w=0.309)
+  node_1_circle: energy.compression.self=0.003(w=0.903), energy.spread.self=0.997(w=0.853), time.duration.self=1.000(w=0.853), energy.element.self=0.500(w=0.650), energy.compression.self=0.754(w=0.302)[prop], energy.spread.self=0.033(w=0.810)[prop], time.duration.self=0.065(w=0.810)[prop], space.axis.self=0.006(w=0.434)[prop], space.elongation.self=2.153(w=0.810)[prop], energy.element.self=0.500(w=0.278)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=0.9992 axis_y=0.0408 behavior=wall compression=0.2311 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.9063 element=arcane elongation=2.1532 fade_rate=0.4388 focused=False intensity=1.0000 power=0.3557 speed=0.0000 spread=0.8775 unstable=False
+Network: {"t": "s", "cmp": 0.2311, "e": "arcane", "bh": "wall", "pwr": 0.3557, "spr": 0.8775, "dur": 0.9063, "fdr": 0.4388, "ax": [2.1514, 0.0879]}
+
+[2026-04-14 19:07:07] === SPELL CAST ===
+Primitives (3): triangle(conf=0.87), circle(conf=0.83), arrow(conf=0.82)
+GraphGeo: #0→#1[contains], #1→#0[inside], #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near], #1→#2[contains], #2→#1[inside]
+AST: depth=1 nodes=3
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ triangle (depth=1) [contained]  area_n=0.09  scale_n=0.38  compactness=0.53  elongation=2.29
+     └─ arrow (depth=1) [contained]  area_n=0.43  scale_n=0.43  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_triangle: energy.compression.parent=0.740(w=0.376), energy.spread.parent=0.050(w=0.869), time.duration.parent=0.094(w=0.869), space.axis.parent=0.963(w=0.490), space.elongation.parent=2.291(w=0.869), energy.element.parent=0.500(w=0.338)
+  node_2_arrow: energy.compression.parent=0.000(w=0.401), motion.velocity.parent=0.950(w=0.401), motion.direction.parent=0.958(w=0.818), space.axis.parent=0.958(w=0.777), space.elongation.parent=20.000(w=0.818), energy.element.parent=0.750(w=0.364)
+  node_1_circle: energy.compression.self=0.003(w=0.876), energy.spread.self=0.997(w=0.826), time.duration.self=1.000(w=0.826), energy.element.self=0.500(w=0.650)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_triangle: energy.compression.parent=0.740(w=0.376), energy.spread.parent=0.050(w=0.869), time.duration.parent=0.094(w=0.869), space.axis.parent=0.963(w=0.490), space.elongation.parent=2.291(w=0.869), energy.element.parent=0.500(w=0.338)
+  node_2_arrow: energy.compression.parent=0.000(w=0.401), motion.velocity.parent=0.950(w=0.401), motion.direction.parent=0.958(w=0.818), space.axis.parent=0.958(w=0.777), space.elongation.parent=20.000(w=0.818), energy.element.parent=0.750(w=0.364)
+  node_1_circle: energy.compression.self=0.003(w=0.876), energy.spread.self=0.997(w=0.826), time.duration.self=1.000(w=0.826), energy.element.self=0.500(w=0.650), energy.compression.self=0.740(w=0.338)[prop], energy.spread.self=0.050(w=0.782)[prop], time.duration.self=0.094(w=0.782)[prop], space.axis.self=0.963(w=0.441)[prop], space.elongation.self=2.291(w=0.782)[prop], energy.element.self=0.500(w=0.304)[prop], energy.compression.self=0.000(w=0.361)[prop], motion.velocity.self=0.950(w=0.361)[prop], motion.direction.self=0.958(w=0.736)[prop], space.axis.self=0.958(w=0.699)[prop], space.elongation.self=20.000(w=0.736)[prop], energy.element.self=0.750(w=0.328)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=0.9652 axis_y=-0.2616 behavior=projectile compression=0.2531 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.8995 element=arcane elongation=20.0000 fade_rate=0.4309 focused=False intensity=1.0000 power=0.4283 speed=0.3425 spread=0.8619 unstable=False
+Network: {"t": "s", "cmp": 0.2531, "e": "arcane", "bh": "projectile", "spd": 0.3425, "pwr": 0.4283, "spr": 0.8619, "dur": 0.8995, "fdr": 0.4309, "ax": [19.3036, -5.2318]}
+
+[2026-04-14 19:07:13] === SPELL CAST ===
+Primitives (1): segment(conf=0.76)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ segment (depth=0) [peer]  area_n=0.87  scale_n=0.87  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=0.711), space.axis.self=0.418(w=0.723), space.elongation.self=20.000(w=0.761), energy.element.self=0.550(w=0.584)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=0.711), space.axis.self=0.418(w=0.723), space.elongation.self=20.000(w=0.761), energy.element.self=0.550(w=0.584)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=-0.8689 axis_y=0.4950 behavior=wall compression=1.3502 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 power=0.5401 speed=0.0000 spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-14 19:07:15] === SPELL CAST ===
+Primitives (2): circle(conf=0.82), segment(conf=0.91)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #0→#1[contains], #1→#0[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=0.38  scale_n=0.50  compactness=1.00  elongation=1.03
+     └─ segment (depth=1) [contained]  area_n=0.35  scale_n=0.35  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 2 nœud(s):
+  node_1_segment: energy.compression.parent=1.900(w=0.371), space.axis.parent=0.985(w=0.867), space.elongation.parent=20.000(w=0.912), energy.element.parent=0.550(w=0.326)
+  node_0_circle: energy.compression.self=0.003(w=0.458), energy.spread.self=0.379(w=0.817), time.duration.self=0.381(w=0.817), energy.element.self=0.500(w=0.400)
+Pass2 (top-down) — 2 nœud(s):
+  node_1_segment: energy.compression.parent=1.900(w=0.371), space.axis.parent=0.985(w=0.867), space.elongation.parent=20.000(w=0.912), energy.element.parent=0.550(w=0.326)
+  node_0_circle: energy.compression.self=0.003(w=0.458), energy.spread.self=0.379(w=0.817), time.duration.self=0.381(w=0.817), energy.element.self=0.500(w=0.400), energy.compression.self=1.900(w=0.334)[prop], space.axis.self=0.985(w=0.780)[prop], space.elongation.self=20.000(w=0.821)[prop], energy.element.self=0.550(w=0.293)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=0.9954 axis_y=-0.0963 behavior=wall compression=0.6360 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.3109 element=arcane elongation=20.0000 fade_rate=0.1549 focused=False intensity=1.0000 power=0.3474 speed=0.0000 spread=0.3099 unstable=False
+Network: {"t": "s", "cmp": 0.636, "e": "arcane", "bh": "wall", "pwr": 0.3474, "spr": 0.3099, "dur": 0.3109, "fdr": 0.1549, "ax": [19.907, -1.9265]}
+
+[2026-04-14 19:07:21] === SPELL CAST ===
+Primitives (2): arrow(conf=0.76), circle(conf=0.86)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     └─ arrow (depth=1) [contained]  area_n=0.88  scale_n=0.88  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_arrow: energy.compression.parent=0.000(w=0.715), motion.velocity.parent=0.950(w=0.715), motion.direction.parent=0.987(w=0.755), space.axis.parent=0.987(w=0.718), space.elongation.parent=20.000(w=0.755), energy.element.parent=0.750(w=0.590)
+  node_1_circle: energy.compression.self=0.003(w=0.907), energy.spread.self=0.997(w=0.857), time.duration.self=1.000(w=0.857), energy.element.self=0.500(w=0.650)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_arrow: energy.compression.parent=0.000(w=0.715), motion.velocity.parent=0.950(w=0.715), motion.direction.parent=0.987(w=0.755), space.axis.parent=0.987(w=0.718), space.elongation.parent=20.000(w=0.755), energy.element.parent=0.750(w=0.590)
+  node_1_circle: energy.compression.self=0.003(w=0.907), energy.spread.self=0.997(w=0.857), time.duration.self=1.000(w=0.857), energy.element.self=0.500(w=0.650), energy.compression.self=0.000(w=0.643)[prop], motion.velocity.self=0.950(w=0.643)[prop], motion.direction.self=0.987(w=0.680)[prop], space.axis.self=0.987(w=0.646)[prop], space.elongation.self=20.000(w=0.680)[prop], energy.element.self=0.750(w=0.531)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False axis_x=0.9966 axis_y=-0.0823 behavior=projectile compression=0.0030 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.8574 element=arcane elongation=20.0000 fade_rate=0.4273 focused=False intensity=1.0000 power=0.3798 speed=0.6113 spread=0.8546 unstable=False
+Network: {"t": "s", "cmp": 0.003, "e": "arcane", "bh": "projectile", "spd": 0.6113, "pwr": 0.3798, "spr": 0.8546, "dur": 0.8574, "fdr": 0.4273, "ax": [19.9322, -1.6458]}
+
