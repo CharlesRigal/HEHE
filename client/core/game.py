@@ -98,11 +98,13 @@ class Game:
             # Pomper le réseau
             self.pump_network()
 
-            # Exécuter autant de ticks logiques que nécessaire
-            while self.accumulator >= TICK_INTERVAL:
-                # Tick de logique à fréquence fixe
-                self.update_logic(TICK_INTERVAL)
-                self.accumulator -= TICK_INTERVAL
+            # Ticks logiques seulement si l'état en a besoin
+            if self.state == "playing":
+                while self.accumulator >= TICK_INTERVAL:
+                    self.update_logic(TICK_INTERVAL)
+                    self.accumulator -= TICK_INTERVAL
+            else:
+                self.accumulator = 0.0
 
             # Calculer l'alpha pour l'interpolation (optionnel)
             # alpha = self.accumulator / TICK_INTERVAL
@@ -117,16 +119,7 @@ class Game:
 
     def update_logic(self, dt):
         """Mise à jour de la logique du jeu à fréquence fixe (60 Hz)"""
-        if self.state == "playing":
-            playing(self, tick_rate=dt)
-        elif self.state == "menu":
-            pass
-        elif self.state == "map_selection":
-            pass
-        elif self.state == "waiting_for_game":
-            pass
-        elif self.state == "game_over":
-            pass
+        playing(self, tick_rate=dt)
 
     def draw(self):
         """Rendu graphique (fréquence variable)"""

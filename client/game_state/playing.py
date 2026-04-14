@@ -45,8 +45,13 @@ def playing(game, tick_rate):
             from client.ui.spell_debug_overlay import SpellDebugData
             ast = game.ast_builder.build(game.player.magical_draw._magical_graph)
             resolved = game.ast_resolver.resolve(ast)
-            net_spec = params_to_network_spec(resolved)
-            game.cast_ast_spell(net_spec)
+
+            # Le cercle est le nœud exécuteur — sans cercle, aucun sort lancé
+            can_cast = any(n.symbol_type == "circle" for n in ast.all_nodes)
+            net_spec = {}
+            if can_cast:
+                net_spec = params_to_network_spec(resolved)
+                game.cast_ast_spell(net_spec)
 
             debug_data = SpellDebugData(
                 primitives=list(primitives) if isinstance(primitives, list) else [primitives],

@@ -1,0 +1,4 @@
+- [AST Phase 1 Implementation](project_ast_phase1.md) — AST builder from containment, mutual containment fix via bounding size
+- [AST Phase 2 Symbol Rules](project_ast_phase2.md) — PropertyBag system, symbol rules emit continuous tagged properties for emergence
+- [AST Phase 3 Resolver](project_ast_phase3.md) — 3-pass ASTResolver (bottom-up, top-down, cross-node) producing continuous params for server
+- [AST Phase 4 Integration](project_ast_phase4.md) — AST pipeline wired into game loop, replacing SpellChainBuilder in playing.py
