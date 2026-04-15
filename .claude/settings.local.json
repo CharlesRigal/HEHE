@@ -10,7 +10,11 @@
       "Bash(python -m client.magic.resolver.resolver)",
       "Bash(python -c \"from server.game_instance import GameInstance; print\\('OK'\\)\")",
       "Bash(python -c \"import sys; [print\\(l.encode\\('ascii','replace'\\).decode\\(\\)\\) for l in sys.stdin]\")",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(mkdir -p client/magic/disabled)",
+      "Bash(cp -r client/magic/ast client/magic/disabled/)",
+      "Bash(cp -r client/magic/resolver client/magic/disabled/)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,66 @@
+"""
+playing.py — Boucle de jeu principale.
+
+Sorts disponibles (hardcodé) :
+    Cercle seul  →  Boule de feu vers la direction du joueur.
+"""
+import math
+
 import pygame
 
 from client.entities.player import IN_BOARD, IN_DRAWING
+from client.magic.primitives import Circle
 
+
+# ---------------------------------------------------------------------------
+# Patterns hardcodés — (condition) → spec réseau
+# ---------------------------------------------------------------------------
+
+def _fireball_spec(game) -> dict:
+    """Boule de feu simple dans la direction du joueur."""
+    facing = None
+    if hasattr(game.player, "get_facing_vector"):
+        try:
+            facing = game.player.get_facing_vector()
+        except Exception:
+            pass
+
+    if facing is not None and hasattr(facing, "x"):
+        dx, dy = float(facing.x), float(facing.y)
+    else:
+        dx, dy = 1.0, 0.0
+
+    mag = math.hypot(dx, dy)
+    if mag > 1e-6:
+        dx /= mag
+        dy /= mag
+
+    return {
+        "t":   "s",
+        "e":   "fire",
+        "bh":  "projectile",
+        "spd": 0.4,
+        "pwr": 1.0,
+        "dir": [round(dx, 4), round(dy, 4)],
+    }
+
+
+def _match_pattern(primitives: list) -> dict | None:
+    """
+    Retourne le spec réseau si un pattern est reconnu, None sinon.
+
+    Patterns :
+        Cercle  →  boule de feu
+    """
+    types = {type(p) for p in primitives}
+    if Circle in types:
+        return "fireball"
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Boucle principale
+# ---------------------------------------------------------------------------
 
 def playing(game, tick_rate):
     if game.start_time is None:
@@ -13,7 +72,7 @@ def playing(game, tick_rate):
     inp["seq"] = game.input_seq
     game.input_seq += 1
 
-    board_pressed = bool(inp.get("k") & IN_BOARD)
+    board_pressed  = bool(inp.get("k") & IN_BOARD)
     drawing_pressed = bool(inp.get("k") & IN_DRAWING)
 
     if board_pressed:
@@ -26,46 +85,27 @@ def playing(game, tick_rate):
             )
         else:
             game.player.magical_draw.validate_points_to_board()
+
     elif game.prev_board_pressed:
         game.player.magical_draw.validate_points_to_board()
         primitives = game.geometry_analyzer.analyze(game.player.magical_draw.get_strokes())
-        has_primitive = False
+
+        primitives_list = []
         if primitives:
             if isinstance(primitives, list):
-                for primitive in primitives:
-                    game.player.magical_draw.add_node(primitive)
-                has_primitive = len(primitives) > 0
+                for p in primitives:
+                    game.player.magical_draw.add_node(p)
+                primitives_list = primitives
             else:
                 game.player.magical_draw.add_node(primitives)
-                has_primitive = True
+                primitives_list = [primitives]
 
-        if has_primitive:
-            import time
-            from client.magic.resolver.resolved_spell import params_to_network_spec
-            from client.ui.spell_debug_overlay import SpellDebugData
-            ast = game.ast_builder.build(game.player.magical_draw._magical_graph)
-            resolved = game.ast_resolver.resolve(ast)
+        if primitives_list:
+            pattern = _match_pattern(primitives_list)
 
-            # Le cercle est le nœud exécuteur — sans cercle, aucun sort lancé
-            can_cast = any(n.symbol_type == "circle" for n in ast.all_nodes)
-            net_spec = {}
-            if can_cast:
-                net_spec = params_to_network_spec(resolved)
-                game.cast_ast_spell(net_spec)
-
-            debug_data = SpellDebugData(
-                primitives=list(primitives) if isinstance(primitives, list) else [primitives],
-                spatial_relations=list(ast.spatial_relations),
-                ast=ast,
-                pass1_bags=dict(game.ast_resolver.last_pass1_bags),
-                pass2_bags=dict(game.ast_resolver.last_pass2_bags),
-                cross_entries=list(game.ast_resolver.last_cross_entries),
-                resolved_params=dict(resolved.params),
-                network_spec=dict(net_spec),
-                timestamp=time.time(),
-            )
-            game.spell_debug_overlay.set_data(debug_data)
-            game.spell_logger.log_cast(debug_data)
+            if pattern == "fireball":
+                spec = _fireball_spec(game)
+                game.cast_spell(spec)
 
             game.player.magical_draw.clear_board()
             game.player.magical_draw.cancel_clear()
@@ -75,9 +115,7 @@ def playing(game, tick_rate):
     game.prev_board_pressed = board_pressed
 
     game.send_input_if_needed(inp)
-
     game.player.apply_input(inp)
     game.player.save_input_for_reconciliation(inp)
     game.player.update(tick_rate)
-
     game.game_manager.update_all(tick_rate, game.player, current_time)

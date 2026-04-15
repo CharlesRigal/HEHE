@@ -9,9 +9,6 @@ from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
 from client.graphics.game_menu import GameMenu
 from client.magic.geometry_analyzer import GeometryAnalyzer
-from client.magic.ast.ast_builder import ASTBuilder
-from client.magic.resolver.resolver import ASTResolver
-from client.magic.resolver.resolved_spell import params_to_network_spec
 from client.network.network import NetworkClient
 from client.ui.spell_debug_overlay import SpellDebugOverlay
 from client.debug.spell_logger import SpellLogger
@@ -48,8 +45,6 @@ class Game:
         self.last_unknown_msg = None
 
         self.geometry_analyzer = GeometryAnalyzer()
-        self.ast_builder = ASTBuilder()
-        self.ast_resolver = ASTResolver()
 
         self.state = "menu"
 
@@ -506,9 +501,9 @@ class Game:
         except Exception:
             return -1
 
-    def cast_ast_spell(self, net_spec: dict) -> None:
-        """Lance un sort issu du pipeline AST émergent."""
-        logging.info(f"AST spell cast: {net_spec}")
+    def cast_spell(self, net_spec: dict) -> None:
+        """Envoie un sort au serveur."""
+        logging.info(f"Spell cast: {net_spec}")
         if self.net_connected and self.net is not None:
             try:
                 self.net.send(net_spec)
