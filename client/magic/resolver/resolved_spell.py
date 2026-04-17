@@ -118,3 +118,59 @@ def params_to_network_spec(resolved: ResolvedSpell) -> dict:
         spec["shp"] = "cone"
 
     return spec
+
+
+def intent_to_network_spec(intent: "SpellIntent") -> dict:
+    """Serialise un SpellIntent vers le format reseau s2 multi-phases."""
+    from client.magic.resolver.spell_intent import SpellIntent
+
+    if not intent.phases:
+        return {"t": "s2", "phases": []}
+
+    phases_out = []
+    for phase in intent.phases:
+        p: dict[str, Any] = {}
+
+        # Form
+        p["form"] = phase.form.form_type
+        if phase.form.speed > 0.01:
+            p["spd"] = round(phase.form.speed, 4)
+        dx, dy = phase.form.direction
+        if abs(dx) > 1e-6 or abs(dy) > 1e-6:
+            p["dir"] = [round(dx, 4), round(dy, 4)]
+        if phase.form.spread > 0.01:
+            p["spr"] = round(phase.form.spread, 4)
+        if phase.form.radius > 0.01:
+            p["rad"] = round(phase.form.radius, 4)
+        if phase.form.duration > 0.01:
+            p["dur"] = round(phase.form.duration, 4)
+        if phase.form.elongation > 1.1:
+            ax, ay = phase.form.axis
+            if abs(ax) > 1e-6 or abs(ay) > 1e-6:
+                p["ax"] = [round(ax * phase.form.elongation, 4), round(ay * phase.form.elongation, 4)]
+
+        # Substance
+        p["sub"] = phase.substance.effect_type
+        if phase.substance.element and phase.substance.element != "neutral":
+            p["e"] = phase.substance.element
+        p["pwr"] = round(phase.substance.intensity, 4)
+        if phase.substance.extra:
+            p["extra"] = phase.substance.extra
+
+        # Trigger
+        if phase.trigger is not None and phase.trigger.next_phase >= 0:
+            t: dict[str, Any] = {"type": phase.trigger.trigger_type}
+            if phase.trigger.delay > 0.01:
+                t["delay"] = round(phase.trigger.delay, 4)
+            if phase.trigger.count > 1:
+                t["count"] = phase.trigger.count
+            t["next"] = phase.trigger.next_phase
+            p["trigger"] = t
+
+        phases_out.append(p)
+
+    return {
+        "t": "s2",
+        "pwr": round(intent.power, 4),
+        "phases": phases_out,
+    }
