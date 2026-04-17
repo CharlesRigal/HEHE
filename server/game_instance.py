@@ -38,6 +38,9 @@ class GameInstance:
         self.enemy_attack_damage = 12
         self.enemy_attack_cooldown = 1.1
         self.active_spells: list[dict] = []
+        self.active_effects: list = []       # list[ActiveEffect]
+        self.active_terrain: list[dict] = [] # terrain temporaire cree par sorts
+        self.pending_triggers: list[dict] = []  # triggers temporels s2
         self._had_spells_last_tick: bool = False
         self.fire_rune_tick_damage = 12
         self.fire_rune_tick_interval = 0.20
@@ -137,6 +140,16 @@ class GameInstance:
     @staticmethod
     def _clamp(value: float, minimum: float, maximum: float) -> float:
         return max(minimum, min(maximum, value))
+
+    def add_spell_cast_from_intent(self, client_id: str, msg: dict) -> None:
+        """Traite un sort s2 multi-phases."""
+        from server.magic.phase_executor import execute_spell_intent
+
+        player = self.players.get(client_id)
+        if player is None or not player.is_alive():
+            return
+
+        execute_spell_intent(self, client_id, msg)
 
     def add_spell_cast_from_spec(self, client_id: str, msg: dict) -> None:
         """Traite un sort issu du système émergent (sort paramétrique)."""
@@ -368,6 +381,13 @@ class GameInstance:
             if not enemy.get("alive", True):
                 continue
 
+            # Gele : ne bouge pas
+            speed_mult = float(enemy.get("speed_multiplier", 1.0))
+            if enemy.get("frozen", False) or speed_mult < 0.01:
+                enemy["vx"] = 0.0
+                enemy["vy"] = 0.0
+                continue
+
             target = min(
                 alive_players,
                 key=lambda player: player.distance_sq_to(enemy["x"], enemy["y"]),
@@ -377,11 +397,12 @@ class GameInstance:
             dy = target.y - enemy["y"]
             distance = math.hypot(dx, dy)
 
+            effective_speed = self.enemy_speed * speed_mult
             vx = 0.0
             vy = 0.0
             if distance > self.enemy_stop_distance:
-                vx = (dx / distance) * self.enemy_speed
-                vy = (dy / distance) * self.enemy_speed
+                vx = (dx / distance) * effective_speed
+                vy = (dy / distance) * effective_speed
 
             new_x = enemy["x"] + vx * TICK_INTERVAL
             new_y = enemy["y"] + vy * TICK_INTERVAL
@@ -432,10 +453,14 @@ class GameInstance:
             return
 
         next_spells: list[dict] = []
+        expired_s2: list[dict] = []
         map_width, map_height = self.map_data.get("size", [1280, 720])
         for spell in self.active_spells:
             spell["remaining"] -= TICK_INTERVAL
             if spell["remaining"] <= 0.0:
+                # Sort s2 expire : verifier les triggers on_expire
+                if spell.get("_s2_phases") is not None:
+                    expired_s2.append(spell)
                 # Split à l'expiration : fragmente le sort si demandé et
                 # pas déjà déclenché (split_on_impact=False ou absent)
                 if (
@@ -478,18 +503,73 @@ class GameInstance:
             tick_interval = max(0.05, float(spell.get("tick_interval", self.fire_rune_tick_interval)))
             spell_id = str(spell.get("spell_id", spell.get("spell", "")))
             tick_handler = self.spell_registry.get_tick_handler(spell_id)
+            pre_tick_remaining = spell["remaining"]
             while now >= spell["next_tick_at"] and spell["remaining"] > 0.0:
                 if tick_handler is not None:
                     tick_handler(self, spell)
                 spell["next_tick_at"] += tick_interval
+            # Sort s2 tue par impact (remaining passe a 0 pendant le tick)
+            if spell["remaining"] <= 0.0 and pre_tick_remaining > 0.0 and spell.get("_s2_phases") is not None:
+                expired_s2.append(spell)  # on_impact triggers aussi via on_expire path
+                # Marquer comme impact pour distinguer on_impact vs on_expire
+                spell["_s2_impact_kill"] = True
+                continue
             next_spells.append(spell)
 
         self.active_spells = next_spells
+
+        # Triggers s2 : on_expire / on_impact
+        if expired_s2:
+            from server.magic.phase_executor import handle_spell_trigger_on_expire, handle_spell_trigger_on_impact
+            for spell in expired_s2:
+                if spell.get("_s2_impact_kill"):
+                    handle_spell_trigger_on_impact(self, spell)
+                else:
+                    handle_spell_trigger_on_expire(self, spell)
 
         # Collision sort-vs-sort : compression la plus haute survit
         if len(self.active_spells) >= 2:
             from server.spells.parametric_spell import resolve_spell_vs_spell
             self.active_spells = resolve_spell_vs_spell(self.active_spells)
+
+    def _update_active_effects(self, now: float):
+        """Tick les effets actifs (freeze, terrain, etc.)."""
+        if not self.active_effects:
+            return
+
+        from server.effects.effect_registry import EFFECT_REGISTRY
+        from server.config import TICK_INTERVAL
+
+        remaining = []
+        for effect in self.active_effects:
+            effect.remaining -= TICK_INTERVAL
+            if effect.remaining <= 0.0:
+                EFFECT_REGISTRY.remove_effect(self, effect)
+                continue
+            if effect.tick_interval > 0 and now >= effect.next_tick_at:
+                EFFECT_REGISTRY.tick_effect(self, effect)
+                effect.next_tick_at = now + effect.tick_interval
+            remaining.append(effect)
+        self.active_effects = remaining
+
+    def _update_pending_triggers(self, now: float):
+        """Tick les triggers temporels s2 (after_delay)."""
+        if not self.pending_triggers:
+            return
+        from server.magic.phase_executor import tick_pending_triggers
+        tick_pending_triggers(self, now)
+
+    def _update_active_terrain(self):
+        """Decremente la duree du terrain temporaire et le supprime si expire."""
+        if not self.active_terrain:
+            return
+        from server.config import TICK_INTERVAL
+        remaining = []
+        for terrain in self.active_terrain:
+            terrain["remaining"] -= TICK_INTERVAL
+            if terrain["remaining"] > 0.0:
+                remaining.append(terrain)
+        self.active_terrain = remaining
 
     def _check_collision_with_objects(self, x: float, y: float, player_size: float = 32) -> bool:
         """Vérifie les collisions avec les objets de la map"""
@@ -514,6 +594,20 @@ class GameInstance:
                 if (player_x1 < obj_x2 and player_x2 > obj_x1 and
                         player_y1 < obj_y2 and player_y2 > obj_y1):
                     return True
+
+        # Terrain temporaire (sorts) — ne bloque que le non-traversable
+        for terrain in self.active_terrain:
+            if terrain.get("traversable", False):
+                continue
+            tx, ty = terrain["x"], terrain["y"]
+            tw, th = terrain["w"], terrain["h"]
+            player_x1 = x - player_size / 2
+            player_x2 = x + player_size / 2
+            player_y1 = y - player_size / 2
+            player_y2 = y + player_size / 2
+            if (player_x1 < tx + tw / 2 and player_x2 > tx - tw / 2 and
+                    player_y1 < ty + th / 2 and player_y2 > ty - th / 2):
+                return True
 
         return False
 
@@ -640,7 +734,32 @@ class GameInstance:
                             entry["ea"] = round(math.degrees(ea))
                         spells_state.append(entry)
 
-                    if players_state or enemies_state or spells_state or self._had_spells_last_tick:
+                    # Terrain temporaire
+                    terrain_state = [
+                        {
+                            "id": t["id"],
+                            "type": t["type"],
+                            "x": round(t["x"], 1),
+                            "y": round(t["y"], 1),
+                            "w": round(t["w"], 1),
+                            "h": round(t["h"], 1),
+                            "traversable": t.get("traversable", False),
+                        }
+                        for t in self.active_terrain
+                    ]
+
+                    # Effets actifs (frozen enemies etc.)
+                    effects_state = [
+                        {
+                            "eid": e.effect_id,
+                            "target": e.target_id,
+                            "remaining": round(e.remaining, 1),
+                        }
+                        for e in self.active_effects
+                    ]
+
+                    has_extras = bool(terrain_state or effects_state)
+                    if players_state or enemies_state or spells_state or self._had_spells_last_tick or has_extras:
                         message = {
                             "t": "game_update",
                             "timestamp": current_time,
@@ -651,6 +770,10 @@ class GameInstance:
                             message["enemies"] = enemies_state
                         if spells_state or self._had_spells_last_tick:
                             message["spells"] = spells_state
+                        if terrain_state:
+                            message["terrain"] = terrain_state
+                        if effects_state:
+                            message["effects"] = effects_state
                         await self.broadcast_to_players(message)
 
                     self._had_spells_last_tick = bool(spells_state)
