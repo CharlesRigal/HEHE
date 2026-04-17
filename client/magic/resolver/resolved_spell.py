@@ -117,4 +117,26 @@ def params_to_network_spec(resolved: ResolvedSpell) -> dict:
     if behavior == "aoe" and spread > 0.05 and p.get("_dir_explicit"):
         spec["shp"] = "cone"
 
+    # Split count (zigzag : nombre de sous-projectiles/répétitions)
+    split_count = int(p.get("split_count", 0))
+    if split_count > 0:
+        spec["spl"] = split_count
+
+    # ── Qualificateurs de composition ─────────────────────────────────────
+    if p.get("pierce"):
+        spec["prc"] = 1                     # perce les obstacles / solides
+
+    if p.get("aoe_on_impact"):
+        spec["aoi"] = 1                     # crée une zone à l'impact
+
+    if p.get("split_on_impact") and split_count > 0:
+        spec["spi"] = 1                     # se divise à l'impact (avec spl=N)
+
+    if p.get("secondary_zone"):
+        spec["szn"] = 1                     # effet secondaire différé
+
+    scope_radius = float(p.get("scope_radius", 0.0))
+    if scope_radius > 0.01:
+        spec["rad"] = round(scope_radius, 4)  # rayon de zone normalisé
+
     return spec

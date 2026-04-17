@@ -32,6 +32,71 @@ if TYPE_CHECKING:
 
 
 # ---------------------------------------------------------------------------
+# Helpers de composition (module-level pour réutilisation)
+# ---------------------------------------------------------------------------
+
+def _get_role(bag: "PropertyBag") -> str:
+    """Retourne le rôle sémantique primaire d'un bag ('role_zone', etc.)."""
+    for entry in bag.entries:
+        if entry.tag.domain == "semantic" and entry.tag.axis.startswith("role_"):
+            return entry.tag.axis
+    return "role_unknown"
+
+
+def _apply_composition_rule(
+    parent_role: str,
+    child_role: str,
+    parent_bag: "PropertyBag",
+    source_nid: str,
+) -> None:
+    """
+    Injecte un modificateur sémantique dans parent_bag selon la paire de rôles.
+
+    Tableau des compositions :
+      zone   + vector/vector_grounded → modifier_aoe_on_impact  (zone mobile)
+      zone   + focus                  → modifier_pierce          (zone concentrée)
+      zone   + chaos                  → modifier_split           (zone multiplicatrice)
+      zone   + zone                   → modifier_secondary_zone  (effet secondaire)
+      vector + chaos                  → modifier_split           (projectile diviseur)
+      vector + zone                   → modifier_aoe_on_impact   (projectile explosif)
+      vector + focus                  → modifier_pierce          (projectile perçant)
+      barrier + chaos                 → modifier_split           (mur instable)
+      focus  + chaos                  → modifier_split           (blast diviseur)
+    """
+    def inject(modifier: str) -> None:
+        parent_bag.add(
+            PropertyTag("semantic", modifier, "self"),
+            1.0, 1.0, source_nid + "_comp",
+        )
+
+    if parent_role == "role_zone":
+        if child_role in ("role_vector", "role_vector_grounded"):
+            inject("modifier_aoe_on_impact")
+        elif child_role == "role_focus":
+            inject("modifier_pierce")
+        elif child_role == "role_chaos":
+            inject("modifier_split")
+        elif child_role == "role_zone":
+            inject("modifier_secondary_zone")
+
+    elif parent_role in ("role_vector", "role_vector_grounded"):
+        if child_role == "role_chaos":
+            inject("modifier_split")
+        elif child_role == "role_zone":
+            inject("modifier_aoe_on_impact")
+        elif child_role == "role_focus":
+            inject("modifier_pierce")
+
+    elif parent_role == "role_barrier":
+        if child_role == "role_chaos":
+            inject("modifier_split")
+
+    elif parent_role == "role_focus":
+        if child_role == "role_chaos":
+            inject("modifier_split")
+
+
+# ---------------------------------------------------------------------------
 # Params par défaut (AST vide ou échec)
 # ---------------------------------------------------------------------------
 
@@ -47,12 +112,21 @@ _DEFAULT_PARAMS: dict[str, Any] = {
     "behavior":       "stationary",
     "focused":        False,
     "unstable":       False,
+    "split_count":    0,       # zigzag : nombre de sous-projectiles/répétitions
+    # ── Qualificateurs issus de la composition de rôles (Pass 1.5) ────────
+    "pierce":          False,  # perce les obstacles / affecte les solides
+    "aoe_on_impact":   False,  # crée une zone à l'impact ou à l'expiration
+    "split_on_impact": False,  # se divise à l'impact/expiration (spl > 0)
+    "secondary_zone":  False,  # déclenche un effet secondaire après la durée
+    "scope_radius":    0.0,    # rayon de zone normalisé (depuis les cercles)
+    # ─────────────────────────────────────────────────────────────────────
     "axis_x":         0.0,
     "axis_y":         0.0,
     "dir_x":          1.0,
     "dir_y":          0.0,
     "fade_rate":      0.0,
     "_dir_explicit":  False,
+    "_root_role":     "role_unknown",  # rôle sémantique de la racine (debug)
 }
 
 
@@ -77,6 +151,11 @@ class ASTResolver:
         # Pass 1 : Bottom-up (feuilles -> racine)
         self._pass1_bottom_up(ast.root, node_bags)
         self.last_pass1_bags = copy.deepcopy(node_bags)
+
+        # Pass 1.5 : Composition qualitative par rôles (bottom-up)
+        # Examine les paires (rôle_parent, rôle_enfant) et injecte
+        # des modificateurs sémantiques dans les bags parents.
+        self._pass15_role_composition(ast.root, node_bags)
 
         # Pass 2 : Propagation parent/children
         self._pass2_propagate(ast.root, node_bags, parent_bag=None)
@@ -153,6 +232,51 @@ class ASTResolver:
 
         for child in node.children:
             self._pass2_propagate(child, node_bags, bag)
+
+    # -------------------------------------------------------------------
+    # Pass 1.5 : Composition qualitative par rôles
+    # -------------------------------------------------------------------
+
+    def _pass15_role_composition(
+        self,
+        node: "ASTNode",
+        node_bags: dict[str, PropertyBag],
+    ) -> None:
+        """
+        Parcours bottom-up : pour chaque nœud parent, examine les rôles de
+        ses enfants et injecte des qualificateurs dans son bag.
+
+        Règles de composition (parent_role × child_role → modifier) :
+          zone  + vector          → modifier_aoe_on_impact  (zone mobile)
+          zone  + focus           → modifier_pierce          (zone concentrée/percante)
+          zone  + chaos           → modifier_split           (zone qui se multiplie)
+          zone  + zone            → modifier_secondary_zone  (effet secondaire différé)
+          vector + chaos          → modifier_split           (projectile qui se divise)
+          vector + zone           → modifier_aoe_on_impact   (projectile explosif)
+          vector + focus          → modifier_pierce          (projectile perçant)
+          barrier + chaos         → modifier_split           (mur instable/pulsant)
+          focus  + chaos          → modifier_split           (blast qui se divise)
+        """
+        # D'abord les enfants (bottom-up garantit que les enfants sont composés avant)
+        for child in node.children:
+            self._pass15_role_composition(child, node_bags)
+
+        if not node.children:
+            return
+
+        nid = node.node_id
+        parent_bag = node_bags.get(nid)
+        if parent_bag is None:
+            return
+
+        parent_role = _get_role(parent_bag)
+
+        for child in node.children:
+            child_bag = node_bags.get(child.node_id)
+            if child_bag is None:
+                continue
+            child_role = _get_role(child_bag)
+            _apply_composition_rule(parent_role, child_role, parent_bag, nid)
 
     # -------------------------------------------------------------------
     # Agrégation finale
@@ -257,24 +381,95 @@ class ASTResolver:
         params["dir_y"] = dir_y
         params["_dir_explicit"] = dir_explicit
 
-        # ── Behavior émergent ─────────────────────────────────────────────
-        # Aucun hardcode sur un type de symbole.
-        # Le comportement émerge des valeurs continues :
-        #   velocity -> projectile (mouvement)
-        #   compression + axis -> wall (statique, allongé)
-        #   spread + duration -> pool (zone persistante)
-        #   spread -> aoe (zone instantanée)
+        # ── Split count (zigzag : nombre de dents = répétitions) ────────────
+        count_entries = [
+            e for e in merged.query("semantic", "count")
+            if e.tag.scope == "self"
+        ]
+        split_count = max((int(round(e.value)) for e in count_entries), default=0)
+        params["split_count"] = split_count
+
+        # ── Scope radius (rayon de zone, depuis les cercles) ─────────────
+        radius_entries = [
+            e for e in merged.query("space", "scope_radius")
+            if e.tag.scope == "self"
+        ]
+        scope_radius = max((e.value for e in radius_entries), default=0.0)
+        params["scope_radius"] = scope_radius
+
+        # ── Modificateurs de composition (Pass 1.5) ───────────────────────
+        # Tous les modifier_* présents dans le bag fusionné (tous nœuds confondus)
+        all_semantic = merged.query("semantic", "*")
+        modifiers: set[str] = {
+            e.tag.axis for e in all_semantic
+            if e.tag.axis.startswith("modifier_") and e.tag.scope == "self"
+        }
+        params["pierce"]          = "modifier_pierce"          in modifiers
+        params["aoe_on_impact"]   = "modifier_aoe_on_impact"   in modifiers
+        params["split_on_impact"] = "modifier_split"           in modifiers
+        params["secondary_zone"]  = "modifier_secondary_zone"  in modifiers
+
+        # ── Rôle racine (pour ancrer le behavior et pour debug) ───────────
+        root_role = "role_unknown"
+        if ast.root is not None:
+            root_bag = node_bags.get(ast.root.node_id)
+            if root_bag is not None:
+                root_role = _get_role(root_bag)
+        params["_root_role"] = root_role
+
+        # ── Behavior ancré sur le rôle de la racine ───────────────────────
+        #
+        # Le rôle racine détermine la CATÉGORIE de comportement.
+        # Les modificateurs et valeurs continues affinent à l'intérieur.
+        # Cela empêche un enfant (ex. triangle) de forcer le comportement
+        # d'une racine de rôle différent (ex. cercle → zone, jamais mur).
+        #
         axis_exists = abs(axis_x) > 1e-6 or abs(axis_y) > 1e-6
-        if velocity > 0.08:
+
+        if root_role == "role_zone":
+            # Base : zone persistante ou instantanée
+            # Exception : si un vecteur a été injecté (arrow enfant), la zone se déplace
+            if "modifier_aoe_on_impact" in modifiers and velocity > 0.08:
+                # Zone mobile → projectile qui crée une AOE à l'impact
+                behavior = "projectile"
+            elif spread > 0.05 and duration > 0.05:
+                behavior = "pool"
+            else:
+                behavior = "aoe"
+
+        elif root_role in ("role_vector", "role_vector_grounded"):
+            # Base : toujours un projectile
             behavior = "projectile"
-        elif axis_exists and compression > 0.15 and velocity < 0.05:
+
+        elif root_role == "role_barrier":
+            # Base : toujours un mur
             behavior = "wall"
-        elif spread > 0.05 and duration > 0.05 and compression < 0.15:
-            behavior = "pool"
-        elif spread > 0.02:
-            behavior = "aoe"
-        else:
+
+        elif root_role == "role_focus":
+            # Base : blast concentré (aoe) ou projectile si mouvement explicite
+            if velocity > 0.08:
+                behavior = "projectile"
+            else:
+                behavior = "aoe"
+
+        elif root_role == "role_chaos":
+            # Zigzag seul = instable stationnaire
+            # (les splits comptent mais rien ne se déplace par défaut)
             behavior = "stationary"
+
+        else:
+            # Racine virtuelle / inconnue → logique continue originale (fallback)
+            if velocity > 0.08:
+                behavior = "projectile"
+            elif axis_exists and compression > 0.15 and velocity < 0.05:
+                behavior = "wall"
+            elif spread > 0.05 and duration > 0.05 and compression < 0.15:
+                behavior = "pool"
+            elif spread > 0.02:
+                behavior = "aoe"
+            else:
+                behavior = "stationary"
+
         params["behavior"] = behavior
 
         return params
@@ -358,16 +553,24 @@ if __name__ == "__main__":
     assert r2.params["behavior"] == "projectile", f"Expected projectile, got {r2.params['behavior']}"
     print("[PASS] Cercle+flèche -> projectile")
 
-    # ── Test 3 : Cercle + segment enfant -> wall ────────────────────────────
+    # ── Test 3 : Cercle + segment enfant -> pool orienté (mur dans zone) ──
+    # Avec l'ancrage de rôle : le cercle est racine (role_zone) → zone, pas mur.
+    # Le segment qualifie la zone avec un axe et de la compression.
+    # Segment seul (sans cercle parent) → wall.
     seg_child = make_node("n1_seg", "segment", 1, SEG_FEATS)
     c3 = make_node("n0_circle", "circle", 0, CIRCLE_FEATS)
     c3.children.append(seg_child)
     all_nodes3 = [c3, seg_child]
     ast_cs = SpellAST(root=c3, all_nodes=all_nodes3, depth=1, node_count=2, spatial_relations=[])
     r3 = resolver.resolve(ast_cs)
-    print(f"Cercle+segment: behavior={r3.params['behavior']} compression={r3.params['compression']:.3f} axis=({r3.params['axis_x']:.2f},{r3.params['axis_y']:.2f})")
-    assert r3.params["behavior"] == "wall", f"Expected wall, got {r3.params['behavior']}"
-    print("[PASS] Cercle+segment -> wall")
+    print(f"Cercle+segment: behavior={r3.params['behavior']} compression={r3.params['compression']:.3f} axis=({r3.params['axis_x']:.2f},{r3.params['axis_y']:.2f}) pierce={r3.params['pierce']}")
+    assert r3.params["behavior"] in ("pool", "aoe"), f"Expected pool/aoe (zone ancrée), got {r3.params['behavior']}"
+    # Segment seul = wall
+    seg_alone = make_node("n0_seg", "segment", 0, SEG_FEATS)
+    ast_seg = SpellAST(root=seg_alone, all_nodes=[seg_alone], depth=0, node_count=1, spatial_relations=[])
+    r3b = resolver.resolve(ast_seg)
+    assert r3b.params["behavior"] == "wall", f"Segment seul: Expected wall, got {r3b.params['behavior']}"
+    print(f"[PASS] Cercle+segment -> pool orienté | Segment seul -> wall")
 
     # ── Test 4 : Cercle + zigzag enfant -> élément fire ────────────────────
     zz_child = make_node("n1_zz", "zigzag", 1, ZIGZAG_FEATS)
@@ -392,5 +595,60 @@ if __name__ == "__main__":
     assert net["t"] == "s"
     assert net.get("bh") == "projectile"
     print(f"[PASS] Network spec cercle+flèche: {net}")
+
+    # ── Test 7 : Composition qualitative — modificateurs ─────────────────
+    # Flèche(ZigZag) → projectile + split_on_impact + split_count=3
+    zz2 = make_node("n1_zz2", "zigzag", 1, ZIGZAG_FEATS)
+    a_root = make_node("n0_arrow", "arrow", 0, ARROW_FEATS_D0)
+    a_root.children.append(zz2)
+    ast_az = SpellAST(root=a_root, all_nodes=[a_root, zz2], depth=1, node_count=2, spatial_relations=[])
+    r7 = resolver.resolve(ast_az)
+    print(f"Flèche+zigzag: behavior={r7.params['behavior']} split_on_impact={r7.params['split_on_impact']} split_count={r7.params['split_count']} unstable={r7.params['unstable']}")
+    assert r7.params["behavior"] == "projectile",    f"Expected projectile, got {r7.params['behavior']}"
+    assert r7.params["split_on_impact"],              "Expected split_on_impact=True"
+    assert r7.params["split_count"] > 0,             "Expected split_count > 0"
+    print("[PASS] Flèche+zigzag -> projectile split")
+
+    # Cercle(Flèche) → projectile (zone mobile) + aoe_on_impact
+    a3 = make_node("n1_a3", "arrow", 1, ARROW_FEATS_D1)
+    c_root = make_node("n0_circ", "circle", 0, CIRCLE_FEATS)
+    c_root.children.append(a3)
+    ast_ca2 = SpellAST(root=c_root, all_nodes=[c_root, a3], depth=1, node_count=2, spatial_relations=[])
+    r8 = resolver.resolve(ast_ca2)
+    print(f"Cercle+flèche: behavior={r8.params['behavior']} aoe_on_impact={r8.params['aoe_on_impact']} rad={r8.params['scope_radius']:.3f}")
+    assert r8.params["behavior"] == "projectile", f"Expected projectile, got {r8.params['behavior']}"
+    assert r8.params["aoe_on_impact"],            "Expected aoe_on_impact=True"
+    print("[PASS] Cercle+flèche -> projectile AOE on impact")
+
+    # Cercle(Triangle) → pool + pierce (pas wall)
+    tri = make_node("n1_tri", "triangle", 1, {
+        "compactness": 0.4, "elongation": 2.5, "closure": 0.9,
+        "linearity": 0.1, "angularity": 0.7, "area_n": 0.2,
+        "scale_n": 0.3, "direction_n": 0.0, "convexity": 0.8,
+        "is_directional": 0.0, "confidence": 1.0,
+    })
+    c_tri = make_node("n0_ctri", "circle", 0, CIRCLE_FEATS)
+    c_tri.children.append(tri)
+    ast_ct = SpellAST(root=c_tri, all_nodes=[c_tri, tri], depth=1, node_count=2, spatial_relations=[])
+    r9 = resolver.resolve(ast_ct)
+    print(f"Cercle+triangle: behavior={r9.params['behavior']} pierce={r9.params['pierce']} cmp={r9.params['compression']:.3f}")
+    assert r9.params["behavior"] in ("pool", "aoe"), f"Expected pool/aoe, got {r9.params['behavior']}"
+    assert r9.params["pierce"],                       "Expected pierce=True"
+    print("[PASS] Cercle+triangle -> pool perçant")
+
+    # ── Test 8 : Sérialisation des nouveaux champs ────────────────────────
+    net7 = params_to_network_spec(r7)
+    assert net7.get("spl", 0) > 0, "split_count doit être dans le spec réseau"
+    assert net7.get("spi") == 1,   "split_on_impact doit être dans le spec réseau"
+    print(f"[PASS] Network spec flèche+zigzag: {net7}")
+
+    net8 = params_to_network_spec(r8)
+    assert net8.get("aoi") == 1,   "aoe_on_impact doit être dans le spec réseau"
+    assert net8.get("rad", 0) > 0, "scope_radius doit être dans le spec réseau"
+    print(f"[PASS] Network spec cercle+flèche: {net8}")
+
+    net9 = params_to_network_spec(r9)
+    assert net9.get("prc") == 1,   "pierce doit être dans le spec réseau"
+    print(f"[PASS] Network spec cercle+triangle: {net9}")
 
     print("\nAll resolver assertions passed.")

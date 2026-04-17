@@ -4,12 +4,13 @@ import math
 import time
 from typing import Any
 
+from server.spells.runtime import apply_enemy_damage, facing_direction
 from server.spells.types import ServerSpellDefinition
 
 
 def cast_fire_rune(instance: Any, client_id: str, payload: dict[str, Any], modifiers: list[dict[str, Any]]) -> None:
     player = instance.players.get(client_id)
-    if player is None or not player.get("alive", True):
+    if player is None or not player.is_alive():
         return
 
     try:
@@ -38,18 +39,12 @@ def cast_fire_rune(instance: Any, client_id: str, payload: dict[str, Any], modif
         params=params,
     )
 
-    facing_x = float(player.get("facing_x", 1.0))
-    facing_y = float(player.get("facing_y", 0.0))
-    facing_norm = math.hypot(facing_x, facing_y)
-    if facing_norm <= 1e-9:
-        facing_x, facing_y = 1.0, 0.0
-    else:
-        facing_x /= facing_norm
-        facing_y /= facing_norm
+    facing_x, facing_y = facing_direction(player)
 
     cast_distance = max(24.0, max(radius_x, radius_y) + 10.0 + cast_distance_bonus)
-    raw_x = float(player["x"]) + facing_x * cast_distance
-    raw_y = float(player["y"]) + facing_y * cast_distance
+    player_x, player_y = player.position()
+    raw_x = player_x + facing_x * cast_distance
+    raw_y = player_y + facing_y * cast_distance
 
     map_width, map_height = instance.map_data.get("size", [1280, 720])
     x = instance._clamp(raw_x, radius_x, max(radius_x, map_width - radius_x))
@@ -113,12 +108,7 @@ def tick_fire_rune(instance: Any, spell: dict[str, Any]) -> None:
             if norm > 1.0:
                 continue
 
-        enemy["health"] = max(0.0, enemy["health"] - damage)
-        if enemy["health"] <= 0.0:
-            enemy["alive"] = False
-            enemy["vx"] = 0.0
-            enemy["vy"] = 0.0
-        enemy["last_update"] = time.time()
+        apply_enemy_damage(enemy, damage)
 
 
 def _resolve_fire_geometry_from_params(

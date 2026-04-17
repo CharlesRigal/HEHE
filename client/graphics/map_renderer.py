@@ -152,3 +152,8 @@ class MapRenderer:
 
     def get_spawn_points(self):
         return self.current_map.get("spawn_points", []) if self.current_map else []
+
+    def reset(self):
+        self.current_map = None
+        self.map_surface = None
+        self.collision_objects = []

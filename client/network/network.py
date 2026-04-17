@@ -73,13 +73,30 @@ class NetworkClient(threading.Thread):
                 pass
             self.connected = False
 
-    def send(self, obj:dict):
+    def _send(self, obj:dict):
         if not self.connected:
             return
         self.send_q.put(obj)
 
-    def send_join_request(self, map):
-        self.send({"t": "join", "map": map})
+    def send_request_map(self) -> dict:
+        msg = {"t": "list_maps"}
+        self._send(msg)
+        return msg
+
+    def send_ast_spell(self, ast_spell: dict) -> dict:
+        msg = {"t": "cast_spell", }
+
+    def send_join_request(self, map, uid: str = "") -> dict:
+        msg = {"t": "join", "map": map}
+        if uid:
+            msg["uid"] = uid
+        self._send(msg)
+        return msg
+
+    def send_input(self, input) -> dict:
+        msg = {"t": "in", "seq": input.get("seq"), "k": input.get("k")}
+        self._send(msg)
+        return msg
 
     def close(self):
         self.stop_event.set()

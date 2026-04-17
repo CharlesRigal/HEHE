@@ -3,10 +3,13 @@ import time
 import logging
 import math
 from collections import deque
-from typing import Any, Dict, Callable
+from typing import Any, Callable
 
 
 from server.config import TICK_INTERVAL, PLAYER_SPEED
+from server.players.player import Player
+from server.save.error import PlayerNotFound
+from server.save.save import get_save
 from server.spells.default_spells import build_default_spell_registry
 
 
@@ -14,10 +17,10 @@ class GameInstance:
     def __init__(self, map_id: str, map_data: dict, broadcast_callback: Callable):
         self.map_id = map_id
         self.map_data = map_data
-        self.players: Dict[str, dict] = {}
-        self.pending_inputs: Dict[str, deque[dict]] = {}
-        self.players_previous_state = {}
-        self.enemies: Dict[str, dict] = {}
+        self.players: dict[str, Player] = {}
+        self.pending_inputs: dict[str, deque[dict]] = {}
+        self.players_previous_state: dict[str, dict] = {}
+        self.enemies: dict[str, dict] = {}
         self.enemies_previous_state = {}
         self.running = True
         self.broadcast_callback = broadcast_callback
@@ -54,34 +57,67 @@ class GameInstance:
         logging.info(f"Created game instance for map '{map_id}' - {map_data.get('name', 'Unnamed')}")
         self._spawn_map_enemies()
 
-    def create_player(self, client_id: str, x=100, y=100) -> dict:
-        """Crée un nouveau joueur"""
-        spawn_points = self.map_data.get('spawn_points', [])
-        if spawn_points:
-            spawn = spawn_points[len(self.players) % len(spawn_points)]
-            x, y = spawn.get('x', x), spawn.get('y', y)
+    def create_player(self, client_id: str, x=100, y=100) -> Player:
+        """Crée un nouveau joueur, restaure position et état depuis la save"""
+        save = get_save()
+        save.create_player(client_id)
 
-        player = {
-            "id": client_id,
-            "x": x,
-            "y": y,
-            "vx": 0.0,
-            "vy": 0.0,
-            "facing_x": 1.0,
-            "facing_y": 0.0,
-            "health": 100,
-            "max_health": 100,
-            "alive": True,
-            "last_input_seq": -1,  # ← AJOUT: Dernier input traité
-            "last_update": time.time()
-        }
+        # Restaurer la position sauvegardée sur cette map
+        try:
+            pos = save.get_player_pos_on_a_map(self.map_id, client_id)
+            x, y = pos
+        except PlayerNotFound:
+            spawn_points = self.map_data.get('spawn_points', [])
+            if spawn_points:
+                spawn = spawn_points[len(self.players) % len(spawn_points)]
+                x, y = spawn.get('x', x), spawn.get('y', y)
+
+        # Restaurer l'état sauvegardé (health, alive)
+        health = 100.0
+        max_health = 100.0
+        alive = True
+        try:
+            state = save.get_player_state(client_id)
+            health = float(state.get("health", health))
+            max_health = float(state.get("max_health", max_health))
+            alive = bool(state.get("alive", alive))
+        except PlayerNotFound:
+            pass
+
+        player = Player(
+            id=client_id,
+            x=float(x),
+            y=float(y),
+            health=health,
+            max_health=max_health,
+            alive=alive,
+        )
 
         self.players[client_id] = player
         self.running = True
         return player
 
+    def save_player(self, client_id: str) -> None:
+        """Sauvegarde position et état d'un joueur"""
+        player = self.players.get(client_id)
+        if player is None:
+            return
+        save = get_save()
+        save.update_pos_player_map(self.map_id, client_id, player.position())
+        save.update_player_state(client_id, {
+            "health": player.health,
+            "max_health": player.max_health,
+            "alive": player.alive,
+        })
+
+    def save_all_players(self) -> None:
+        """Sauvegarde tous les joueurs de cette instance"""
+        for client_id in self.players:
+            self.save_player(client_id)
+
     def remove_player(self, client_id: str):
-        """Supprime un joueur de cette instance"""
+        """Sauvegarde puis supprime un joueur de cette instance"""
+        self.save_player(client_id)
         if client_id in self.players:
             del self.players[client_id]
         if client_id in self.pending_inputs:
@@ -91,6 +127,12 @@ class GameInstance:
         """Ajoute un input en attente pour un joueur"""
         if client_id in self.players:
             self.pending_inputs.setdefault(client_id, deque()).append(input_data)
+
+    def get_players_state(self) -> dict[str, dict]:
+        return {
+            player_id: player.to_full_state()
+            for player_id, player in self.players.items()
+        }
 
     @staticmethod
     def _clamp(value: float, minimum: float, maximum: float) -> float:
@@ -102,7 +144,7 @@ class GameInstance:
         from server.spells.parametric_spell import cast_parametric_spell
 
         player = self.players.get(client_id)
-        if player is None or not player.get("alive", True):
+        if player is None or not player.can_cast_a_spell():
             return
 
         spec = spec_from_network(msg)
@@ -113,7 +155,7 @@ class GameInstance:
             return
 
         player = self.players[client_id]
-        if not player.get("alive", True):
+        if not player.is_alive():
             return
 
         spell_id, payload, modifiers = self._decode_spell_cast_message(spell_data)
@@ -312,7 +354,7 @@ class GameInstance:
         return left1 < right2 and right1 > left2 and top1 < bottom2 and bottom1 > top2
 
     def _update_enemies(self):
-        alive_players = [p for p in self.players.values() if p.get("alive")]
+        alive_players = [p for p in self.players.values() if p.is_alive()]
         if not alive_players:
             for enemy in self.enemies.values():
                 enemy["vx"] = 0.0
@@ -328,11 +370,11 @@ class GameInstance:
 
             target = min(
                 alive_players,
-                key=lambda player: (player["x"] - enemy["x"]) ** 2 + (player["y"] - enemy["y"]) ** 2
+                key=lambda player: player.distance_sq_to(enemy["x"], enemy["y"]),
             )
 
-            dx = target["x"] - enemy["x"]
-            dy = target["y"] - enemy["y"]
+            dx = target.x - enemy["x"]
+            dy = target.y - enemy["y"]
             distance = math.hypot(dx, dy)
 
             vx = 0.0
@@ -366,8 +408,8 @@ class GameInstance:
                 enemy["y"],
                 self.enemy_attack_hitbox_w,
                 self.enemy_attack_hitbox_h,
-                target["x"],
-                target["y"],
+                target.x,
+                target.y,
                 self.player_attack_hurtbox_w,
                 self.player_attack_hurtbox_h,
             )
@@ -376,15 +418,11 @@ class GameInstance:
 
             enemy["last_update"] = time.time()
 
-    def _apply_enemy_attack(self, enemy: dict, target_player: dict, now: float):
-        if not target_player.get("alive", True):
+    def _apply_enemy_attack(self, enemy: dict, target_player: Player, now: float):
+        if not target_player.is_alive():
             return
 
-        target_player["health"] = max(0, target_player["health"] - self.enemy_attack_damage)
-        if target_player["health"] <= 0:
-            target_player["alive"] = False
-            target_player["vx"] = 0.0
-            target_player["vy"] = 0.0
+        target_player.take_damage(self.enemy_attack_damage)
 
         enemy["last_attack_at"] = now
         enemy["attack_seq"] += 1
@@ -468,15 +506,14 @@ class GameInstance:
 
         return False
 
-    def process_input(self, player: dict, input_data: dict):
+    def process_input(self, player: Player, input_data: dict):
         """Traite l'input d'un joueur"""
-        if not player["alive"]:
+        if not player.can_receive_input():
             return
 
         # ===== ENREGISTRER LE SEQ TRAITÉ =====
         seq = input_data.get("seq", -1)
-        if seq > player["last_input_seq"]:
-            player["last_input_seq"] = seq
+        player.record_input_seq(seq)
 
         k = input_data.get("k", 0)
         speed = PLAYER_SPEED
@@ -500,14 +537,11 @@ class GameInstance:
             vy *= diag
 
         if vx != 0.0 or vy != 0.0:
-            norm = math.hypot(vx, vy)
-            if norm > 1e-9:
-                player["facing_x"] = vx / norm
-                player["facing_y"] = vy / norm
+            player.set_facing_from_vector(vx, vy)
 
         # Calculer la nouvelle position
-        new_x = player["x"] + vx * TICK_INTERVAL
-        new_y = player["y"] + vy * TICK_INTERVAL
+        new_x = player.x + vx * TICK_INTERVAL
+        new_y = player.y + vy * TICK_INTERVAL
 
         # Vérifier les limites de la map
         MAP_WIDTH, MAP_HEIGHT = self.map_data.get("size", [1280, 720])
@@ -518,16 +552,10 @@ class GameInstance:
 
         # Vérifier les collisions avec les objets
         if not self._check_collision_with_objects(new_x, new_y, PLAYER_SIZE):
-            player["x"] = new_x
-            player["y"] = new_y
-            player["vx"] = vx
-            player["vy"] = vy
+            player.set_motion(x=new_x, y=new_y, vx=vx, vy=vy)
         else:
             # Arrêter le mouvement en cas de collision
-            player["vx"] = 0.0
-            player["vy"] = 0.0
-
-        player["last_update"] = time.time()
+            player.stop()
 
     async def broadcast_to_players(self, message: dict):
         """Diffuse un message à tous les joueurs de cette instance"""
@@ -567,13 +595,7 @@ class GameInstance:
                     players_state = {}
                     enemies_state = {}
                     for player_id, player_data in self.players.items():
-                        current_data = {
-                            "x": player_data["x"],
-                            "y": player_data["y"],
-                            "health": player_data["health"],
-                            "alive": player_data["alive"],
-                            "last_input_seq": player_data["last_input_seq"]
-                        }
+                        current_data = player_data.to_update_state()
 
                         # n'envoyer que si différent de l'état précédent
                         if self.players_previous_state.get(player_id) != current_data:
@@ -624,13 +646,7 @@ class GameInstance:
 
                     # Mettre à jour l'état précédent pour comparer au prochain tick
                     self.players_previous_state = {
-                        player_id: {
-                            "x": player_data["x"],
-                            "y": player_data["y"],
-                            "health": player_data["health"],
-                            "alive": player_data["alive"],
-                            "last_input_seq": player_data["last_input_seq"]
-                        }
+                        player_id: player_data.to_update_state()
                         for player_id, player_data in self.players.items()
                     }
                     self.enemies_previous_state = {

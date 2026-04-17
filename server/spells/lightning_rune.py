@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import math
 import time
 from typing import Any
 
+from server.spells.runtime import apply_enemy_damage, resolve_player_direction
 from server.spells.types import ServerSpellDefinition
 
 _BASE_RADIUS = 90.0
@@ -19,7 +19,7 @@ def cast_lightning_rune(
     modifiers: list[dict[str, Any]],
 ) -> None:
     player = instance.players.get(client_id)
-    if player is None or not player.get("alive", True):
+    if player is None or not player.is_alive():
         return
 
     power = float(payload.get("power", 0.5))
@@ -37,19 +37,13 @@ def cast_lightning_rune(
         damage *= 1.4
 
     # Direction : spec > facing joueur
-    dir_x = float(payload.get("direction_x", player.get("facing_x", 1.0)))
-    dir_y = float(payload.get("direction_y", player.get("facing_y", 0.0)))
-    norm = math.hypot(dir_x, dir_y)
-    if norm > 1e-6:
-        dir_x /= norm
-        dir_y /= norm
-    else:
-        dir_x, dir_y = 1.0, 0.0
+    dir_x, dir_y = resolve_player_direction(player, payload)
 
     map_w, map_h = instance.map_data.get("size", [1280, 720])
     cast_dist = max(24.0, radius + 10.0)
-    x = instance._clamp(float(player["x"]) + dir_x * cast_dist, radius, map_w - radius)
-    y = instance._clamp(float(player["y"]) + dir_y * cast_dist, radius, map_h - radius)
+    player_x, player_y = player.position()
+    x = instance._clamp(player_x + dir_x * cast_dist, radius, map_w - radius)
+    y = instance._clamp(player_y + dir_y * cast_dist, radius, map_h - radius)
 
     instance.active_spells.append({
         "spell_id":        "lightning_rune",
@@ -86,12 +80,7 @@ def tick_lightning_rune(instance: Any, spell: dict[str, Any]) -> None:
         dy = enemy["y"] - cy
         if dx * dx + dy * dy > r2:
             continue
-        enemy["health"] = max(0.0, enemy["health"] - damage)
-        if enemy["health"] <= 0.0:
-            enemy["alive"] = False
-            enemy["vx"] = 0.0
-            enemy["vy"] = 0.0
-        enemy["last_update"] = time.time()
+        apply_enemy_damage(enemy, damage)
 
 
 LIGHTNING_RUNE_SERVER_DEFINITION = ServerSpellDefinition(

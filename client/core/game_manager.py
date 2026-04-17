@@ -78,3 +78,7 @@ class GameManager:
             if remote_enemy.enemy_id == enemy_id:
                 return remote_enemy
         return None
+
+    def clear(self):
+        self.game_objects.clear()
+        self.objects_to_add.clear()

@@ -1,0 +1,30 @@
+maps:
+  desert:
+    players:
+      1909316349ad:
+      - 1299.012805300002
+      - 603.3883475000002
+      57140e3a07d3:
+      - 728.8225088000031
+      - 645.060966200001
+      6acd6dde89aa:
+      - 1153.2842712000001
+      - 466.36038979999967
+  forest:
+    players:
+      1909316349ad:
+      - 210.10407629999983
+      - 225.10407629999983
+players:
+  1909316349ad:
+    alive: true
+    health: 100.0
+    max_health: 100.0
+  57140e3a07d3:
+    alive: true
+    health: 100.0
+    max_health: 100.0
+  6acd6dde89aa:
+    alive: true
+    health: 100.0
+    max_health: 100.0

@@ -31,6 +31,22 @@ async def send_json(writer: asyncio.StreamWriter, obj: dict):
         logging.warning(f"Failed to send data: {e}")
 
 
+def get_client_writer(client_id: str) -> Optional[asyncio.StreamWriter]:
+    client_entry = CLIENTS.get(client_id)
+    if client_entry is None:
+        return None
+    _, writer = client_entry
+    return writer
+
+
+async def send_json_to_client(client_id: str, obj: dict) -> bool:
+    writer = get_client_writer(client_id)
+    if writer is None:
+        return False
+    await send_json(writer, obj)
+    return True
+
+
 async def broadcast_json_to_players(obj: dict, player_ids: List[str], exclude_client: Optional[str] = None):
     """Diffuse un message JSON aux joueurs spécifiés"""
     disconnected_clients = []
@@ -95,15 +111,28 @@ async def handle_input_message(client_id: str, msg: dict):
     logging.debug(f"Input from {client_id}: {msg.get('k', 0)}")
 
 
-async def handle_join_message(client_id: str, msg: dict):
-    """Traite une demande de connexion au jeu"""
+async def handle_join_message(client_id: str, msg: dict) -> str:
+    """Traite une demande de connexion au jeu. Retourne le client_id final (UUID si fourni)."""
     map_id = msg.get("map", "forest")  # map par défaut
+
+    # Re-keyer le client avec l'UUID fourni par le client
+    uid = msg.get("uid")
+    if uid and isinstance(uid, str) and uid != client_id:
+        if uid in CLIENTS:
+            # UUID déjà connecté, refuser
+            await send_json_to_client(client_id, {
+                "t": "_error",
+                "message": "UUID already connected"
+            })
+            return client_id
+        CLIENTS[uid] = CLIENTS.pop(client_id)
+        client_id = uid
 
     # Vérifier si le joueur est déjà dans une instance
     current_instance = find_player_instance(client_id)
     if current_instance:
         logging.warning(f"Player {client_id} already in instance {current_instance.map_id}")
-        return
+        return client_id
 
     # Charger les données de la map
     map_data = map_loader.get_map(map_id)
@@ -111,11 +140,11 @@ async def handle_join_message(client_id: str, msg: dict):
         # Utiliser la map par défaut si la map demandée n'existe pas
         map_data = map_loader.get_default_map()
         if not map_data:
-            await send_json(CLIENTS[client_id][1], {
+            await send_json_to_client(client_id, {
                 "t": "_error",
                 "message": "No maps available"
             })
-            return
+            return client_id
         map_id = "default"
 
     # Créer ou récupérer l'instance de jeu
@@ -134,49 +163,43 @@ async def handle_join_message(client_id: str, msg: dict):
         asyncio.create_task(instance.game_loop())
 
     # send the map to the client
-    if client_id in CLIENTS:
-        _, writer = CLIENTS[client_id]
-        await send_json(writer, {
-            "t": "map_data",
-            "map": {
-                "id": map_id,
-                "name": map_data.get("name", "Unnamed"),
-                "size": map_data.get("size", [1280, 720]),
-                "objects": map_data.get("objects", [])
-            }
-        })
+    await send_json_to_client(client_id, {
+        "t": "map_data",
+        "map": {
+            "id": map_id,
+            "name": map_data.get("name", "Unnamed"),
+            "size": map_data.get("size", [1280, 720]),
+            "objects": map_data.get("objects", [])
+        }
+    })
 
     # Créer le joueur dans l'instance
     player = instance.create_player(client_id)
 
     # on laisse le player qui se connect pour lui indiquer sont emplacement
-    if client_id in CLIENTS:
-        _, writer = CLIENTS[client_id]
-        await send_json(writer, {
-            "t": "game_state",
-            "your_player": player,
-            "players": instance.players,
-            "enemies": instance.get_enemies_state()
-        })
+    await send_json_to_client(client_id, {
+        "t": "game_state",
+        "your_id": client_id,
+        "your_player": player.to_full_state(),
+        "players": instance.get_players_state(),
+        "enemies": instance.get_enemies_state()
+    })
 
     # Notifier les autres joueurs de cette instance
     await instance.broadcast_to_players({
         "t": "player_joined",
-        "player": player
+        "player": player.to_full_state()
     })
 
     logging.info(f"Player {client_id} joined instance {map_id}")
+    return client_id
 
 
 async def handle_list_maps_message(client_id: str, msg: dict):
     """Envoie la liste des maps disponibles au client"""
-    if client_id not in CLIENTS:
-        return
-
-    _, writer = CLIENTS[client_id]
     maps_list = map_loader.list_maps()
 
-    await send_json(writer, {
+    await send_json_to_client(client_id, {
         "t": "maps_list",
         "maps": maps_list
     })
@@ -272,7 +295,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                     await send_json(writer, {"t": "pong"})
 
                 elif msg_type == "join":
-                    await handle_join_message(client_id, msg)
+                    client_id = await handle_join_message(client_id, msg)
 
                 elif msg_type == "in":
                     await handle_input_message(client_id, msg)
@@ -322,17 +345,21 @@ async def shutdown(server: asyncio.AbstractServer):
     server.close()
     await server.wait_closed()
 
-    # Arrêter toutes les instances de jeu
+    # Sauvegarder et arrêter toutes les instances de jeu
     for instance in INSTANCES.values():
+        instance.save_all_players()
         instance.stop()
 
+    logging.info("All players saved.")
+
     # Fermer les connexions actives
-    for cid, (_, w) in list(CLIENTS.items()):
+    writers = [writer for _, writer in CLIENTS.values()]
+    for w in writers:
         try:
             w.close()
         except Exception:
             pass
-    for cid, (_, w) in list(CLIENTS.items()):
+    for w in writers:
         try:
             await w.wait_closed()
         except Exception:

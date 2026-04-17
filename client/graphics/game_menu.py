@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Literal
 
 import pygame
 
@@ -80,6 +80,21 @@ class GameMenu:
             self.play_button.is_hovered = self.play_button.rect.collidepoint(pos)
         if self.options_button is not None:
             self.options_button.is_hovered = self.options_button.rect.collidepoint(pos)
+
+    def handle_click(self, pos: tuple[int, int]) -> Optional[Literal["play", "options"]]:
+        if self.play_button is not None and self.play_button.rect.collidepoint(pos):
+            return "play"
+        if self.options_button is not None and self.options_button.rect.collidepoint(pos):
+            return "options"
+        return None
+
+    @staticmethod
+    def handle_key(key: int) -> Optional[Literal["play", "options"]]:
+        if key in (pygame.K_RETURN, pygame.K_SPACE):
+            return "play"
+        if key == pygame.K_o:
+            return "options"
+        return None
 
     def draw(self, screen: pygame.Surface) -> None:
         self._load_background_source()

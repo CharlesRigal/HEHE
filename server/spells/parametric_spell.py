@@ -19,6 +19,7 @@ import time
 from typing import Any
 
 from server.magic.spell_spec import ServerSpellSpec
+from server.spells.runtime import apply_enemy_damage, facing_direction, normalize_direction
 from server.spells.types import ServerSpellDefinition
 
 
@@ -47,7 +48,7 @@ def cast_parametric_spell(
 ) -> None:
     """Lance un sort parametrique derive directement de la spec."""
     player = instance.players.get(client_id)
-    if player is None or not player.get("alive", True):
+    if player is None or not player.is_alive():
         return
 
     element = spec.element or "neutral"
@@ -129,16 +130,9 @@ def cast_parametric_spell(
 
     # ─── Direction ───────────────────────────────────────────────
     if spec.direction is not None:
-        dir_x, dir_y = spec.direction
+        dir_x, dir_y = normalize_direction(float(spec.direction[0]), float(spec.direction[1]))
     else:
-        dir_x = float(player.get("facing_x", 1.0))
-        dir_y = float(player.get("facing_y", 0.0))
-    norm = math.hypot(dir_x, dir_y)
-    if norm > 1e-6:
-        dir_x /= norm
-        dir_y /= norm
-    else:
-        dir_x, dir_y = 1.0, 0.0
+        dir_x, dir_y = facing_direction(player)
 
     # ─── Cone ────────────────────────────────────────────────────
     cone_half_angle = 0.0
@@ -174,8 +168,9 @@ def cast_parametric_spell(
     else:
         cast_dist = max(24.0, max(radius_x, radius_y) + 10.0)
 
-    raw_x = float(player["x"]) + dir_x * cast_dist
-    raw_y = float(player["y"]) + dir_y * cast_dist
+    player_x, player_y = player.position()
+    raw_x = player_x + dir_x * cast_dist
+    raw_y = player_y + dir_y * cast_dist
 
     map_w, map_h = instance.map_data.get("size", [1280, 720])
     x = _clamp(raw_x, radius_x, max(radius_x, map_w - radius_x))
@@ -291,12 +286,7 @@ def tick_parametric_spell(instance: Any, spell: dict[str, Any]) -> None:
         if damage <= 0.0:
             continue
 
-        enemy["health"] = max(0.0, enemy["health"] - damage)
-        if enemy["health"] <= 0.0:
-            enemy["alive"] = False
-            enemy["vx"] = 0.0
-            enemy["vy"] = 0.0
-        enemy["last_update"] = time.time()
+        apply_enemy_damage(enemy, damage)
 
         if spell["remaining"] <= 0.0:
             return

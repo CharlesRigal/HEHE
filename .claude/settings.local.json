@@ -10,7 +10,8 @@
       "Bash(python -m client.magic.resolver.resolver)",
       "Bash(python -c \"from server.game_instance import GameInstance; print\\('OK'\\)\")",
       "Bash(python -c \"import sys; [print\\(l.encode\\('ascii','replace'\\).decode\\(\\)\\) for l in sys.stdin]\")",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []

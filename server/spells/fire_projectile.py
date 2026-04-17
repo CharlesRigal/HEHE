@@ -4,6 +4,7 @@ import math
 import time
 from typing import Any
 
+from server.spells.runtime import apply_enemy_damage, resolve_player_direction
 from server.spells.types import ServerSpellDefinition
 
 _BASE_SPEED = 400.0
@@ -19,18 +20,11 @@ def cast_fire_projectile(
     modifiers: list[dict[str, Any]],
 ) -> None:
     player = instance.players.get(client_id)
-    if player is None or not player.get("alive", True):
+    if player is None or not player.is_alive():
         return
 
     # Direction : spec > facing joueur
-    dir_x = float(payload.get("direction_x", player.get("facing_x", 1.0)))
-    dir_y = float(payload.get("direction_y", player.get("facing_y", 0.0)))
-    norm = math.hypot(dir_x, dir_y)
-    if norm > 1e-6:
-        dir_x /= norm
-        dir_y /= norm
-    else:
-        dir_x, dir_y = 1.0, 0.0
+    dir_x, dir_y = resolve_player_direction(player, payload)
 
     power = float(payload.get("power", 0.5))
     radius = _BASE_RADIUS + power * 18.0
@@ -46,8 +40,9 @@ def cast_fire_projectile(
         duration *= 0.65
         damage *= 0.9
 
-    x = float(player["x"]) + dir_x * (radius + 20.0)
-    y = float(player["y"]) + dir_y * (radius + 20.0)
+    player_x, player_y = player.position()
+    x = player_x + dir_x * (radius + 20.0)
+    y = player_y + dir_y * (radius + 20.0)
 
     instance.active_spells.append({
         "spell_id":       "fire_projectile",
@@ -88,12 +83,7 @@ def tick_fire_projectile(instance: Any, spell: dict[str, Any]) -> None:
         if math.hypot(dx, dy) > radius + enemy_hr:
             continue
 
-        enemy["health"] = max(0.0, enemy["health"] - damage)
-        if enemy["health"] <= 0.0:
-            enemy["alive"] = False
-            enemy["vx"] = 0.0
-            enemy["vy"] = 0.0
-        enemy["last_update"] = time.time()
+        apply_enemy_damage(enemy, damage)
         spell["hit_once"] = True
         spell["remaining"] = 0.0
         return

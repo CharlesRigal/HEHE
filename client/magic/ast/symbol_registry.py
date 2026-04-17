@@ -1,8 +1,8 @@
 """
 symbol_registry.py — Registre des règles de résolution.
 
-Une seule règle : rule_geometric.
-Elle est enregistrée pour tous les types connus et sert de fallback universel.
+Chaque type de primitive est associé à sa règle sémantique dédiée.
+rule_geometric reste disponible comme fallback pour les types inconnus.
 """
 from __future__ import annotations
 
@@ -13,6 +13,13 @@ from client.magic.ast.symbol_rules import (
     ResolutionContext,
     SymbolRule,
     rule_geometric,
+    rule_circle,
+    rule_arrow,
+    rule_arrow_with_base,
+    rule_triangle,
+    rule_segment,
+    rule_zigzag,
+    rule_rune_fire,
 )
 
 if TYPE_CHECKING:
@@ -46,9 +53,14 @@ class SymbolRegistry:
         return self._rules.get(symbol_type, rule_geometric)
 
     def _register_defaults(self) -> None:
-        for symbol_type in ("circle", "arrow", "arrow_with_base", "triangle",
-                             "segment", "zigzag", "rune_fire"):
-            self._rules[symbol_type] = rule_geometric
+        # Chaque type a sa règle sémantique dédiée
+        self._rules["circle"]          = rule_circle
+        self._rules["arrow"]           = rule_arrow
+        self._rules["arrow_with_base"] = rule_arrow_with_base
+        self._rules["triangle"]        = rule_triangle
+        self._rules["segment"]         = rule_segment
+        self._rules["zigzag"]          = rule_zigzag
+        self._rules["rune_fire"]       = rule_rune_fire
 
     @property
     def registered_types(self) -> list[str]:
@@ -66,85 +78,113 @@ if __name__ == "__main__":
     from client.magic.ast.ast import ASTNode
     from client.magic.ast.symbol_rules import PropertyTag
 
-    # Simuler un nœud avec des features géométriques typiques d'un cercle
-    circle_node = ASTNode(
-        node_id="test_circle",
-        symbol_type="circle",
-        primitive=None,
-        depth=0,
-        ordinal=0,
-        sibling_count=1,
-        drawing_features={
-            "compactness": 0.95, "elongation": 1.05, "closure": 0.98,
-            "linearity": 0.01, "angularity": 0.0, "area_n": 0.5,
-            "scale_n": 0.7, "direction_n": 0.0, "convexity": 1.0,
-            "is_directional": 0.0, "confidence": 1.0,
-        },
-    )
+    def make_node(nid, sym, depth, feats, children=None):
+        n = ASTNode(node_id=nid, symbol_type=sym, primitive=None,
+                    depth=depth, ordinal=0, sibling_count=1,
+                    drawing_features=feats)
+        if children:
+            n.children = children
+        return n
+
+    # ── Cercle → spread + duration, pas de velocity ─────────────────────────
+    circle_node = make_node("test_circle", "circle", 0, {
+        "compactness": 0.95, "elongation": 1.05, "closure": 0.98,
+        "linearity": 0.01, "angularity": 0.0, "area_n": 0.5,
+        "scale_n": 0.7, "direction_n": 0.0, "convexity": 1.0,
+        "is_directional": 0.0, "confidence": 1.0,
+    })
     ctx = ResolutionContext(node=circle_node, depth=0, child_bags=[])
     bag = REGISTRY.get("circle")(circle_node, ctx)
 
-    # Cercle : spread > 0, velocity = 0
-    spread = bag.net("energy", "spread")
+    spread   = bag.net("energy", "spread")
     velocity = bag.net("motion", "velocity")
-    assert spread > 0, f"Circle should have spread, got {spread}"
-    assert velocity == 0.0, f"Circle should have no velocity, got {velocity}"
-    print(f"[PASS] circle: spread={spread:.3f} velocity={velocity:.3f}")
+    duration = bag.net("time",   "duration")
+    role_zone = sum(e.value for e in bag.entries if e.tag.domain == "semantic" and e.tag.axis == "role_zone")
+    assert spread > 0,    f"circle: spread attendu, got {spread}"
+    assert velocity == 0, f"circle: velocity=0 attendu, got {velocity}"
+    assert duration > 0,  f"circle: duration attendu, got {duration}"
+    assert role_zone > 0, f"circle: role_zone manquant"
+    print(f"[PASS] circle: spread={spread:.3f} duration={duration:.3f} velocity={velocity:.3f}")
 
-    # Simuler une flèche
-    arrow_node = ASTNode(
-        node_id="test_arrow",
-        symbol_type="arrow",
-        primitive=None,
-        depth=0,
-        ordinal=0,
-        sibling_count=1,
-        drawing_features={
-            "compactness": 0.0, "elongation": 10.0, "closure": 0.0,
-            "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
-            "scale_n": 0.15, "direction_n": 0.0, "convexity": 1.0,
-            "is_directional": 1.0, "confidence": 1.0,
-        },
-    )
+    # ── Flèche → velocity + direction, pas de compression ───────────────────
+    arrow_node = make_node("test_arrow", "arrow", 0, {
+        "compactness": 0.0, "elongation": 10.0, "closure": 0.0,
+        "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
+        "scale_n": 0.15, "direction_n": 0.25, "convexity": 1.0,
+        "is_directional": 1.0, "confidence": 1.0,
+    })
     ctx_arrow = ResolutionContext(node=arrow_node, depth=0, child_bags=[])
     bag_arrow = REGISTRY.get("arrow")(arrow_node, ctx_arrow)
 
-    velocity_arrow = bag_arrow.net("motion", "velocity")
+    velocity_arrow    = bag_arrow.net("motion", "velocity")
     compression_arrow = bag_arrow.net("energy", "compression")
-    assert velocity_arrow > 0, f"Arrow should have velocity, got {velocity_arrow}"
-    assert compression_arrow == 0.0, f"Arrow should have no compression (no angularity, directional), got {compression_arrow}"
+    role_vector       = sum(e.value for e in bag_arrow.entries
+                            if e.tag.domain == "semantic" and e.tag.axis == "role_vector")
+    assert velocity_arrow >= 0.15, f"arrow: velocity>=0.15 attendu, got {velocity_arrow}"
+    assert compression_arrow == 0, f"arrow: compression=0 attendu, got {compression_arrow}"
+    assert role_vector > 0,        f"arrow: role_vector manquant"
     print(f"[PASS] arrow: velocity={velocity_arrow:.3f} compression={compression_arrow:.3f}")
 
-    # Simuler un segment (non-directionnel, statique)
-    seg_node = ASTNode(
-        node_id="test_segment",
-        symbol_type="segment",
-        primitive=None,
-        depth=0,
-        ordinal=0,
-        sibling_count=1,
-        drawing_features={
-            "compactness": 0.0, "elongation": 8.0, "closure": 0.0,
-            "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
-            "scale_n": 0.12, "direction_n": 0.25, "convexity": 1.0,
-            "is_directional": 0.0, "confidence": 1.0,
-        },
-    )
+    # ── Segment → compression + axis, pas de velocity ───────────────────────
+    seg_node = make_node("test_segment", "segment", 0, {
+        "compactness": 0.0, "elongation": 8.0, "closure": 0.0,
+        "linearity": 1.0, "angularity": 0.0, "area_n": 0.0,
+        "scale_n": 0.12, "direction_n": 0.25, "convexity": 1.0,
+        "is_directional": 0.0, "confidence": 1.0,
+    })
     ctx_seg = ResolutionContext(node=seg_node, depth=0, child_bags=[])
     bag_seg = REGISTRY.get("segment")(seg_node, ctx_seg)
 
-    velocity_seg = bag_seg.net("motion", "velocity")
+    velocity_seg    = bag_seg.net("motion", "velocity")
     compression_seg = bag_seg.net("energy", "compression")
-    assert velocity_seg == 0.0, f"Segment should have no velocity, got {velocity_seg}"
-    assert compression_seg > 0, f"Segment should have compression (static_cmp), got {compression_seg}"
+    role_barrier    = sum(e.value for e in bag_seg.entries
+                          if e.tag.domain == "semantic" and e.tag.axis == "role_barrier")
+    assert velocity_seg == 0,       f"segment: velocity=0 attendu, got {velocity_seg}"
+    assert compression_seg >= 0.3,  f"segment: compression>=0.3 attendu, got {compression_seg}"
+    assert role_barrier > 0,        f"segment: role_barrier manquant"
     print(f"[PASS] segment: velocity={velocity_seg:.3f} compression={compression_seg:.3f}")
 
-    # Symbole inconnu -> rule_geometric (pas neutre)
-    bag_unknown = REGISTRY.get("new_symbol")(circle_node, ctx)
-    assert len(bag_unknown) > 0, "Unknown symbol should still use rule_geometric"
-    print("[PASS] unknown symbol -> rule_geometric (not neutral)")
+    # ── ZigZag → chaos garanti, count présent ───────────────────────────────
+    zz_node = make_node("test_zigzag", "zigzag", 0, {
+        "compactness": 0.05, "elongation": 2.0, "closure": 0.05,
+        "linearity": 0.3, "angularity": 0.8, "area_n": 0.05,
+        "scale_n": 0.2, "direction_n": 0.0, "convexity": 0.3,
+        "is_directional": 0.0, "confidence": 1.0,
+    })
+    ctx_zz = ResolutionContext(node=zz_node, depth=0, child_bags=[])
+    bag_zz = REGISTRY.get("zigzag")(zz_node, ctx_zz)
 
-    # Nœud root virtuel -> neutre
+    chaos_zz = bag_zz.net("time", "chaos")
+    count_entries = [e for e in bag_zz.entries
+                     if e.tag.domain == "semantic" and e.tag.axis == "count"]
+    assert chaos_zz >= 0.35,   f"zigzag: chaos>=0.35 attendu, got {chaos_zz}"
+    assert count_entries,      f"zigzag: semantic.count manquant"
+    assert count_entries[0].value >= 2, f"zigzag: count>=2 attendu"
+    print(f"[PASS] zigzag: chaos={chaos_zz:.3f} count={count_entries[0].value:.0f}")
+
+    # ── Rune → element avec poids x2 ────────────────────────────────────────
+    rune_node = make_node("test_rune", "rune_fire", 0, {
+        "compactness": 0.3, "elongation": 1.5, "closure": 0.4,
+        "linearity": 0.3, "angularity": 0.6, "area_n": 0.15,
+        "scale_n": 0.2, "direction_n": 0.0, "convexity": 0.5,
+        "is_directional": 0.0, "confidence": 1.0,
+    })
+    ctx_rune = ResolutionContext(node=rune_node, depth=0, child_bags=[])
+    bag_rune = REGISTRY.get("rune_fire")(rune_node, ctx_rune)
+
+    elem_entries = [e for e in bag_rune.entries
+                    if e.tag.domain == "energy" and e.tag.axis == "element"]
+    assert elem_entries, "rune: element entry manquant"
+    # Poids de la rune doit être >= 2x (conf * 2.0 = 2.0 ici)
+    assert elem_entries[0].weight >= 1.9, f"rune: poids element >= 1.9 attendu, got {elem_entries[0].weight}"
+    print(f"[PASS] rune_fire: element={elem_entries[0].value:.3f} poids={elem_entries[0].weight:.2f}")
+
+    # ── Symbole inconnu → rule_geometric (fallback) ──────────────────────────
+    bag_unknown = REGISTRY.get("new_symbol")(circle_node, ctx)
+    assert len(bag_unknown) > 0, "Symbole inconnu doit utiliser rule_geometric"
+    print("[PASS] unknown symbol -> rule_geometric (fallback)")
+
+    # ── Root virtuel → bag vide ──────────────────────────────────────────────
     root_node = ASTNode(node_id="root_v", symbol_type="root", primitive=None,
                         depth=-1, ordinal=0, sibling_count=1)
     ctx_root = ResolutionContext(node=root_node, depth=-1, child_bags=[])
