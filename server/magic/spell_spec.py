@@ -19,6 +19,10 @@ class ServerSpellSpec:
     spread: float = 0.0
     compression: float = 0.0
     fade_rate: float = 0.0
+    # ── Qualificateurs issus de la composition de rôles (client) ──────────
+    aoi: bool = False              # spawn une zone AOE au point d'impact
+    split_count: int = 0          # nombre de fragments (zigzag)
+    split_on_impact: bool = False  # True = split à l'impact, False = split à l'expiration
 
 
 def spec_from_network(data: dict) -> ServerSpellSpec:
@@ -94,5 +98,16 @@ def spec_from_network(data: dict) -> ServerSpellSpec:
             spec.fade_rate = max(0.0, min(1.0, float(fdr)))
         except (TypeError, ValueError):
             pass
+
+    spec.aoi = bool(data.get("aoi", 0))
+
+    spl = data.get("spl")
+    if spl is not None:
+        try:
+            spec.split_count = max(0, int(spl))
+        except (TypeError, ValueError):
+            pass
+
+    spec.split_on_impact = bool(data.get("spi", 0))
 
     return spec

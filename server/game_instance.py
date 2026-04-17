@@ -436,6 +436,17 @@ class GameInstance:
         for spell in self.active_spells:
             spell["remaining"] -= TICK_INTERVAL
             if spell["remaining"] <= 0.0:
+                # Split à l'expiration : fragmente le sort si demandé et
+                # pas déjà déclenché (split_on_impact=False ou absent)
+                if (
+                    spell.get("split_count", 0) > 0
+                    and not spell.get("split_on_impact", False)
+                    and not spell.get("split_triggered", False)
+                    and not spell.get("split_fragment", False)
+                ):
+                    from server.spells.parametric_spell import _spawn_split_projectiles
+                    spell["split_triggered"] = True
+                    _spawn_split_projectiles(self, spell)
                 continue
 
             velocity_x = float(spell.get("velocity_x", 0.0))
