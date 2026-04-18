@@ -9053,3 +9053,850 @@ Pass3 (cross-node): (aucune interférence)
 Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=0.9952 axis_y=-0.0977 behavior=wall compression=21.9930 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.9232 element=arcane elongation=20.0000 fade_rate=1.0000 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=2.2925 unstable=False
 Network: {"t": "s", "cmp": 21.993, "e": "arcane", "bh": "wall", "pwr": 1.0, "spr": 2.2925, "dur": 1.9232, "fdr": 1.0, "ax": [19.9042, -1.9549], "rad": 1.0}
 
+[2026-04-18 10:00:54] === SPELL CAST ===
+Primitives (2): triangle(conf=0.92), circle(conf=0.79)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=2
+  └─ root (depth=-1) [container]  
+     ├─ triangle (depth=0) [peer]  area_n=0.15  scale_n=0.47  compactness=0.55  elongation=1.79
+     └─ circle (depth=0) [peer]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_triangle: energy.compression.self=0.648(w=1.373), space.axis.self=0.011(w=0.604), space.elongation.self=1.786(w=0.915), semantic.role_focus.self=1.000(w=0.915), energy.element.self=0.850(w=0.187)
+  node_1_circle: energy.spread.self=0.997(w=1.183), time.duration.self=1.000(w=1.025), space.scope_radius.self=1.000(w=0.789), semantic.role_zone.self=1.000(w=0.789), energy.element.self=0.500(w=0.250)
+  root_virtual: (vide)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_triangle: energy.compression.self=0.648(w=1.373), space.axis.self=0.011(w=0.604), space.elongation.self=1.786(w=0.915), semantic.role_focus.self=1.000(w=0.915), energy.element.self=0.850(w=0.187)
+  node_1_circle: energy.spread.self=0.997(w=1.183), time.duration.self=1.000(w=1.025), space.scope_radius.self=1.000(w=0.789), semantic.role_zone.self=1.000(w=0.789), energy.element.self=0.500(w=0.250)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=0.9978 axis_y=0.0662 behavior=wall compression=0.8897 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.0253 element=arcane elongation=1.7857 fade_rate=0.5896 focused=False intensity=1.0000 pierce=False power=0.7097 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.1792 unstable=False
+Network: {"t": "s", "cmp": 0.8897, "e": "arcane", "bh": "wall", "pwr": 0.7097, "spr": 1.1792, "dur": 1.0253, "fdr": 0.5896, "ax": [1.7818, 0.1183], "rad": 1.0}
+
+[2026-04-18 10:00:56] === SPELL CAST ===
+Primitives (1): arrow(conf=0.70)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ arrow (depth=0) [peer]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_arrow: motion.velocity.self=0.950(w=1.052), motion.direction.self=0.976(w=1.052), semantic.role_vector.self=1.000(w=0.701), energy.element.self=0.750(w=0.400)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_arrow: motion.velocity.self=0.950(w=1.052), motion.direction.self=0.976(w=1.052), semantic.role_vector.self=1.000(w=0.701), energy.element.self=0.750(w=0.400)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=True _root_role=role_vector aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=projectile compression=0.0000 dir_x=0.9883 dir_y=-0.1523 duration_bonus=0.0000 element=lightning elongation=1.0000 fade_rate=0.0000 focused=False intensity=1.0000 pierce=False power=0.1999 scope_radius=0.0000 secondary_zone=False speed=0.9994 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:00:58] === SPELL CAST ===
+Primitives (6): segment(conf=0.96), segment(conf=0.96), segment(conf=0.96), segment(conf=0.96), segment(conf=0.96), segment(conf=0.96)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #2→#3[intersects], #3→#2[intersects], #3→#4[intersects], #4→#3[intersects], #4→#5[intersects], #5→#4[intersects]
+AST: depth=0 nodes=6
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.00  scale_n=0.04  compactness=0.48  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.89  scale_n=0.89  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.79  scale_n=0.79  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.77  scale_n=0.77  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.58  scale_n=0.58  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.21  scale_n=0.21  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 7 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.562(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.011)
+  node_1_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.706(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.267)
+  node_2_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.320(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.237)
+  node_3_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.689(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.231)
+  node_4_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.370(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.173)
+  node_5_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.598(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.063)
+  root_virtual: (vide)
+Pass2 (top-down) — 7 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.562(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.011)
+  node_1_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.706(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.267)
+  node_2_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.320(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.237)
+  node_3_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.689(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.231)
+  node_4_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.370(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.173)
+  node_5_segment: energy.compression.self=1.900(w=1.442), space.axis.self=0.598(w=1.370), space.elongation.self=20.000(w=1.154), semantic.role_barrier.self=1.000(w=0.962), energy.element.self=0.550(w=0.063)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.9252 axis_y=-0.3796 behavior=wall compression=16.4436 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:00] === SPELL CAST ===
+Primitives (4): segment(conf=0.93), segment(conf=0.93), segment(conf=0.93), segment(conf=0.93)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #2→#3[intersects], #3→#2[intersects]
+AST: depth=0 nodes=4
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.79  scale_n=0.79  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.74  scale_n=0.74  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 5 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.672(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.300)
+  node_1_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.330(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.300)
+  node_2_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.708(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.237)
+  node_3_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.414(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.221)
+  root_virtual: (vide)
+Pass2 (top-down) — 5 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.672(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.300)
+  node_1_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.330(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.300)
+  node_2_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.708(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.237)
+  node_3_segment: energy.compression.self=1.900(w=1.402), space.axis.self=0.414(w=1.332), space.elongation.self=20.000(w=1.121), semantic.role_barrier.self=1.000(w=0.935), energy.element.self=0.550(w=0.221)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.4723 axis_y=-0.8814 behavior=wall compression=10.6533 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:02] === SPELL CAST ===
+Primitives (3): segment(conf=0.82), segment(conf=0.82), segment(conf=0.82)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects]
+AST: depth=0 nodes=3
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.91  scale_n=0.91  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.64  scale_n=0.64  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.45  scale_n=0.45  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.684(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.272)
+  node_1_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.307(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.191)
+  node_2_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.649(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.136)
+  root_virtual: (vide)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.684(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.272)
+  node_1_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.307(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.191)
+  node_2_segment: energy.compression.self=1.900(w=1.224), space.axis.self=0.649(w=1.163), space.elongation.self=20.000(w=0.979), semantic.role_barrier.self=1.000(w=0.816), energy.element.self=0.550(w=0.136)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.4020 axis_y=-0.9156 behavior=wall compression=6.9778 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:03] === SPELL CAST ===
+Primitives (3): segment(conf=0.83), segment(conf=0.83), segment(conf=0.83)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects]
+AST: depth=0 nodes=3
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.71  scale_n=0.71  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.86  scale_n=0.86  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.76  scale_n=0.76  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.669(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.212)
+  node_1_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.327(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.257)
+  node_2_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.679(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.228)
+  root_virtual: (vide)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.669(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.212)
+  node_1_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.327(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.257)
+  node_2_segment: energy.compression.self=1.900(w=1.240), space.axis.self=0.679(w=1.178), space.elongation.self=20.000(w=0.992), semantic.role_barrier.self=1.000(w=0.827), energy.element.self=0.550(w=0.228)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.4852 axis_y=-0.8744 behavior=wall compression=7.0700 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:06] === SPELL CAST ===
+Primitives (1): zigzag(conf=0.78)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ zigzag (depth=0) [peer]  area_n=0.09  scale_n=0.50  compactness=0.11  elongation=1.87
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_zigzag: time.chaos.self=0.350(w=1.172), semantic.count.self=2.000(w=1.172), semantic.role_chaos.self=1.000(w=0.781), energy.spread.self=0.047(w=0.625), energy.element.self=1.000(w=0.250)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_zigzag: time.chaos.self=0.350(w=1.172), semantic.count.self=2.000(w=1.172), semantic.role_chaos.self=1.000(w=0.781), energy.spread.self=0.047(w=0.625), energy.element.self=1.000(w=0.250)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_chaos aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=stationary compression=0.0000 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=fire elongation=1.0000 fade_rate=0.0000 focused=False intensity=1.5000 pierce=False power=0.0500 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=2 split_on_impact=False spread=0.0293 unstable=True
+Network: {}
+
+[2026-04-18 10:01:09] === SPELL CAST ===
+Primitives (2): zigzag(conf=0.72), circle(conf=0.80)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     └─ zigzag (depth=1) [contained]  area_n=0.02  scale_n=0.50  compactness=0.04  elongation=2.09
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.078), semantic.count.self=2.000(w=1.078), semantic.role_chaos.self=1.000(w=0.719), energy.spread.parent=0.012(w=0.575), energy.element.parent=1.000(w=0.250)
+  node_1_circle: energy.spread.self=0.997(w=1.204), time.duration.self=1.000(w=1.043), space.scope_radius.self=1.000(w=0.803), semantic.role_zone.self=1.000(w=0.803), energy.spread.children=0.498(w=0.562), time.duration.children=0.400(w=0.562), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.078), semantic.count.self=2.000(w=1.078), semantic.role_chaos.self=1.000(w=0.719), energy.spread.parent=0.012(w=0.575), energy.element.parent=1.000(w=0.250), energy.spread.self=0.498(w=0.449)[prop], time.duration.self=0.400(w=0.449)[prop]
+  node_1_circle: energy.spread.self=0.997(w=1.204), time.duration.self=1.000(w=1.043), space.scope_radius.self=1.000(w=0.803), semantic.role_zone.self=1.000(w=0.803), energy.spread.children=0.498(w=0.562), time.duration.children=0.400(w=0.562), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), time.chaos.self=0.350(w=0.970)[prop], energy.spread.self=0.012(w=0.517)[prop], energy.element.self=1.000(w=0.225)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=pool compression=0.0000 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.1334 element=lightning elongation=1.0000 fade_rate=0.6593 focused=False intensity=1.5000 pierce=False power=0.3956 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=2 split_on_impact=True spread=1.3185 unstable=True
+Network: {"t": "s2", "pwr": 0.55, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.55, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:01:14] === SPELL CAST ===
+Primitives (6): zigzag(conf=0.73), circle(conf=0.81), segment(conf=0.92), segment(conf=0.73), segment(conf=0.73), segment(conf=0.73)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near], #1→#2[intersects], #2→#1[intersects], #1→#2[contains], #2→#1[inside], #1→#3[intersects], #3→#1[intersects], #1→#3[contains], #3→#1[inside], #1→#4[intersects], #4→#1[intersects], #1→#4[contains], #4→#1[inside], #1→#5[intersects], #5→#1[intersects], #1→#5[contains], #5→#1[inside], #2→#3[near], #3→#2[near], #2→#4[near], #4→#2[near], #2→#5[near], #5→#2[near], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#5[near], #5→#3[near], #4→#5[intersects], #5→#4[intersects], #4→#5[near], #5→#4[near]
+AST: depth=1 nodes=6
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.01  scale_n=0.50  compactness=0.01  elongation=2.09
+     ├─ segment (depth=1) [contained]  area_n=0.60  scale_n=0.60  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.08  scale_n=0.08  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.03  scale_n=0.03  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.53  scale_n=0.53  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.500(w=1.090), semantic.count.self=3.000(w=1.090), semantic.role_chaos.self=1.000(w=0.727), energy.element.parent=1.000(w=0.250)
+  node_2_segment: energy.compression.parent=1.900(w=1.377), space.axis.parent=0.821(w=1.308), space.elongation.parent=20.000(w=1.102), semantic.role_barrier.self=1.000(w=0.918), energy.element.parent=0.550(w=0.179)
+  node_3_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.964(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.023)
+  node_4_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.083(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.010)
+  node_5_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.229(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.159)
+  node_1_circle: energy.spread.self=0.997(w=1.220), time.duration.self=1.000(w=1.057), space.scope_radius.self=1.000(w=0.813), semantic.role_zone.self=1.000(w=0.813), energy.spread.children=0.498(w=0.569), time.duration.children=0.400(w=0.569), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.500(w=1.090), semantic.count.self=3.000(w=1.090), semantic.role_chaos.self=1.000(w=0.727), energy.element.parent=1.000(w=0.250), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.377), space.axis.parent=0.821(w=1.308), space.elongation.parent=20.000(w=1.102), semantic.role_barrier.self=1.000(w=0.918), energy.element.parent=0.550(w=0.179), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.964(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.023), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.083(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.010), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_5_segment: energy.compression.parent=1.900(w=1.096), space.axis.parent=0.229(w=1.041), space.elongation.parent=20.000(w=0.877), semantic.role_barrier.self=1.000(w=0.731), energy.element.parent=0.550(w=0.159), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_1_circle: energy.spread.self=0.997(w=1.220), time.duration.self=1.000(w=1.057), space.scope_radius.self=1.000(w=0.813), semantic.role_zone.self=1.000(w=0.813), energy.spread.children=0.498(w=0.569), time.duration.children=0.400(w=0.569), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), time.chaos.self=0.500(w=0.981)[prop], energy.element.self=1.000(w=0.225)[prop], energy.compression.self=1.900(w=1.239)[prop], space.axis.self=0.821(w=1.177)[prop], space.elongation.self=20.000(w=0.991)[prop], energy.element.self=0.550(w=0.161)[prop], energy.compression.self=1.900(w=0.986)[prop], space.axis.self=0.964(w=0.937)[prop], space.elongation.self=20.000(w=0.789)[prop], energy.element.self=0.550(w=0.021)[prop], energy.compression.self=1.900(w=0.986)[prop], space.axis.self=0.083(w=0.937)[prop], space.elongation.self=20.000(w=0.789)[prop], energy.element.self=0.550(w=0.009)[prop], energy.compression.self=1.900(w=0.986)[prop], space.axis.self=0.229(w=0.937)[prop], space.elongation.self=20.000(w=0.789)[prop], energy.element.self=0.550(w=0.143)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.4330 axis_y=-0.9014 behavior=pool compression=7.9769 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.5122 element=lightning elongation=20.0000 fade_rate=0.8915 focused=False intensity=1.5000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=3 split_on_impact=True spread=1.7829 unstable=True
+Network: {"t": "s2", "pwr": 0.75, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.75, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:01:19] === SPELL CAST ===
+Primitives (7): segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), circle(conf=0.81), arrow(conf=0.67)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #0→#1[near], #1→#0[near], #0→#5[intersects], #5→#0[intersects], #5→#0[contains], #0→#5[inside], #0→#5[near], #5→#0[near], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#5[intersects], #5→#1[intersects], #5→#1[contains], #1→#5[inside], #1→#5[near], #5→#1[near], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #2→#5[intersects], #5→#2[intersects], #5→#2[contains], #2→#5[inside], #2→#5[near], #5→#2[near], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#5[intersects], #5→#3[intersects], #5→#3[contains], #3→#5[inside], #4→#5[intersects], #5→#4[intersects], #5→#4[contains], #4→#5[inside], #5→#6[contains], #6→#5[inside]
+AST: depth=1 nodes=7
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=0.89  scale_n=0.89  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.74  scale_n=0.74  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.39  scale_n=0.39  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.46  scale_n=0.46  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.10  scale_n=0.10  compactness=1.00  elongation=20.00
+     └─ arrow (depth=1) [contained]  area_n=0.80  scale_n=0.80  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 7 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.658(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.266)
+  node_1_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.256(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.221)
+  node_2_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.638(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.116)
+  node_3_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.321(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.137)
+  node_4_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.650(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.030)
+  node_6_arrow: motion.velocity.parent=0.950(w=0.998), motion.direction.parent=0.504(w=0.998), semantic.role_vector.self=1.000(w=0.665), energy.element.parent=0.750(w=0.320)
+  node_5_circle: energy.spread.self=0.997(w=1.220), time.duration.self=1.000(w=1.057), space.scope_radius.self=1.000(w=0.813), semantic.role_zone.self=1.000(w=0.813), energy.spread.children=0.498(w=0.569), time.duration.children=0.400(w=0.569), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 7 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.658(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.266), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.256(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.221), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.638(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.116), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.321(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.137), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.650(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.030), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_6_arrow: motion.velocity.parent=0.950(w=0.998), motion.direction.parent=0.504(w=0.998), semantic.role_vector.self=1.000(w=0.665), energy.element.parent=0.750(w=0.320), energy.spread.self=0.498(w=0.455)[prop], time.duration.self=0.400(w=0.455)[prop]
+  node_5_circle: energy.spread.self=0.997(w=1.220), time.duration.self=1.000(w=1.057), space.scope_radius.self=1.000(w=0.813), semantic.role_zone.self=1.000(w=0.813), energy.spread.children=0.498(w=0.569), time.duration.children=0.400(w=0.569), energy.element.self=0.500(w=0.250), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.658(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.239)[prop], energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.256(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.199)[prop], energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.638(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.104)[prop], energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.321(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.124)[prop], energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.650(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.027)[prop], motion.velocity.self=0.950(w=0.898)[prop], motion.direction.self=0.504(w=0.898)[prop], energy.element.self=0.750(w=0.288)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=-0.5462 axis_y=-0.8377 behavior=projectile compression=12.8250 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.6039 element=arcane elongation=20.0000 fade_rate=0.9485 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.8533 split_count=0 split_on_impact=False spread=1.8970 unstable=False
+Network: {"t": "s2", "pwr": 0.8, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.8, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:01:24] === SPELL CAST ===
+Primitives (4): segment(conf=1.00), triangle(conf=0.71), circle(conf=0.80), zigzag(conf=0.65)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #0→#2[intersects], #2→#0[intersects], #2→#0[contains], #0→#2[inside], #2→#1[contains], #1→#2[inside], #2→#3[contains], #3→#2[inside]
+AST: depth=1 nodes=4
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+     ├─ triangle (depth=1) [contained]  area_n=0.01  scale_n=0.34  compactness=0.06  elongation=20.00
+     └─ zigzag (depth=1) [contained]  area_n=0.50  scale_n=0.50  compactness=1.00  elongation=3.59
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.509(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.300)
+  node_1_triangle: energy.compression.parent=0.918(w=1.062), space.axis.parent=0.931(w=1.009), space.elongation.parent=20.000(w=0.708), semantic.role_focus.self=1.000(w=0.708), energy.element.parent=0.671(w=0.138)
+  node_3_zigzag: time.chaos.parent=0.500(w=0.976), semantic.count.self=3.000(w=0.976), semantic.role_chaos.self=1.000(w=0.650), energy.spread.parent=0.249(w=0.520), energy.element.parent=1.000(w=0.249)
+  node_2_circle: energy.spread.self=0.997(w=1.196), time.duration.self=1.000(w=1.037), space.scope_radius.self=1.000(w=0.797), semantic.role_zone.self=1.000(w=0.797), energy.spread.children=0.498(w=0.558), time.duration.children=0.400(w=0.558), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.500), space.axis.parent=0.509(w=1.425), space.elongation.parent=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.parent=0.550(w=0.300), energy.spread.self=0.498(w=0.447)[prop], time.duration.self=0.400(w=0.447)[prop]
+  node_1_triangle: energy.compression.parent=0.918(w=1.062), space.axis.parent=0.931(w=1.009), space.elongation.parent=20.000(w=0.708), semantic.role_focus.self=1.000(w=0.708), energy.element.parent=0.671(w=0.138), energy.spread.self=0.498(w=0.447)[prop], time.duration.self=0.400(w=0.447)[prop]
+  node_3_zigzag: time.chaos.parent=0.500(w=0.976), semantic.count.self=3.000(w=0.976), semantic.role_chaos.self=1.000(w=0.650), energy.spread.parent=0.249(w=0.520), energy.element.parent=1.000(w=0.249), energy.spread.self=0.498(w=0.447)[prop], time.duration.self=0.400(w=0.447)[prop]
+  node_2_circle: energy.spread.self=0.997(w=1.196), time.duration.self=1.000(w=1.037), space.scope_radius.self=1.000(w=0.797), semantic.role_zone.self=1.000(w=0.797), energy.spread.children=0.498(w=0.558), time.duration.children=0.400(w=0.558), energy.element.self=0.500(w=0.250), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_split.self=1.000(w=1.000), energy.compression.self=1.900(w=1.350)[prop], space.axis.self=0.509(w=1.282)[prop], space.elongation.self=20.000(w=1.080)[prop], energy.element.self=0.550(w=0.270)[prop], energy.compression.self=0.918(w=0.956)[prop], space.axis.self=0.931(w=0.908)[prop], space.elongation.self=20.000(w=0.637)[prop], energy.element.self=0.671(w=0.124)[prop], time.chaos.self=0.500(w=0.878)[prop], energy.spread.self=0.249(w=0.468)[prop], energy.element.self=1.000(w=0.224)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.9984 axis_y=-0.0572 behavior=pool compression=3.4420 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.3044 element=lightning elongation=20.0000 fade_rate=0.8213 focused=False intensity=1.5000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=3 split_on_impact=True spread=1.6426 unstable=True
+Network: {"t": "s2", "pwr": 0.65, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.65, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:01:28] === SPELL CAST ===
+Primitives (5): segment(conf=0.96), segment(conf=0.96), segment(conf=0.96), segment(conf=0.96), segment(conf=0.96)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #3→#4[intersects], #4→#3[intersects]
+AST: depth=0 nodes=5
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.37  scale_n=0.37  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.61  scale_n=0.61  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.12  scale_n=0.12  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.19  scale_n=0.19  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.15  scale_n=0.15  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.625(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.112)
+  node_1_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.290(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.182)
+  node_2_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.650(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.037)
+  node_3_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.298(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.058)
+  node_4_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.541(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.045)
+  root_virtual: (vide)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.625(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.112)
+  node_1_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.290(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.182)
+  node_2_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.650(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.037)
+  node_3_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.298(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.058)
+  node_4_segment: energy.compression.self=1.900(w=1.434), space.axis.self=0.541(w=1.362), space.elongation.self=20.000(w=1.147), semantic.role_barrier.self=1.000(w=0.956), energy.element.self=0.550(w=0.045)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.7052 axis_y=-0.7090 behavior=wall compression=13.6193 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:30] === SPELL CAST ===
+Primitives (5): segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #2→#3[intersects], #3→#2[intersects], #3→#4[intersects], #4→#3[intersects]
+AST: depth=0 nodes=5
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.69  scale_n=0.69  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.77  scale_n=0.77  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.39  scale_n=0.39  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.55  scale_n=0.55  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.10  scale_n=0.10  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.647(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.208)
+  node_1_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.290(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.230)
+  node_2_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.671(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.116)
+  node_3_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.337(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.165)
+  node_4_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.561(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.029)
+  root_virtual: (vide)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.647(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.208)
+  node_1_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.290(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.230)
+  node_2_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.671(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.116)
+  node_3_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.337(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.165)
+  node_4_segment: energy.compression.self=1.900(w=1.497), space.axis.self=0.561(w=1.422), space.elongation.self=20.000(w=1.197), semantic.role_barrier.self=1.000(w=0.998), energy.element.self=0.550(w=0.029)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.6052 axis_y=-0.7961 behavior=wall compression=14.2168 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:31] === SPELL CAST ===
+Primitives (6): segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00), segment(conf=1.00)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #2→#3[intersects], #3→#2[intersects], #3→#4[intersects], #4→#3[intersects], #4→#5[intersects], #5→#4[intersects]
+AST: depth=0 nodes=6
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.39  scale_n=0.39  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.35  scale_n=0.35  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.02  scale_n=0.10  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.32  scale_n=0.32  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.12  scale_n=0.12  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.02  scale_n=0.09  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 7 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.656(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.117)
+  node_1_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.226(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.106)
+  node_2_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.600(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.030)
+  node_3_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.294(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.097)
+  node_4_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.467(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.035)
+  node_5_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.624(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.027)
+  root_virtual: (vide)
+Pass2 (top-down) — 7 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.656(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.117)
+  node_1_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.226(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.106)
+  node_2_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.600(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.030)
+  node_3_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.294(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.097)
+  node_4_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.467(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.035)
+  node_5_segment: energy.compression.self=1.900(w=1.500), space.axis.self=0.624(w=1.425), space.elongation.self=20.000(w=1.200), semantic.role_barrier.self=1.000(w=1.000), energy.element.self=0.550(w=0.027)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=-0.5587 axis_y=-0.8294 behavior=wall compression=17.1000 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:36] === SPELL CAST ===
+Primitives (5): segment(conf=0.91), segment(conf=0.91), segment(conf=0.91), segment(conf=0.91), segment(conf=0.91)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #3→#4[intersects], #4→#3[intersects]
+AST: depth=0 nodes=5
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.47  scale_n=0.47  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.72  scale_n=0.72  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.04  scale_n=0.04  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.60  scale_n=0.60  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.858(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.300)
+  node_1_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.137(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.141)
+  node_2_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.785(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.217)
+  node_3_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.077(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.011)
+  node_4_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.885(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.179)
+  root_virtual: (vide)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.858(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.300)
+  node_1_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.137(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.141)
+  node_2_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.785(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.217)
+  node_3_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.077(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.011)
+  node_4_segment: energy.compression.self=1.900(w=1.368), space.axis.self=0.885(w=1.300), space.elongation.self=20.000(w=1.094), semantic.role_barrier.self=1.000(w=0.912), energy.element.self=0.550(w=0.179)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=0.6296 axis_y=-0.7769 behavior=wall compression=12.9965 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:37] === SPELL CAST ===
+Primitives (3): segment(conf=0.88), segment(conf=0.88), segment(conf=0.88)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#2[intersects], #2→#1[intersects]
+AST: depth=0 nodes=3
+  └─ root (depth=-1) [container]  
+     ├─ segment (depth=0) [intersecting]  area_n=0.87  scale_n=0.87  compactness=1.00  elongation=20.00
+     ├─ segment (depth=0) [intersecting]  area_n=0.44  scale_n=0.44  compactness=1.00  elongation=20.00
+     └─ segment (depth=0) [intersecting]  area_n=0.38  scale_n=0.38  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.817(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.262)
+  node_1_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.167(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.131)
+  node_2_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.777(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.113)
+  root_virtual: (vide)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.817(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.262)
+  node_1_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.167(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.131)
+  node_2_segment: energy.compression.self=1.900(w=1.312), space.axis.self=0.777(w=1.247), space.elongation.self=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.self=0.550(w=0.113)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=False axis_x=0.4095 axis_y=-0.9123 behavior=wall compression=7.4812 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=arcane elongation=20.0000 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=1.0000 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:01:40] === SPELL CAST ===
+Primitives (2): arrow(conf=0.79), circle(conf=0.84)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=2
+  └─ root (depth=-1) [container]  
+     ├─ arrow (depth=0) [peer]  area_n=0.87  scale_n=0.87  compactness=1.00  elongation=20.00
+     └─ circle (depth=0) [peer]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_arrow: motion.velocity.self=0.950(w=1.189), motion.direction.self=0.971(w=1.189), semantic.role_vector.self=1.000(w=0.793), energy.element.self=0.750(w=0.349)
+  node_1_circle: energy.spread.self=0.997(w=1.263), time.duration.self=1.000(w=1.095), space.scope_radius.self=1.000(w=0.842), semantic.role_zone.self=1.000(w=0.842), energy.element.self=0.500(w=0.250)
+  root_virtual: (vide)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_arrow: motion.velocity.self=0.950(w=1.189), motion.direction.self=0.971(w=1.189), semantic.role_vector.self=1.000(w=0.793), energy.element.self=0.750(w=0.349)
+  node_1_circle: energy.spread.self=0.997(w=1.263), time.duration.self=1.000(w=1.095), space.scope_radius.self=1.000(w=0.842), semantic.role_zone.self=1.000(w=0.842), energy.element.self=0.500(w=0.250)
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=True _root_role=role_unknown aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=projectile compression=0.0000 dir_x=0.9829 dir_y=-0.1841 duration_bonus=1.0949 element=arcane elongation=1.0000 fade_rate=0.6296 focused=False intensity=1.0000 pierce=False power=0.6038 scope_radius=1.0000 secondary_zone=False speed=1.1299 split_count=0 split_on_impact=False spread=1.2593 unstable=False
+Network: {"t": "s", "cmp": 0.0, "e": "arcane", "bh": "projectile", "spd": 1.1299, "pwr": 0.6038, "spr": 1.2593, "dur": 1.0949, "fdr": 0.6296, "dir": [0.9829, -0.1841], "rad": 1.0}
+
+[2026-04-18 10:01:47] === SPELL CAST ===
+Primitives (3): arrow(conf=0.78), segment(conf=0.95), circle(conf=0.77)
+GraphGeo: #2→#0[contains], #0→#2[inside], #1→#2[intersects], #2→#1[intersects], #2→#1[contains], #1→#2[inside]
+AST: depth=1 nodes=3
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ arrow (depth=1) [contained]  area_n=0.78  scale_n=0.78  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.75  scale_n=0.75  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_arrow: motion.velocity.parent=0.950(w=1.164), motion.direction.parent=0.997(w=1.164), semantic.role_vector.self=1.000(w=0.776), energy.element.parent=0.750(w=0.312)
+  node_1_segment: energy.compression.parent=1.900(w=1.424), space.axis.parent=0.995(w=1.352), space.elongation.parent=20.000(w=1.139), semantic.role_barrier.self=1.000(w=0.949), energy.element.parent=0.550(w=0.226)
+  node_2_circle: energy.spread.self=0.997(w=1.153), time.duration.self=1.000(w=0.999), space.scope_radius.self=1.000(w=0.768), semantic.role_zone.self=1.000(w=0.768), energy.spread.children=0.498(w=0.538), time.duration.children=0.400(w=0.538), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_arrow: motion.velocity.parent=0.950(w=1.164), motion.direction.parent=0.997(w=1.164), semantic.role_vector.self=1.000(w=0.776), energy.element.parent=0.750(w=0.312), energy.spread.self=0.498(w=0.430)[prop], time.duration.self=0.400(w=0.430)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.424), space.axis.parent=0.995(w=1.352), space.elongation.parent=20.000(w=1.139), semantic.role_barrier.self=1.000(w=0.949), energy.element.parent=0.550(w=0.226), energy.spread.self=0.498(w=0.430)[prop], time.duration.self=0.400(w=0.430)[prop]
+  node_2_circle: energy.spread.self=0.997(w=1.153), time.duration.self=1.000(w=0.999), space.scope_radius.self=1.000(w=0.768), semantic.role_zone.self=1.000(w=0.768), energy.spread.children=0.498(w=0.538), time.duration.children=0.400(w=0.538), energy.element.self=0.500(w=0.250), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), motion.velocity.self=0.950(w=1.047)[prop], motion.direction.self=0.997(w=1.047)[prop], energy.element.self=0.750(w=0.281)[prop], energy.compression.self=1.900(w=1.281)[prop], space.axis.self=0.995(w=1.217)[prop], space.elongation.self=20.000(w=1.025)[prop], energy.element.self=0.550(w=0.203)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.9995 axis_y=-0.0325 behavior=projectile compression=2.4342 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.1710 element=arcane elongation=20.0000 fade_rate=0.6816 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.9950 split_count=0 split_on_impact=False spread=1.3633 unstable=False
+Network: {"t": "s2", "pwr": 0.6, "phases": [{"form": "projectile", "spd": 0.5, "dir": [1.0, 0.0], "rad": 0.4, "sub": "push", "pwr": 0.6}]}
+
+[2026-04-18 10:01:53] === SPELL CAST ===
+Primitives (3): zigzag(conf=0.67), triangle(conf=0.92), circle(conf=0.82)
+GraphGeo: #2→#0[contains], #0→#2[inside], #1→#2[contains], #2→#1[inside], #2→#1[contains], #1→#2[inside], #1→#2[near], #2→#1[near]
+AST: depth=1 nodes=3
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.51  scale_n=0.51  compactness=1.00  elongation=2.35
+     └─ triangle (depth=1) [contained]  area_n=0.09  scale_n=0.36  compactness=0.55  elongation=1.91
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.008), semantic.count.self=2.000(w=1.008), semantic.role_chaos.self=1.000(w=0.672), energy.spread.parent=0.257(w=0.538), energy.element.parent=1.000(w=0.257)
+  node_1_triangle: energy.compression.parent=0.657(w=1.385), space.axis.parent=0.953(w=0.659), space.elongation.parent=1.907(w=0.924), semantic.role_focus.self=1.000(w=0.924), energy.element.parent=0.850(w=0.145)
+  node_2_circle: energy.spread.self=0.997(w=1.229), time.duration.self=1.000(w=1.065), space.scope_radius.self=1.000(w=0.819), semantic.role_zone.self=1.000(w=0.819), energy.spread.children=0.498(w=0.573), time.duration.children=0.400(w=0.573), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.008), semantic.count.self=2.000(w=1.008), semantic.role_chaos.self=1.000(w=0.672), energy.spread.parent=0.257(w=0.538), energy.element.parent=1.000(w=0.257), energy.spread.self=0.498(w=0.459)[prop], time.duration.self=0.400(w=0.459)[prop]
+  node_1_triangle: energy.compression.parent=0.657(w=1.385), space.axis.parent=0.953(w=0.659), space.elongation.parent=1.907(w=0.924), semantic.role_focus.self=1.000(w=0.924), energy.element.parent=0.850(w=0.145), energy.spread.self=0.498(w=0.459)[prop], time.duration.self=0.400(w=0.459)[prop]
+  node_2_circle: energy.spread.self=0.997(w=1.229), time.duration.self=1.000(w=1.065), space.scope_radius.self=1.000(w=0.819), semantic.role_zone.self=1.000(w=0.819), energy.spread.children=0.498(w=0.573), time.duration.children=0.400(w=0.573), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), time.chaos.self=0.350(w=0.908)[prop], energy.spread.self=0.257(w=0.484)[prop], energy.element.self=1.000(w=0.231)[prop], energy.compression.self=0.657(w=1.247)[prop], space.axis.self=0.953(w=0.593)[prop], space.elongation.self=1.907(w=0.831)[prop], energy.element.self=0.850(w=0.130)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.9560 axis_y=-0.2935 behavior=pool compression=0.8189 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.2482 element=lightning elongation=1.9074 fade_rate=0.7887 focused=False intensity=1.5000 pierce=True power=0.8008 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=2 split_on_impact=True spread=1.5775 unstable=True
+Network: {"t": "s2", "pwr": 0.6, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.6, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:05:56] === SPELL CAST ===
+Primitives (1): zigzag(conf=0.66)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ zigzag (depth=0) [peer]  area_n=0.16  scale_n=0.50  compactness=0.46  elongation=2.55
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_zigzag: time.chaos.self=0.350(w=0.992), semantic.count.self=2.000(w=0.992), semantic.role_chaos.self=1.000(w=0.661), energy.spread.self=0.078(w=0.529), energy.element.self=1.000(w=0.250)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_zigzag: time.chaos.self=0.350(w=0.992), semantic.count.self=2.000(w=0.992), semantic.role_chaos.self=1.000(w=0.661), energy.spread.self=0.078(w=0.529), energy.element.self=1.000(w=0.250)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_chaos aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=stationary compression=0.0000 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=fire elongation=1.0000 fade_rate=0.0000 focused=False intensity=1.5000 pierce=False power=0.0500 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=2 split_on_impact=False spread=0.0410 unstable=True
+Network: {}
+
+[2026-04-18 10:06:00] === SPELL CAST ===
+Primitives (2): zigzag(conf=0.63), circle(conf=0.79)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     └─ zigzag (depth=1) [contained]  area_n=0.23  scale_n=0.45  compactness=0.88  elongation=1.58
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.375(w=0.940), semantic.count.self=3.000(w=0.940), semantic.role_chaos.self=1.000(w=0.627), energy.spread.parent=0.085(w=0.501), energy.element.parent=0.875(w=0.225)
+  node_1_circle: energy.spread.self=0.997(w=1.186), time.duration.self=1.000(w=1.028), space.scope_radius.self=1.000(w=0.791), semantic.role_zone.self=1.000(w=0.791), energy.spread.children=0.498(w=0.553), time.duration.children=0.400(w=0.553), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.375(w=0.940), semantic.count.self=3.000(w=0.940), semantic.role_chaos.self=1.000(w=0.627), energy.spread.parent=0.085(w=0.501), energy.element.parent=0.875(w=0.225), energy.spread.self=0.498(w=0.443)[prop], time.duration.self=0.400(w=0.443)[prop]
+  node_1_circle: energy.spread.self=0.997(w=1.186), time.duration.self=1.000(w=1.028), space.scope_radius.self=1.000(w=0.791), semantic.role_zone.self=1.000(w=0.791), energy.spread.children=0.498(w=0.553), time.duration.children=0.400(w=0.553), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), time.chaos.self=0.375(w=0.846)[prop], energy.spread.self=0.085(w=0.451)[prop], energy.element.self=0.875(w=0.202)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.0000 axis_y=0.0000 behavior=pool compression=0.0000 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.1162 element=lightning elongation=1.0000 fade_rate=0.6654 focused=False intensity=1.5000 pierce=False power=0.3992 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=3 split_on_impact=True spread=1.3308 unstable=True
+Network: {"t": "s2", "pwr": 0.55, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.55, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:06:04] === SPELL CAST ===
+Primitives (6): zigzag(conf=0.71), segment(conf=0.94), segment(conf=0.88), segment(conf=0.88), segment(conf=0.88), circle(conf=0.77)
+GraphGeo: #5→#0[contains], #0→#5[inside], #1→#2[near], #2→#1[near], #1→#3[intersects], #3→#1[intersects], #1→#4[near], #4→#1[near], #1→#5[intersects], #5→#1[intersects], #5→#1[contains], #1→#5[inside], #1→#5[near], #5→#1[near], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #2→#4[near], #4→#2[near], #2→#5[intersects], #5→#2[intersects], #5→#2[contains], #2→#5[inside], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#5[intersects], #5→#3[intersects], #5→#3[contains], #3→#5[inside], #4→#5[intersects], #5→#4[intersects], #5→#4[contains], #4→#5[inside]
+AST: depth=1 nodes=6
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.10  scale_n=0.41  compactness=0.45  elongation=2.45
+     ├─ segment (depth=1) [contained]  area_n=0.60  scale_n=0.60  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.05  scale_n=0.07  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.11  scale_n=0.11  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.062), semantic.count.self=2.000(w=1.062), semantic.role_chaos.self=1.000(w=0.708), energy.spread.parent=0.048(w=0.566), energy.element.parent=1.000(w=0.204)
+  node_1_segment: energy.compression.parent=1.900(w=1.403), space.axis.parent=0.969(w=1.333), space.elongation.parent=20.000(w=1.122), semantic.role_barrier.self=1.000(w=0.935), energy.element.parent=0.550(w=0.181)
+  node_2_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.060(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.020)
+  node_3_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.009(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.034)
+  node_4_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.393(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.300)
+  node_5_circle: energy.spread.self=0.997(w=1.161), time.duration.self=1.000(w=1.007), space.scope_radius.self=1.000(w=0.774), semantic.role_zone.self=1.000(w=0.774), energy.spread.children=0.498(w=0.542), time.duration.children=0.400(w=0.542), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.062), semantic.count.self=2.000(w=1.062), semantic.role_chaos.self=1.000(w=0.708), energy.spread.parent=0.048(w=0.566), energy.element.parent=1.000(w=0.204), energy.spread.self=0.498(w=0.434)[prop], time.duration.self=0.400(w=0.434)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.403), space.axis.parent=0.969(w=1.333), space.elongation.parent=20.000(w=1.122), semantic.role_barrier.self=1.000(w=0.935), energy.element.parent=0.550(w=0.181), energy.spread.self=0.498(w=0.434)[prop], time.duration.self=0.400(w=0.434)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.060(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.020), energy.spread.self=0.498(w=0.434)[prop], time.duration.self=0.400(w=0.434)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.009(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.034), energy.spread.self=0.498(w=0.434)[prop], time.duration.self=0.400(w=0.434)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.393(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.300), energy.spread.self=0.498(w=0.434)[prop], time.duration.self=0.400(w=0.434)[prop]
+  node_5_circle: energy.spread.self=0.997(w=1.161), time.duration.self=1.000(w=1.007), space.scope_radius.self=1.000(w=0.774), semantic.role_zone.self=1.000(w=0.774), energy.spread.children=0.498(w=0.542), time.duration.children=0.400(w=0.542), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), time.chaos.self=0.350(w=0.955)[prop], energy.spread.self=0.048(w=0.510)[prop], energy.element.self=1.000(w=0.183)[prop], energy.compression.self=1.900(w=1.262)[prop], space.axis.self=0.969(w=1.199)[prop], space.elongation.self=20.000(w=1.010)[prop], energy.element.self=0.550(w=0.163)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.060(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.018)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.009(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.030)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.393(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.270)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.9814 axis_y=-0.1918 behavior=pool compression=9.1316 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.4401 element=arcane elongation=20.0000 fade_rate=0.8612 focused=False intensity=1.5000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=2 split_on_impact=True spread=1.7223 unstable=True
+Network: {"t": "s2", "pwr": 0.75, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.75, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:06:08] === SPELL CAST ===
+Primitives (3): arrow(conf=0.77), zigzag(conf=0.70), circle(conf=0.80)
+GraphGeo: #2→#0[contains], #0→#2[inside], #2→#1[contains], #1→#2[inside]
+AST: depth=1 nodes=3
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ arrow (depth=1) [contained]  area_n=0.94  scale_n=0.94  compactness=1.00  elongation=20.00
+     └─ zigzag (depth=1) [contained]  area_n=0.47  scale_n=0.47  compactness=1.00  elongation=2.30
+Pass1 (bottom-up) — 3 nœud(s):
+  node_0_arrow: motion.velocity.parent=0.950(w=1.148), motion.direction.parent=0.970(w=1.148), semantic.role_vector.self=1.000(w=0.765), energy.element.parent=0.750(w=0.377)
+  node_1_zigzag: time.chaos.parent=0.350(w=1.052), semantic.count.self=2.000(w=1.052), semantic.role_chaos.self=1.000(w=0.701), energy.spread.parent=0.234(w=0.561), energy.element.parent=1.000(w=0.234)
+  node_2_circle: energy.spread.self=0.997(w=1.204), time.duration.self=1.000(w=1.044), space.scope_radius.self=1.000(w=0.803), semantic.role_zone.self=1.000(w=0.803), energy.spread.children=0.498(w=0.562), time.duration.children=0.400(w=0.562), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 3 nœud(s):
+  node_0_arrow: motion.velocity.parent=0.950(w=1.148), motion.direction.parent=0.970(w=1.148), semantic.role_vector.self=1.000(w=0.765), energy.element.parent=0.750(w=0.377), energy.spread.self=0.498(w=0.450)[prop], time.duration.self=0.400(w=0.450)[prop]
+  node_1_zigzag: time.chaos.parent=0.350(w=1.052), semantic.count.self=2.000(w=1.052), semantic.role_chaos.self=1.000(w=0.701), energy.spread.parent=0.234(w=0.561), energy.element.parent=1.000(w=0.234), energy.spread.self=0.498(w=0.450)[prop], time.duration.self=0.400(w=0.450)[prop]
+  node_2_circle: energy.spread.self=0.997(w=1.204), time.duration.self=1.000(w=1.044), space.scope_radius.self=1.000(w=0.803), semantic.role_zone.self=1.000(w=0.803), energy.spread.children=0.498(w=0.562), time.duration.children=0.400(w=0.562), energy.element.self=0.500(w=0.250), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), semantic.modifier_split.self=1.000(w=1.000), motion.velocity.self=0.950(w=1.033)[prop], motion.direction.self=0.970(w=1.033)[prop], energy.element.self=0.750(w=0.339)[prop], time.chaos.self=0.350(w=0.947)[prop], energy.spread.self=0.234(w=0.505)[prop], energy.element.self=1.000(w=0.211)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.0000 axis_y=0.0000 behavior=projectile compression=0.0000 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.2237 element=lightning elongation=1.0000 fade_rate=0.7714 focused=False intensity=1.5000 pierce=False power=0.6591 scope_radius=1.0000 secondary_zone=False speed=0.9813 split_count=2 split_on_impact=True spread=1.5428 unstable=True
+Network: {"t": "s2", "pwr": 0.6, "phases": [{"form": "projectile", "spd": 0.5, "dir": [1.0, 0.0], "rad": 0.4, "sub": "push", "pwr": 0.6}]}
+
+[2026-04-18 10:06:16] === SPELL CAST ===
+Primitives (4): zigzag(conf=0.65), triangle(conf=0.96), arrow(conf=0.76), circle(conf=0.81)
+GraphGeo: #3→#0[contains], #0→#3[inside], #3→#1[contains], #1→#3[inside], #1→#3[near], #3→#1[near], #3→#2[contains], #2→#3[inside]
+AST: depth=1 nodes=4
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.54  scale_n=0.54  compactness=1.00  elongation=2.02
+     ├─ triangle (depth=1) [contained]  area_n=0.06  scale_n=0.28  compactness=0.57  elongation=1.73
+     └─ arrow (depth=1) [contained]  area_n=0.86  scale_n=0.86  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.400(w=0.981), semantic.count.self=3.000(w=0.981), semantic.role_chaos.self=1.000(w=0.654), energy.spread.parent=0.271(w=0.523), energy.element.parent=1.000(w=0.271)
+  node_1_triangle: energy.compression.parent=0.617(w=1.447), space.axis.parent=0.973(w=0.611), space.elongation.parent=1.732(w=0.964), semantic.role_focus.self=1.000(w=0.964), energy.element.parent=0.850(w=0.111)
+  node_2_arrow: motion.velocity.parent=0.950(w=1.142), motion.direction.parent=0.994(w=1.142), semantic.role_vector.self=1.000(w=0.761), energy.element.parent=0.750(w=0.343)
+  node_3_circle: energy.spread.self=0.997(w=1.209), time.duration.self=1.000(w=1.047), space.scope_radius.self=1.000(w=0.806), semantic.role_zone.self=1.000(w=0.806), energy.spread.children=0.498(w=0.564), time.duration.children=0.400(w=0.564), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.400(w=0.981), semantic.count.self=3.000(w=0.981), semantic.role_chaos.self=1.000(w=0.654), energy.spread.parent=0.271(w=0.523), energy.element.parent=1.000(w=0.271), energy.spread.self=0.498(w=0.451)[prop], time.duration.self=0.400(w=0.451)[prop]
+  node_1_triangle: energy.compression.parent=0.617(w=1.447), space.axis.parent=0.973(w=0.611), space.elongation.parent=1.732(w=0.964), semantic.role_focus.self=1.000(w=0.964), energy.element.parent=0.850(w=0.111), energy.spread.self=0.498(w=0.451)[prop], time.duration.self=0.400(w=0.451)[prop]
+  node_2_arrow: motion.velocity.parent=0.950(w=1.142), motion.direction.parent=0.994(w=1.142), semantic.role_vector.self=1.000(w=0.761), energy.element.parent=0.750(w=0.343), energy.spread.self=0.498(w=0.451)[prop], time.duration.self=0.400(w=0.451)[prop]
+  node_3_circle: energy.spread.self=0.997(w=1.209), time.duration.self=1.000(w=1.047), space.scope_radius.self=1.000(w=0.806), semantic.role_zone.self=1.000(w=0.806), energy.spread.children=0.498(w=0.564), time.duration.children=0.400(w=0.564), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), time.chaos.self=0.400(w=0.883)[prop], energy.spread.self=0.271(w=0.471)[prop], energy.element.self=1.000(w=0.244)[prop], energy.compression.self=0.617(w=1.302)[prop], space.axis.self=0.973(w=0.550)[prop], space.elongation.self=1.732(w=0.868)[prop], energy.element.self=0.850(w=0.100)[prop], motion.velocity.self=0.950(w=1.028)[prop], motion.direction.self=0.994(w=1.028)[prop], energy.element.self=0.750(w=0.309)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.9860 axis_y=-0.1666 behavior=projectile compression=0.8036 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.3181 element=lightning elongation=1.7319 fade_rate=0.8348 focused=False intensity=1.5000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.9762 split_count=3 split_on_impact=True spread=1.6696 unstable=True
+Network: {"t": "s2", "pwr": 0.65, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.65, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:06:21] === SPELL CAST ===
+Primitives (1): triangle(conf=0.92)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ triangle (depth=0) [peer]  area_n=0.08  scale_n=0.33  compactness=0.54  elongation=1.92
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.676(w=1.383), space.axis.self=0.987(w=0.663), space.elongation.self=1.920(w=0.922), semantic.role_focus.self=1.000(w=0.922), energy.element.self=0.850(w=0.132)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.676(w=1.383), space.axis.self=0.987(w=0.663), space.elongation.self=1.920(w=0.922), semantic.role_focus.self=1.000(w=0.922), energy.element.self=0.850(w=0.132)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_focus aoe_on_impact=False axis_x=0.9969 axis_y=-0.0787 behavior=aoe compression=0.9355 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=fire elongation=1.9198 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=0.3742 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:06:25] === SPELL CAST ===
+Primitives (7): triangle(conf=0.93), segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), circle(conf=0.77)
+GraphGeo: #6→#0[contains], #0→#6[inside], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#3[near], #3→#1[near], #1→#4[near], #4→#1[near], #1→#6[intersects], #6→#1[intersects], #6→#1[contains], #1→#6[inside], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #2→#4[near], #4→#2[near], #2→#5[near], #5→#2[near], #2→#6[intersects], #6→#2[intersects], #6→#2[contains], #2→#6[inside], #2→#6[near], #6→#2[near], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#5[near], #5→#3[near], #3→#6[intersects], #6→#3[intersects], #6→#3[contains], #3→#6[inside], #3→#6[near], #6→#3[near], #4→#5[intersects], #5→#4[intersects], #4→#5[near], #5→#4[near], #4→#6[intersects], #6→#4[intersects], #6→#4[contains], #4→#6[inside], #4→#6[near], #6→#4[near], #5→#6[intersects], #6→#5[intersects], #6→#5[contains], #5→#6[inside], #5→#6[near], #6→#5[near]
+AST: depth=1 nodes=7
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ triangle (depth=1) [contained]  area_n=0.08  scale_n=0.33  compactness=0.58  elongation=1.75
+     ├─ segment (depth=1) [contained]  area_n=0.36  scale_n=0.36  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.45  scale_n=0.45  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.25  scale_n=0.25  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.07  scale_n=0.07  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.18  scale_n=0.18  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 7 nœud(s):
+  node_0_triangle: energy.compression.parent=0.604(w=1.393), space.axis.parent=0.059(w=0.597), space.elongation.parent=1.750(w=0.929), semantic.role_focus.self=1.000(w=0.929), energy.element.parent=0.850(w=0.131)
+  node_1_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.646(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.108)
+  node_2_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.291(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.135)
+  node_3_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.684(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.074)
+  node_4_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.305(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.022)
+  node_5_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.646(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.054)
+  node_6_circle: energy.spread.self=0.997(w=1.149), time.duration.self=1.000(w=0.996), space.scope_radius.self=1.000(w=0.766), semantic.role_zone.self=1.000(w=0.766), energy.spread.children=0.498(w=0.536), time.duration.children=0.400(w=0.536), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 7 nœud(s):
+  node_0_triangle: energy.compression.parent=0.604(w=1.393), space.axis.parent=0.059(w=0.597), space.elongation.parent=1.750(w=0.929), semantic.role_focus.self=1.000(w=0.929), energy.element.parent=0.850(w=0.131), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.646(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.108), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.291(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.135), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.684(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.074), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.305(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.022), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_5_segment: energy.compression.parent=1.900(w=1.430), space.axis.parent=0.646(w=1.358), space.elongation.parent=20.000(w=1.144), semantic.role_barrier.self=1.000(w=0.953), energy.element.parent=0.550(w=0.054), energy.spread.self=0.498(w=0.429)[prop], time.duration.self=0.400(w=0.429)[prop]
+  node_6_circle: energy.spread.self=0.997(w=1.149), time.duration.self=1.000(w=0.996), space.scope_radius.self=1.000(w=0.766), semantic.role_zone.self=1.000(w=0.766), energy.spread.children=0.498(w=0.536), time.duration.children=0.400(w=0.536), energy.element.self=0.500(w=0.250), semantic.modifier_pierce.self=1.000(w=1.000), energy.compression.self=0.604(w=1.254)[prop], space.axis.self=0.059(w=0.537)[prop], space.elongation.self=1.750(w=0.836)[prop], energy.element.self=0.850(w=0.118)[prop], energy.compression.self=1.900(w=1.287)[prop], space.axis.self=0.646(w=1.223)[prop], space.elongation.self=20.000(w=1.030)[prop], energy.element.self=0.550(w=0.097)[prop], energy.compression.self=1.900(w=1.287)[prop], space.axis.self=0.291(w=1.223)[prop], space.elongation.self=20.000(w=1.030)[prop], energy.element.self=0.550(w=0.121)[prop], energy.compression.self=1.900(w=1.287)[prop], space.axis.self=0.684(w=1.223)[prop], space.elongation.self=20.000(w=1.030)[prop], energy.element.self=0.550(w=0.067)[prop], energy.compression.self=1.900(w=1.287)[prop], space.axis.self=0.305(w=1.223)[prop], space.elongation.self=20.000(w=1.030)[prop], energy.element.self=0.550(w=0.020)[prop], energy.compression.self=1.900(w=1.287)[prop], space.axis.self=0.646(w=1.223)[prop], space.elongation.self=20.000(w=1.030)[prop], energy.element.self=0.550(w=0.048)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.6087 axis_y=-0.7934 behavior=pool compression=12.9831 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.5107 element=arcane elongation=20.0000 fade_rate=0.8934 focused=False intensity=1.0000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.7869 unstable=False
+Network: {"t": "s2", "pwr": 0.8, "phases": [{"form": "cone", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "sub": "push", "pwr": 0.8}]}
+
+[2026-04-18 10:06:32] === SPELL CAST ===
+Primitives (7): triangle(conf=0.88), triangle(conf=0.88), triangle(conf=0.92), segment(conf=0.93), segment(conf=0.81), segment(conf=0.81), circle(conf=0.80)
+GraphGeo: #6→#0[contains], #0→#6[inside], #6→#1[contains], #1→#6[inside], #6→#2[contains], #2→#6[inside], #2→#6[near], #6→#2[near], #3→#4[near], #4→#3[near], #3→#5[near], #5→#3[near], #3→#6[intersects], #6→#3[intersects], #6→#3[contains], #3→#6[inside], #3→#6[near], #6→#3[near], #4→#5[intersects], #5→#4[intersects], #4→#5[near], #5→#4[near], #4→#6[intersects], #6→#4[intersects], #6→#4[contains], #4→#6[inside], #5→#6[intersects], #6→#5[intersects], #6→#5[contains], #5→#6[inside]
+AST: depth=1 nodes=7
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ triangle (depth=1) [contained]  area_n=0.03  scale_n=0.22  compactness=0.53  elongation=1.81
+     ├─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.24  compactness=0.56  elongation=1.96
+     ├─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.23  compactness=0.56  elongation=1.69
+     ├─ segment (depth=1) [contained]  area_n=0.43  scale_n=0.43  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.09  scale_n=0.09  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.50  scale_n=0.50  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 7 nœud(s):
+  node_0_triangle: energy.compression.parent=0.676(w=1.324), space.axis.parent=0.980(w=0.592), space.elongation.parent=1.810(w=0.883), semantic.role_focus.self=1.000(w=0.883), energy.element.parent=0.850(w=0.090)
+  node_1_triangle: energy.compression.parent=0.658(w=1.318), space.axis.parent=0.066(w=0.647), space.elongation.parent=1.965(w=0.879), semantic.role_focus.self=1.000(w=0.879), energy.element.parent=0.850(w=0.096)
+  node_2_triangle: energy.compression.parent=0.623(w=1.380), space.axis.parent=0.011(w=0.565), space.elongation.parent=1.692(w=0.920), semantic.role_focus.self=1.000(w=0.920), energy.element.parent=0.850(w=0.092)
+  node_3_segment: energy.compression.parent=1.900(w=1.391), space.axis.parent=0.927(w=1.321), space.elongation.parent=20.000(w=1.112), semantic.role_barrier.self=1.000(w=0.927), energy.element.parent=0.550(w=0.129)
+  node_4_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.997(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.026)
+  node_5_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.366(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.151)
+  node_6_circle: energy.spread.self=0.997(w=1.200), time.duration.self=1.000(w=1.040), space.scope_radius.self=1.000(w=0.800), semantic.role_zone.self=1.000(w=0.800), energy.spread.children=0.498(w=0.560), time.duration.children=0.400(w=0.560), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 7 nœud(s):
+  node_0_triangle: energy.compression.parent=0.676(w=1.324), space.axis.parent=0.980(w=0.592), space.elongation.parent=1.810(w=0.883), semantic.role_focus.self=1.000(w=0.883), energy.element.parent=0.850(w=0.090), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_1_triangle: energy.compression.parent=0.658(w=1.318), space.axis.parent=0.066(w=0.647), space.elongation.parent=1.965(w=0.879), semantic.role_focus.self=1.000(w=0.879), energy.element.parent=0.850(w=0.096), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_2_triangle: energy.compression.parent=0.623(w=1.380), space.axis.parent=0.011(w=0.565), space.elongation.parent=1.692(w=0.920), semantic.role_focus.self=1.000(w=0.920), energy.element.parent=0.850(w=0.092), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.391), space.axis.parent=0.927(w=1.321), space.elongation.parent=20.000(w=1.112), semantic.role_barrier.self=1.000(w=0.927), energy.element.parent=0.550(w=0.129), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.997(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.026), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_5_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.366(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.151), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_6_circle: energy.spread.self=0.997(w=1.200), time.duration.self=1.000(w=1.040), space.scope_radius.self=1.000(w=0.800), semantic.role_zone.self=1.000(w=0.800), energy.spread.children=0.498(w=0.560), time.duration.children=0.400(w=0.560), energy.element.self=0.500(w=0.250), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), energy.compression.self=0.676(w=1.192)[prop], space.axis.self=0.980(w=0.533)[prop], space.elongation.self=1.810(w=0.795)[prop], energy.element.self=0.850(w=0.081)[prop], energy.compression.self=0.658(w=1.186)[prop], space.axis.self=0.066(w=0.583)[prop], space.elongation.self=1.965(w=0.791)[prop], energy.element.self=0.850(w=0.086)[prop], energy.compression.self=0.623(w=1.242)[prop], space.axis.self=0.011(w=0.508)[prop], space.elongation.self=1.692(w=0.828)[prop], energy.element.self=0.850(w=0.083)[prop], energy.compression.self=1.900(w=1.251)[prop], space.axis.self=0.927(w=1.189)[prop], space.elongation.self=20.000(w=1.001)[prop], energy.element.self=0.550(w=0.116)[prop], energy.compression.self=1.900(w=1.097)[prop], space.axis.self=0.997(w=1.042)[prop], space.elongation.self=20.000(w=0.877)[prop], energy.element.self=0.550(w=0.023)[prop], energy.compression.self=1.900(w=1.097)[prop], space.axis.self=0.366(w=1.042)[prop], space.elongation.self=20.000(w=0.877)[prop], energy.element.self=0.550(w=0.136)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.8962 axis_y=-0.4436 behavior=pool compression=8.9066 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.5780 element=arcane elongation=20.0000 fade_rate=0.9333 focused=False intensity=1.0000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.8665 unstable=False
+Network: {"t": "s2", "pwr": 0.8, "phases": [{"form": "cone", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "sub": "push", "pwr": 0.8}]}
+
+[2026-04-18 10:06:41] === SPELL CAST ===
+Primitives (5): arrow(conf=0.70), triangle(conf=0.84), triangle(conf=0.93), triangle(conf=0.86), circle(conf=0.80)
+GraphGeo: #4→#0[contains], #0→#4[inside], #4→#2[contains], #2→#4[inside]
+AST: depth=1 nodes=5
+  └─ root (depth=-1) [container]  
+     ├─ triangle (depth=0) [peer]  area_n=0.03  scale_n=0.23  compactness=0.48  elongation=2.43
+     ├─ triangle (depth=0) [peer]  area_n=0.02  scale_n=0.18  compactness=0.43  elongation=2.93
+     └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+        ├─ arrow (depth=1) [contained]  area_n=0.73  scale_n=0.73  compactness=1.00  elongation=20.00
+        └─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.24  compactness=0.59  elongation=1.64
+Pass1 (bottom-up) — 6 nœud(s):
+  node_1_triangle: energy.compression.self=0.826(w=1.267), space.axis.self=0.012(w=0.747), space.elongation.self=2.433(w=0.845), semantic.role_focus.self=1.000(w=0.845), energy.element.self=0.850(w=0.091)
+  node_3_triangle: energy.compression.self=0.948(w=1.285), space.axis.self=0.006(w=0.847), space.elongation.self=2.933(w=0.856), semantic.role_focus.self=1.000(w=0.856), energy.element.self=0.850(w=0.073)
+  node_0_arrow: motion.velocity.parent=0.950(w=1.052), motion.direction.parent=0.934(w=1.052), semantic.role_vector.self=1.000(w=0.701), energy.element.parent=0.750(w=0.292)
+  node_2_triangle: energy.compression.parent=0.576(w=1.402), space.axis.parent=0.959(w=0.548), space.elongation.parent=1.642(w=0.934), semantic.role_focus.self=1.000(w=0.934), energy.element.parent=0.850(w=0.098)
+  node_4_circle: energy.spread.self=0.997(w=1.200), time.duration.self=1.000(w=1.040), space.scope_radius.self=1.000(w=0.800), semantic.role_zone.self=1.000(w=0.800), energy.spread.children=0.498(w=0.560), time.duration.children=0.400(w=0.560), energy.element.self=0.500(w=0.250)
+  root_virtual: (vide)
+Pass2 (top-down) — 6 nœud(s):
+  node_1_triangle: energy.compression.self=0.826(w=1.267), space.axis.self=0.012(w=0.747), space.elongation.self=2.433(w=0.845), semantic.role_focus.self=1.000(w=0.845), energy.element.self=0.850(w=0.091)
+  node_3_triangle: energy.compression.self=0.948(w=1.285), space.axis.self=0.006(w=0.847), space.elongation.self=2.933(w=0.856), semantic.role_focus.self=1.000(w=0.856), energy.element.self=0.850(w=0.073)
+  node_0_arrow: motion.velocity.parent=0.950(w=1.052), motion.direction.parent=0.934(w=1.052), semantic.role_vector.self=1.000(w=0.701), energy.element.parent=0.750(w=0.292), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_2_triangle: energy.compression.parent=0.576(w=1.402), space.axis.parent=0.959(w=0.548), space.elongation.parent=1.642(w=0.934), semantic.role_focus.self=1.000(w=0.934), energy.element.parent=0.850(w=0.098), energy.spread.self=0.498(w=0.448)[prop], time.duration.self=0.400(w=0.448)[prop]
+  node_4_circle: energy.spread.self=0.997(w=1.200), time.duration.self=1.000(w=1.040), space.scope_radius.self=1.000(w=0.800), semantic.role_zone.self=1.000(w=0.800), energy.spread.children=0.498(w=0.560), time.duration.children=0.400(w=0.560), energy.element.self=0.500(w=0.250), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), motion.velocity.self=0.950(w=0.947)[prop], motion.direction.self=0.934(w=0.947)[prop], energy.element.self=0.750(w=0.262)[prop], energy.compression.self=0.576(w=1.261)[prop], space.axis.self=0.959(w=0.493)[prop], space.elongation.self=1.642(w=0.841)[prop], energy.element.self=0.850(w=0.088)[prop]
+  root_virtual: (vide)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_unknown aoe_on_impact=True axis_x=0.9993 axis_y=0.0374 behavior=projectile compression=2.9912 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.2189 element=lightning elongation=2.9333 fade_rate=0.7095 focused=False intensity=1.0000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.8994 split_count=0 split_on_impact=False spread=1.4190 unstable=False
+Network: {"t": "s2", "pwr": 0.6, "phases": [{"form": "projectile", "spd": 0.5, "dir": [1.0, 0.0], "rad": 0.4, "sub": "push", "pwr": 0.6}]}
+
+[2026-04-18 10:06:46] === SPELL CAST ===
+Primitives (1): triangle(conf=0.87)
+GraphGeo: (aucune relation)
+AST: depth=0 nodes=1
+  └─ triangle (depth=0) [peer]  area_n=0.13  scale_n=0.45  compactness=0.52  elongation=2.31
+Pass1 (bottom-up) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.748(w=1.312), space.axis.self=0.960(w=0.743), space.elongation.self=2.307(w=0.875), semantic.role_focus.self=1.000(w=0.875), energy.element.self=0.850(w=0.178)
+Pass2 (top-down) — 1 nœud(s):
+  node_0_triangle: energy.compression.self=0.748(w=1.312), space.axis.self=0.960(w=0.743), space.elongation.self=2.307(w=0.875), semantic.role_focus.self=1.000(w=0.875), energy.element.self=0.850(w=0.178)
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_focus aoe_on_impact=False axis_x=0.9684 axis_y=-0.2493 behavior=aoe compression=0.9815 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.0000 element=fire elongation=2.3067 fade_rate=0.0000 focused=True intensity=1.0000 pierce=False power=0.3926 scope_radius=0.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.0000 unstable=False
+Network: {}
+
+[2026-04-18 10:06:49] === SPELL CAST ===
+Primitives (5): segment(conf=0.95), segment(conf=0.88), segment(conf=0.88), segment(conf=0.88), circle(conf=0.71)
+GraphGeo: #0→#1[near], #1→#0[near], #0→#3[near], #3→#0[near], #0→#4[intersects], #4→#0[intersects], #4→#0[contains], #0→#4[inside], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#4[intersects], #4→#1[intersects], #4→#1[contains], #1→#4[inside], #2→#3[intersects], #3→#2[intersects], #2→#4[intersects], #4→#2[intersects], #4→#2[contains], #2→#4[inside], #3→#4[intersects], #4→#3[intersects], #4→#3[contains], #3→#4[inside]
+AST: depth=1 nodes=5
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=0.61  scale_n=0.61  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.51  scale_n=0.51  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.11  scale_n=0.11  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.27  scale_n=0.27  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 5 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.418), space.axis.parent=0.481(w=1.347), space.elongation.parent=20.000(w=1.134), semantic.role_barrier.self=1.000(w=0.945), energy.element.parent=0.550(w=0.182)
+  node_1_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.432(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.153)
+  node_2_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.048(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.032)
+  node_3_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.980(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.082)
+  node_4_circle: energy.spread.self=0.997(w=1.072), time.duration.self=1.000(w=0.929), space.scope_radius.self=1.000(w=0.715), semantic.role_zone.self=1.000(w=0.715), energy.spread.children=0.498(w=0.500), time.duration.children=0.400(w=0.500), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 5 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.418), space.axis.parent=0.481(w=1.347), space.elongation.parent=20.000(w=1.134), semantic.role_barrier.self=1.000(w=0.945), energy.element.parent=0.550(w=0.182), energy.spread.self=0.498(w=0.400)[prop], time.duration.self=0.400(w=0.400)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.432(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.153), energy.spread.self=0.498(w=0.400)[prop], time.duration.self=0.400(w=0.400)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.048(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.032), energy.spread.self=0.498(w=0.400)[prop], time.duration.self=0.400(w=0.400)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.312), space.axis.parent=0.980(w=1.247), space.elongation.parent=20.000(w=1.050), semantic.role_barrier.self=1.000(w=0.875), energy.element.parent=0.550(w=0.082), energy.spread.self=0.498(w=0.400)[prop], time.duration.self=0.400(w=0.400)[prop]
+  node_4_circle: energy.spread.self=0.997(w=1.072), time.duration.self=1.000(w=0.929), space.scope_radius.self=1.000(w=0.715), semantic.role_zone.self=1.000(w=0.715), energy.spread.children=0.498(w=0.500), time.duration.children=0.400(w=0.500), energy.element.self=0.500(w=0.250), energy.compression.self=1.900(w=1.276)[prop], space.axis.self=0.481(w=1.212)[prop], space.elongation.self=20.000(w=1.021)[prop], energy.element.self=0.550(w=0.163)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.432(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.138)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.048(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.029)[prop], energy.compression.self=1.900(w=1.181)[prop], space.axis.self=0.980(w=1.122)[prop], space.elongation.self=20.000(w=0.945)[prop], energy.element.self=0.550(w=0.074)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.9931 axis_y=0.1173 behavior=pool compression=9.1581 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.2495 element=arcane elongation=20.0000 fade_rate=0.7339 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.4678 unstable=False
+Network: {"t": "s2", "pwr": 0.7, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.7, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:06:51] === SPELL CAST ===
+Primitives (4): segment(conf=0.85), segment(conf=0.81), segment(conf=0.81), circle(conf=0.82)
+GraphGeo: #0→#1[near], #1→#0[near], #0→#3[intersects], #3→#0[intersects], #3→#0[contains], #0→#3[inside], #0→#3[near], #3→#0[near], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#3[intersects], #3→#1[intersects], #3→#1[contains], #1→#3[inside], #2→#3[intersects], #3→#2[intersects], #3→#2[contains], #2→#3[inside]
+AST: depth=1 nodes=4
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=0.62  scale_n=0.62  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.67  scale_n=0.67  compactness=1.00  elongation=20.00
+     └─ segment (depth=1) [contained]  area_n=0.28  scale_n=0.28  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.278), space.axis.parent=0.478(w=1.214), space.elongation.parent=20.000(w=1.022), semantic.role_barrier.self=1.000(w=0.852), energy.element.parent=0.550(w=0.186)
+  node_1_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.432(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.201)
+  node_2_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.009(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.084)
+  node_3_circle: energy.spread.self=0.997(w=1.227), time.duration.self=1.000(w=1.063), space.scope_radius.self=1.000(w=0.818), semantic.role_zone.self=1.000(w=0.818), energy.spread.children=0.498(w=0.572), time.duration.children=0.400(w=0.572), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.278), space.axis.parent=0.478(w=1.214), space.elongation.parent=20.000(w=1.022), semantic.role_barrier.self=1.000(w=0.852), energy.element.parent=0.550(w=0.186), energy.spread.self=0.498(w=0.458)[prop], time.duration.self=0.400(w=0.458)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.432(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.201), energy.spread.self=0.498(w=0.458)[prop], time.duration.self=0.400(w=0.458)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.219), space.axis.parent=0.009(w=1.158), space.elongation.parent=20.000(w=0.975), semantic.role_barrier.self=1.000(w=0.812), energy.element.parent=0.550(w=0.084), energy.spread.self=0.498(w=0.458)[prop], time.duration.self=0.400(w=0.458)[prop]
+  node_3_circle: energy.spread.self=0.997(w=1.227), time.duration.self=1.000(w=1.063), space.scope_radius.self=1.000(w=0.818), semantic.role_zone.self=1.000(w=0.818), energy.spread.children=0.498(w=0.572), time.duration.children=0.400(w=0.572), energy.element.self=0.500(w=0.250), energy.compression.self=1.900(w=1.150)[prop], space.axis.self=0.478(w=1.093)[prop], space.elongation.self=20.000(w=0.920)[prop], energy.element.self=0.550(w=0.167)[prop], energy.compression.self=1.900(w=1.097)[prop], space.axis.self=0.432(w=1.042)[prop], space.elongation.self=20.000(w=0.877)[prop], energy.element.self=0.550(w=0.180)[prop], energy.compression.self=1.900(w=1.097)[prop], space.axis.self=0.009(w=1.042)[prop], space.elongation.self=20.000(w=0.877)[prop], energy.element.self=0.550(w=0.076)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.9902 axis_y=0.1396 behavior=pool compression=6.3533 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.3378 element=arcane elongation=20.0000 fade_rate=0.7825 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.5650 unstable=False
+Network: {"t": "s2", "pwr": 0.65, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.65, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:06:54] === SPELL CAST ===
+Primitives (2): segment(conf=0.85), circle(conf=0.75)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     └─ segment (depth=1) [contained]  area_n=0.47  scale_n=0.47  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.272), space.axis.parent=0.484(w=1.208), space.elongation.parent=20.000(w=1.017), semantic.role_barrier.self=1.000(w=0.848), energy.element.parent=0.550(w=0.140)
+  node_1_circle: energy.spread.self=0.997(w=1.118), time.duration.self=1.000(w=0.969), space.scope_radius.self=1.000(w=0.745), semantic.role_zone.self=1.000(w=0.745), energy.spread.children=0.498(w=0.522), time.duration.children=0.400(w=0.522), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.272), space.axis.parent=0.484(w=1.208), space.elongation.parent=20.000(w=1.017), semantic.role_barrier.self=1.000(w=0.848), energy.element.parent=0.550(w=0.140), energy.spread.self=0.498(w=0.417)[prop], time.duration.self=0.400(w=0.417)[prop]
+  node_1_circle: energy.spread.self=0.997(w=1.118), time.duration.self=1.000(w=0.969), space.scope_radius.self=1.000(w=0.745), semantic.role_zone.self=1.000(w=0.745), energy.spread.children=0.498(w=0.522), time.duration.children=0.400(w=0.522), energy.element.self=0.500(w=0.250), energy.compression.self=1.900(w=1.145)[prop], space.axis.self=0.484(w=1.087)[prop], space.elongation.self=20.000(w=0.916)[prop], energy.element.self=0.550(w=0.126)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.9949 axis_y=0.1012 behavior=pool compression=2.1746 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.0523 element=arcane elongation=20.0000 fade_rate=0.6091 focused=False intensity=1.0000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=1.2183 unstable=False
+Network: {"t": "s2", "pwr": 0.55, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.55, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:06:58] === SPELL CAST ===
+Primitives (2): triangle(conf=0.89), circle(conf=0.76)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near]
+AST: depth=1 nodes=2
+  └─ circle (depth=0) [container]  area_n=0.67  scale_n=0.67  compactness=1.00  elongation=1.03
+     └─ triangle (depth=1) [contained]  area_n=0.07  scale_n=0.31  compactness=0.58  elongation=1.68
+Pass1 (bottom-up) — 2 nœud(s):
+  node_0_triangle: energy.compression.parent=0.585(w=1.330), space.axis.parent=0.962(w=0.537), space.elongation.parent=1.677(w=0.886), semantic.role_focus.self=1.000(w=0.886), energy.element.parent=0.850(w=0.123)
+  node_1_circle: energy.spread.self=0.667(w=1.147), time.duration.self=0.735(w=0.994), space.scope_radius.self=0.669(w=0.764), semantic.role_zone.self=1.000(w=0.764), energy.spread.children=0.333(w=0.535), time.duration.children=0.294(w=0.535), energy.element.self=0.500(w=0.167)
+Pass2 (top-down) — 2 nœud(s):
+  node_0_triangle: energy.compression.parent=0.585(w=1.330), space.axis.parent=0.962(w=0.537), space.elongation.parent=1.677(w=0.886), semantic.role_focus.self=1.000(w=0.886), energy.element.parent=0.850(w=0.123), energy.spread.self=0.333(w=0.428)[prop], time.duration.self=0.294(w=0.428)[prop]
+  node_1_circle: energy.spread.self=0.667(w=1.147), time.duration.self=0.735(w=0.994), space.scope_radius.self=0.669(w=0.764), semantic.role_zone.self=1.000(w=0.764), energy.spread.children=0.333(w=0.535), time.duration.children=0.294(w=0.535), energy.element.self=0.500(w=0.167), semantic.modifier_pierce.self=1.000(w=1.000), energy.compression.self=0.585(w=1.197)[prop], space.axis.self=0.962(w=0.483)[prop], space.elongation.self=1.677(w=0.798)[prop], energy.element.self=0.850(w=0.111)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=0.9710 axis_y=-0.2391 behavior=pool compression=0.7002 dir_x=1.0000 dir_y=0.0000 duration_bonus=0.7934 element=arcane elongation=1.6768 fade_rate=0.4179 focused=False intensity=1.0000 pierce=True power=0.5308 scope_radius=0.6688 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=0.8358 unstable=False
+Network: {"t": "s2", "pwr": 0.55, "phases": [{"form": "cone", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "sub": "push", "pwr": 0.55}]}
+
+[2026-04-18 10:07:05] === SPELL CAST ===
+Primitives (8): segment(conf=0.89), segment(conf=0.79), segment(conf=0.79), segment(conf=0.79), segment(conf=0.79), arrow(conf=0.81), circle(conf=0.78), zigzag(conf=0.63)
+GraphGeo: #0→#1[near], #1→#0[near], #0→#2[near], #2→#0[near], #0→#3[near], #3→#0[near], #0→#6[intersects], #6→#0[intersects], #6→#0[contains], #0→#6[inside], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#6[intersects], #6→#1[intersects], #6→#1[contains], #1→#6[inside], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #2→#6[intersects], #6→#2[intersects], #6→#2[contains], #2→#6[inside], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#6[intersects], #6→#3[intersects], #6→#3[contains], #3→#6[inside], #3→#6[near], #6→#3[near], #4→#6[intersects], #6→#4[intersects], #6→#4[contains], #4→#6[inside], #4→#6[near], #6→#4[near], #6→#5[contains], #5→#6[inside], #6→#7[contains], #7→#6[inside], #6→#7[near], #7→#6[near]
+AST: depth=1 nodes=8
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=0.35  scale_n=0.35  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.10  scale_n=0.10  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.32  scale_n=0.32  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.28  scale_n=0.28  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.49  scale_n=0.49  compactness=1.00  elongation=20.00
+     ├─ arrow (depth=1) [contained]  area_n=0.42  scale_n=0.42  compactness=1.00  elongation=20.00
+     └─ zigzag (depth=1) [contained]  area_n=0.15  scale_n=0.24  compactness=1.00  elongation=4.21
+Pass1 (bottom-up) — 8 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.338), space.axis.parent=0.029(w=1.271), space.elongation.parent=20.000(w=1.070), semantic.role_barrier.self=1.000(w=0.892), energy.element.parent=0.550(w=0.105)
+  node_1_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.014(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.029)
+  node_2_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.937(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.095)
+  node_3_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.894(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.083)
+  node_4_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.210(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.148)
+  node_5_arrow: motion.velocity.parent=0.950(w=1.209), motion.direction.parent=0.987(w=1.209), semantic.role_vector.self=1.000(w=0.806), energy.element.parent=0.750(w=0.169)
+  node_7_zigzag: time.chaos.parent=0.500(w=0.944), semantic.count.self=3.000(w=0.944), semantic.role_chaos.self=1.000(w=0.629), energy.spread.parent=0.077(w=0.503), energy.element.parent=1.000(w=0.119)
+  node_6_circle: energy.spread.self=0.997(w=1.167), time.duration.self=1.000(w=1.012), space.scope_radius.self=1.000(w=0.778), semantic.role_zone.self=1.000(w=0.778), energy.spread.children=0.498(w=0.545), time.duration.children=0.400(w=0.545), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 8 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.338), space.axis.parent=0.029(w=1.271), space.elongation.parent=20.000(w=1.070), semantic.role_barrier.self=1.000(w=0.892), energy.element.parent=0.550(w=0.105), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.014(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.029), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.937(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.095), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.894(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.083), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.191), space.axis.parent=0.210(w=1.131), space.elongation.parent=20.000(w=0.953), semantic.role_barrier.self=1.000(w=0.794), energy.element.parent=0.550(w=0.148), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_5_arrow: motion.velocity.parent=0.950(w=1.209), motion.direction.parent=0.987(w=1.209), semantic.role_vector.self=1.000(w=0.806), energy.element.parent=0.750(w=0.169), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_7_zigzag: time.chaos.parent=0.500(w=0.944), semantic.count.self=3.000(w=0.944), semantic.role_chaos.self=1.000(w=0.629), energy.spread.parent=0.077(w=0.503), energy.element.parent=1.000(w=0.119), energy.spread.self=0.498(w=0.436)[prop], time.duration.self=0.400(w=0.436)[prop]
+  node_6_circle: energy.spread.self=0.997(w=1.167), time.duration.self=1.000(w=1.012), space.scope_radius.self=1.000(w=0.778), semantic.role_zone.self=1.000(w=0.778), energy.spread.children=0.498(w=0.545), time.duration.children=0.400(w=0.545), energy.element.self=0.500(w=0.250), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), semantic.modifier_split.self=1.000(w=1.000), energy.compression.self=1.900(w=1.204)[prop], space.axis.self=0.029(w=1.144)[prop], space.elongation.self=20.000(w=0.963)[prop], energy.element.self=0.550(w=0.094)[prop], energy.compression.self=1.900(w=1.072)[prop], space.axis.self=0.014(w=1.018)[prop], space.elongation.self=20.000(w=0.858)[prop], energy.element.self=0.550(w=0.026)[prop], energy.compression.self=1.900(w=1.072)[prop], space.axis.self=0.937(w=1.018)[prop], space.elongation.self=20.000(w=0.858)[prop], energy.element.self=0.550(w=0.086)[prop], energy.compression.self=1.900(w=1.072)[prop], space.axis.self=0.894(w=1.018)[prop], space.elongation.self=20.000(w=0.858)[prop], energy.element.self=0.550(w=0.074)[prop], energy.compression.self=1.900(w=1.072)[prop], space.axis.self=0.210(w=1.018)[prop], space.elongation.self=20.000(w=0.858)[prop], energy.element.self=0.550(w=0.133)[prop], motion.velocity.self=0.950(w=1.088)[prop], motion.direction.self=0.987(w=1.088)[prop], energy.element.self=0.750(w=0.152)[prop], time.chaos.self=0.500(w=0.850)[prop], energy.spread.self=0.077(w=0.453)[prop], energy.element.self=1.000(w=0.107)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.9831 axis_y=0.1830 behavior=projectile compression=10.4338 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.6216 element=arcane elongation=20.0000 fade_rate=0.9792 focused=False intensity=1.5000 pierce=False power=1.0000 scope_radius=1.0000 secondary_zone=False speed=1.0338 split_count=3 split_on_impact=True spread=1.9584 unstable=True
+Network: {"t": "s2", "pwr": 0.85, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.85, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:07:11] === SPELL CAST ===
+Primitives (4): zigzag(conf=0.68), circle(conf=0.78), arrow(conf=0.74), triangle(conf=0.90)
+GraphGeo: #1→#0[contains], #0→#1[inside], #0→#1[near], #1→#0[near], #1→#2[contains], #2→#1[inside], #1→#3[contains], #3→#1[inside]
+AST: depth=1 nodes=4
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.14  scale_n=0.27  compactness=1.00  elongation=2.63
+     ├─ arrow (depth=1) [contained]  area_n=0.44  scale_n=0.44  compactness=1.00  elongation=20.00
+     └─ triangle (depth=1) [contained]  area_n=0.03  scale_n=0.22  compactness=0.56  elongation=1.87
+Pass1 (bottom-up) — 4 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.014), semantic.count.self=2.000(w=1.014), semantic.role_chaos.self=1.000(w=0.676), energy.spread.parent=0.071(w=0.541), energy.element.parent=1.000(w=0.135)
+  node_2_arrow: motion.velocity.parent=0.950(w=1.107), motion.direction.parent=0.991(w=1.107), semantic.role_vector.self=1.000(w=0.738), energy.element.parent=0.750(w=0.177)
+  node_3_triangle: energy.compression.parent=0.641(w=1.353), space.axis.parent=0.940(w=0.628), space.elongation.parent=1.866(w=0.902), semantic.role_focus.self=1.000(w=0.902), energy.element.parent=0.850(w=0.086)
+  node_1_circle: energy.spread.self=0.997(w=1.176), time.duration.self=1.000(w=1.019), space.scope_radius.self=1.000(w=0.784), semantic.role_zone.self=1.000(w=0.784), energy.spread.children=0.498(w=0.549), time.duration.children=0.400(w=0.549), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 4 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.350(w=1.014), semantic.count.self=2.000(w=1.014), semantic.role_chaos.self=1.000(w=0.676), energy.spread.parent=0.071(w=0.541), energy.element.parent=1.000(w=0.135), energy.spread.self=0.498(w=0.439)[prop], time.duration.self=0.400(w=0.439)[prop]
+  node_2_arrow: motion.velocity.parent=0.950(w=1.107), motion.direction.parent=0.991(w=1.107), semantic.role_vector.self=1.000(w=0.738), energy.element.parent=0.750(w=0.177), energy.spread.self=0.498(w=0.439)[prop], time.duration.self=0.400(w=0.439)[prop]
+  node_3_triangle: energy.compression.parent=0.641(w=1.353), space.axis.parent=0.940(w=0.628), space.elongation.parent=1.866(w=0.902), semantic.role_focus.self=1.000(w=0.902), energy.element.parent=0.850(w=0.086), energy.spread.self=0.498(w=0.439)[prop], time.duration.self=0.400(w=0.439)[prop]
+  node_1_circle: energy.spread.self=0.997(w=1.176), time.duration.self=1.000(w=1.019), space.scope_radius.self=1.000(w=0.784), semantic.role_zone.self=1.000(w=0.784), energy.spread.children=0.498(w=0.549), time.duration.children=0.400(w=0.549), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), time.chaos.self=0.350(w=0.912)[prop], energy.spread.self=0.071(w=0.487)[prop], energy.element.self=1.000(w=0.122)[prop], motion.velocity.self=0.950(w=0.996)[prop], motion.direction.self=0.991(w=0.996)[prop], energy.element.self=0.750(w=0.159)[prop], energy.compression.self=0.641(w=1.218)[prop], space.axis.self=0.940(w=0.565)[prop], space.elongation.self=1.866(w=0.812)[prop], energy.element.self=0.850(w=0.078)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.9290 axis_y=-0.3701 behavior=projectile compression=0.7802 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.2824 element=lightning elongation=1.8665 fade_rate=0.7673 focused=False intensity=1.5000 pierce=True power=0.9617 scope_radius=1.0000 secondary_zone=False speed=0.9462 split_count=2 split_on_impact=True spread=1.5345 unstable=True
+Network: {"t": "s2", "pwr": 0.65, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.65, "extra": {"scatter": true}}]}
+
+[2026-04-18 10:07:19] === SPELL CAST ===
+Primitives (8): segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), segment(conf=0.95), triangle(conf=0.92), triangle(conf=0.93), circle(conf=0.81)
+GraphGeo: #0→#1[intersects], #1→#0[intersects], #0→#1[near], #1→#0[near], #0→#2[near], #2→#0[near], #0→#7[intersects], #7→#0[intersects], #7→#0[contains], #0→#7[inside], #1→#2[intersects], #2→#1[intersects], #1→#2[near], #2→#1[near], #1→#3[near], #3→#1[near], #1→#4[near], #4→#1[near], #1→#7[intersects], #7→#1[intersects], #7→#1[contains], #1→#7[inside], #2→#3[intersects], #3→#2[intersects], #2→#3[near], #3→#2[near], #2→#4[near], #4→#2[near], #2→#7[intersects], #7→#2[intersects], #7→#2[contains], #2→#7[inside], #3→#4[intersects], #4→#3[intersects], #3→#4[near], #4→#3[near], #3→#7[intersects], #7→#3[intersects], #7→#3[contains], #3→#7[inside], #4→#7[intersects], #7→#4[intersects], #7→#4[contains], #4→#7[inside], #5→#7[contains], #7→#5[inside], #7→#5[contains], #5→#7[inside], #5→#7[near], #7→#5[near], #7→#6[contains], #6→#7[inside]
+AST: depth=1 nodes=8
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ segment (depth=1) [contained]  area_n=0.19  scale_n=0.19  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.28  scale_n=0.28  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.07  scale_n=0.07  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.14  scale_n=0.14  compactness=1.00  elongation=20.00
+     ├─ segment (depth=1) [contained]  area_n=0.06  scale_n=0.06  compactness=1.00  elongation=20.00
+     ├─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.23  compactness=0.55  elongation=1.85
+     └─ triangle (depth=1) [contained]  area_n=0.03  scale_n=0.20  compactness=0.58  elongation=1.17
+Pass1 (bottom-up) — 8 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.635(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.056)
+  node_1_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.274(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.085)
+  node_2_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.620(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.022)
+  node_3_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.352(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.042)
+  node_4_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.523(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.017)
+  node_5_triangle: energy.compression.parent=0.654(w=1.386), space.axis.parent=0.972(w=0.637), space.elongation.parent=1.851(w=0.924), semantic.role_focus.self=1.000(w=0.924), energy.element.parent=0.850(w=0.092)
+  node_6_triangle: energy.compression.parent=0.477(w=1.402), space.axis.parent=0.039(w=0.200), space.elongation.parent=1.166(w=0.935), semantic.role_focus.self=1.000(w=0.935), energy.element.parent=0.850(w=0.078)
+  node_7_circle: energy.spread.self=0.997(w=1.214), time.duration.self=1.000(w=1.052), space.scope_radius.self=1.000(w=0.809), semantic.role_zone.self=1.000(w=0.809), energy.spread.children=0.498(w=0.567), time.duration.children=0.400(w=0.567), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 8 nœud(s):
+  node_0_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.635(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.056), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_1_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.274(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.085), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_2_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.620(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.022), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_3_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.352(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.042), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_4_segment: energy.compression.parent=1.900(w=1.422), space.axis.parent=0.523(w=1.351), space.elongation.parent=20.000(w=1.138), semantic.role_barrier.self=1.000(w=0.948), energy.element.parent=0.550(w=0.017), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_5_triangle: energy.compression.parent=0.654(w=1.386), space.axis.parent=0.972(w=0.637), space.elongation.parent=1.851(w=0.924), semantic.role_focus.self=1.000(w=0.924), energy.element.parent=0.850(w=0.092), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_6_triangle: energy.compression.parent=0.477(w=1.402), space.axis.parent=0.039(w=0.200), space.elongation.parent=1.166(w=0.935), semantic.role_focus.self=1.000(w=0.935), energy.element.parent=0.850(w=0.078), energy.spread.self=0.498(w=0.453)[prop], time.duration.self=0.400(w=0.453)[prop]
+  node_7_circle: energy.spread.self=0.997(w=1.214), time.duration.self=1.000(w=1.052), space.scope_radius.self=1.000(w=0.809), semantic.role_zone.self=1.000(w=0.809), energy.spread.children=0.498(w=0.567), time.duration.children=0.400(w=0.567), energy.element.self=0.500(w=0.250), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), energy.compression.self=1.900(w=1.280)[prop], space.axis.self=0.635(w=1.216)[prop], space.elongation.self=20.000(w=1.024)[prop], energy.element.self=0.550(w=0.050)[prop], energy.compression.self=1.900(w=1.280)[prop], space.axis.self=0.274(w=1.216)[prop], space.elongation.self=20.000(w=1.024)[prop], energy.element.self=0.550(w=0.076)[prop], energy.compression.self=1.900(w=1.280)[prop], space.axis.self=0.620(w=1.216)[prop], space.elongation.self=20.000(w=1.024)[prop], energy.element.self=0.550(w=0.019)[prop], energy.compression.self=1.900(w=1.280)[prop], space.axis.self=0.352(w=1.216)[prop], space.elongation.self=20.000(w=1.024)[prop], energy.element.self=0.550(w=0.038)[prop], energy.compression.self=1.900(w=1.280)[prop], space.axis.self=0.523(w=1.216)[prop], space.elongation.self=20.000(w=1.024)[prop], energy.element.self=0.550(w=0.015)[prop], energy.compression.self=0.654(w=1.247)[prop], space.axis.self=0.972(w=0.573)[prop], space.elongation.self=1.851(w=0.831)[prop], energy.element.self=0.850(w=0.083)[prop], energy.compression.self=0.477(w=1.262)[prop], space.axis.self=0.039(w=0.180)[prop], space.elongation.self=1.166(w=0.841)[prop], energy.element.self=0.850(w=0.070)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=False axis_x=-0.6598 axis_y=-0.7514 behavior=pool compression=13.5802 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.6867 element=arcane elongation=20.0000 fade_rate=1.0000 focused=False intensity=1.0000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=0.0000 split_count=0 split_on_impact=False spread=2.0007 unstable=False
+Network: {"t": "s2", "pwr": 0.85, "phases": [{"form": "wall", "dir": [1.0, 0.0], "rad": 0.4, "dur": 1.0, "sub": "create", "pwr": 0.85, "extra": {"terrain_type": "bridge", "traversable": true}}]}
+
+[2026-04-18 10:07:32] === SPELL CAST ===
+Primitives (6): zigzag(conf=0.71), triangle(conf=0.91), triangle(conf=0.88), arrow(conf=0.71), arrow(conf=0.78), circle(conf=0.84)
+GraphGeo: #5→#0[contains], #0→#5[inside], #0→#5[near], #5→#0[near], #5→#1[contains], #1→#5[inside], #1→#5[near], #5→#1[near], #5→#2[contains], #2→#5[inside], #5→#3[contains], #3→#5[inside], #5→#4[contains], #4→#5[inside]
+AST: depth=1 nodes=6
+  └─ circle (depth=0) [container]  area_n=1.00  scale_n=1.00  compactness=1.00  elongation=1.03
+     ├─ zigzag (depth=1) [contained]  area_n=0.08  scale_n=0.31  compactness=0.62  elongation=2.28
+     ├─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.23  compactness=0.52  elongation=1.98
+     ├─ triangle (depth=1) [contained]  area_n=0.04  scale_n=0.25  compactness=0.48  elongation=2.50
+     ├─ arrow (depth=1) [contained]  area_n=0.36  scale_n=0.36  compactness=1.00  elongation=20.00
+     └─ arrow (depth=1) [contained]  area_n=0.33  scale_n=0.33  compactness=1.00  elongation=20.00
+Pass1 (bottom-up) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.500(w=1.070), semantic.count.self=3.000(w=1.070), semantic.role_chaos.self=1.000(w=0.713), energy.spread.parent=0.038(w=0.571), energy.element.parent=1.000(w=0.155)
+  node_1_triangle: energy.compression.parent=0.721(w=1.370), space.axis.parent=0.988(w=0.679), space.elongation.parent=1.984(w=0.913), semantic.role_focus.self=1.000(w=0.913), energy.element.parent=0.850(w=0.094)
+  node_2_triangle: energy.compression.parent=0.830(w=1.321), space.axis.parent=0.988(w=0.793), space.elongation.parent=2.502(w=0.880), semantic.role_focus.self=1.000(w=0.880), energy.element.parent=0.850(w=0.100)
+  node_3_arrow: motion.velocity.parent=0.950(w=1.063), motion.direction.parent=0.001(w=1.063), semantic.role_vector.self=1.000(w=0.709), energy.element.parent=0.750(w=0.143)
+  node_4_arrow: motion.velocity.parent=0.950(w=1.163), motion.direction.parent=0.499(w=1.163), semantic.role_vector.self=1.000(w=0.775), energy.element.parent=0.750(w=0.132)
+  node_5_circle: energy.spread.self=0.997(w=1.254), time.duration.self=1.000(w=1.087), space.scope_radius.self=1.000(w=0.836), semantic.role_zone.self=1.000(w=0.836), energy.spread.children=0.498(w=0.585), time.duration.children=0.400(w=0.585), energy.element.self=0.500(w=0.250)
+Pass2 (top-down) — 6 nœud(s):
+  node_0_zigzag: time.chaos.parent=0.500(w=1.070), semantic.count.self=3.000(w=1.070), semantic.role_chaos.self=1.000(w=0.713), energy.spread.parent=0.038(w=0.571), energy.element.parent=1.000(w=0.155), energy.spread.self=0.498(w=0.468)[prop], time.duration.self=0.400(w=0.468)[prop]
+  node_1_triangle: energy.compression.parent=0.721(w=1.370), space.axis.parent=0.988(w=0.679), space.elongation.parent=1.984(w=0.913), semantic.role_focus.self=1.000(w=0.913), energy.element.parent=0.850(w=0.094), energy.spread.self=0.498(w=0.468)[prop], time.duration.self=0.400(w=0.468)[prop]
+  node_2_triangle: energy.compression.parent=0.830(w=1.321), space.axis.parent=0.988(w=0.793), space.elongation.parent=2.502(w=0.880), semantic.role_focus.self=1.000(w=0.880), energy.element.parent=0.850(w=0.100), energy.spread.self=0.498(w=0.468)[prop], time.duration.self=0.400(w=0.468)[prop]
+  node_3_arrow: motion.velocity.parent=0.950(w=1.063), motion.direction.parent=0.001(w=1.063), semantic.role_vector.self=1.000(w=0.709), energy.element.parent=0.750(w=0.143), energy.spread.self=0.498(w=0.468)[prop], time.duration.self=0.400(w=0.468)[prop]
+  node_4_arrow: motion.velocity.parent=0.950(w=1.163), motion.direction.parent=0.499(w=1.163), semantic.role_vector.self=1.000(w=0.775), energy.element.parent=0.750(w=0.132), energy.spread.self=0.498(w=0.468)[prop], time.duration.self=0.400(w=0.468)[prop]
+  node_5_circle: energy.spread.self=0.997(w=1.254), time.duration.self=1.000(w=1.087), space.scope_radius.self=1.000(w=0.836), semantic.role_zone.self=1.000(w=0.836), energy.spread.children=0.498(w=0.585), time.duration.children=0.400(w=0.585), energy.element.self=0.500(w=0.250), semantic.modifier_split.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_pierce.self=1.000(w=1.000), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), semantic.modifier_aoe_on_impact.self=1.000(w=1.000), time.chaos.self=0.500(w=0.963)[prop], energy.spread.self=0.038(w=0.514)[prop], energy.element.self=1.000(w=0.139)[prop], energy.compression.self=0.721(w=1.233)[prop], space.axis.self=0.988(w=0.611)[prop], space.elongation.self=1.984(w=0.822)[prop], energy.element.self=0.850(w=0.084)[prop], energy.compression.self=0.830(w=1.189)[prop], space.axis.self=0.988(w=0.713)[prop], space.elongation.self=2.502(w=0.792)[prop], energy.element.self=0.850(w=0.090)[prop], motion.velocity.self=0.950(w=0.957)[prop], motion.direction.self=0.001(w=0.957)[prop], energy.element.self=0.750(w=0.128)[prop], motion.velocity.self=0.950(w=1.046)[prop], motion.direction.self=0.499(w=1.046)[prop], energy.element.self=0.750(w=0.119)[prop]
+Pass3 (cross-node): (aucune interférence)
+Resolved: _dir_explicit=False _root_role=role_zone aoe_on_impact=True axis_x=0.9973 axis_y=-0.0731 behavior=projectile compression=1.8748 dir_x=1.0000 dir_y=0.0000 duration_bonus=1.5551 element=lightning elongation=2.5019 fade_rate=0.9265 focused=False intensity=1.5000 pierce=True power=1.0000 scope_radius=1.0000 secondary_zone=False speed=1.9034 split_count=3 split_on_impact=True spread=1.8531 unstable=True
+Network: {"t": "s2", "pwr": 0.75, "phases": [{"form": "aoe", "dir": [1.0, 0.0], "spr": 0.3, "rad": 0.4, "dur": 1.0, "sub": "push", "pwr": 0.75, "extra": {"scatter": true}}]}
+
