@@ -84,7 +84,11 @@ class NetworkClient(threading.Thread):
         return msg
 
     def send_ast_spell(self, ast_spell: dict) -> dict:
-        msg = {"t": "cast_spell", }
+        # Forward tel quel : le spec porte deja son type ("s" ou "s2").
+        msg = dict(ast_spell) if isinstance(ast_spell, dict) else {}
+        msg.setdefault("t", "s")
+        self._send(msg)
+        return msg
 
     def send_join_request(self, map, uid: str = "") -> dict:
         msg = {"t": "join", "map": map}

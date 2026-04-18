@@ -39,7 +39,7 @@ def _clamp(value: float, minimum: float, maximum: float) -> float:
 def execute_spell_intent(instance: Any, client_id: str, intent_data: dict) -> None:
     """Point d'entree : execute un sort s2 multi-phases."""
     player = instance.players.get(client_id)
-    if player is None or not player.get("alive", True):
+    if player is None or not player.is_alive():
         return
 
     phases = intent_data.get("phases", [])
@@ -50,9 +50,9 @@ def execute_spell_intent(instance: Any, client_id: str, intent_data: dict) -> No
 
     # Lancer la phase 0
     _execute_phase(instance, client_id, phases, 0, global_power,
-                   float(player["x"]), float(player["y"]),
-                   float(player.get("facing_x", 1.0)),
-                   float(player.get("facing_y", 0.0)))
+                   float(player.x), float(player.y),
+                   float(player.facing_x),
+                   float(player.facing_y))
 
 
 def _execute_phase(
