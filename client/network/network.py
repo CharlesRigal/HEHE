@@ -84,7 +84,12 @@ class NetworkClient(threading.Thread):
         return msg
 
     def send_ast_spell(self, ast_spell: dict) -> dict:
-        msg = {"t": "cast_spell", }
+        # Le spec issu de params_to_network_spec inclut deja "t": "s".
+        # On se contente de s'assurer qu'il est present puis on envoie tel quel.
+        msg = dict(ast_spell) if isinstance(ast_spell, dict) else {}
+        msg.setdefault("t", "s")
+        self._send(msg)
+        return msg
 
     def send_join_request(self, map, uid: str = "") -> dict:
         msg = {"t": "join", "map": map}
