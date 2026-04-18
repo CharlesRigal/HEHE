@@ -179,7 +179,32 @@ def cast_parametric_spell(
     # ─── Pierce ──────────────────────────────────────────────────
     pierce = has_movement and tick_damage > 0.1
 
-    instance.active_spells.append({
+    # ─── AOI : projectile qui crée une zone à l'impact ────────────
+    # Si aoi=True, le projectile est simplifié (impact pur, pas de tick,
+    # pas de pierce) et stocke les params de la zone secondaire.
+    aoi_fields: dict = {}
+    if spec.aoi and has_movement:
+        aoi_spread = max(spec.spread, 0.15)
+        aoi_radius = _clamp(
+            (22.0 + power * 110.0) * (0.3 + aoi_spread) * emod["radius"],
+            _MIN_RADIUS * 2.5, _MAX_RADIUS * 0.75,
+        )
+        aoi_duration     = _clamp(1.2 + dur_bonus * 2.0, 0.6, 6.0) * emod["duration"]
+        aoi_tick_damage  = base_damage * 0.5 * (0.5 + aoi_spread)
+        aoi_fields = {
+            "aoi":              True,
+            "aoi_radius":       aoi_radius,
+            "aoi_tick_damage":  aoi_tick_damage,
+            "aoi_duration":     aoi_duration,
+            "aoi_tick_interval": tick_interval,
+        }
+        # Le projectile AOI ne tick pas et ne perce pas :
+        # il meurt au premier contact et spawne l'explosion.
+        impact_damage = base_damage * 2.2
+        tick_damage   = 0.0
+        pierce        = False
+
+    spell_entry: dict = {
         "spell_id":         "parametric",
         "owner_id":         client_id,
         "element":          element,
@@ -204,7 +229,18 @@ def cast_parametric_spell(
         "hit_targets":      [],
         "compression":      spec.compression,
         "fade_rate":        spec.fade_rate,
-    })
+    }
+    if aoi_fields:
+        spell_entry.update(aoi_fields)
+
+    # ─── Split (fragmentation à l'impact ou à l'expiration) ──────
+    if spec.split_count > 0 and not spell_entry.get("aoi"):
+        # AOI prioritaire : pas de split simultané (évite la surcharge)
+        spell_entry["split_count"]      = max(2, min(spec.split_count, 8))
+        spell_entry["split_on_impact"]  = spec.split_on_impact
+        spell_entry["split_triggered"]  = False  # garde-fou anti-double-spawn
+
+    instance.active_spells.append(spell_entry)
 
 
 def tick_parametric_spell(instance: Any, spell: dict[str, Any]) -> None:
@@ -277,7 +313,16 @@ def tick_parametric_spell(instance: Any, spell: dict[str, Any]) -> None:
         if impact_damage > 0.0 and enemy_id not in hit_targets:
             damage += impact_damage
             hit_targets.append(enemy_id)
-            if not pierce:
+            if spell.get("aoi"):
+                # AOI prioritaire : explosion à l'impact, le projectile meurt
+                spell["remaining"] = 0.0
+                _spawn_aoe_explosion(instance, spell, cx, cy)
+            elif spell.get("split_on_impact") and not spell.get("split_triggered"):
+                # Split à l'impact : fragmentation, le projectile meurt
+                spell["remaining"] = 0.0
+                spell["split_triggered"] = True
+                _spawn_split_projectiles(instance, spell)
+            elif not pierce:
                 spell["remaining"] = 0.0
 
         if effective_tick > 0.0:
@@ -290,6 +335,149 @@ def tick_parametric_spell(instance: Any, spell: dict[str, Any]) -> None:
 
         if spell["remaining"] <= 0.0:
             return
+
+
+def _spawn_split_projectiles(
+    instance: Any,
+    spell: dict[str, Any],
+) -> None:
+    """
+    Fragmente le sort en N sous-projectiles en éventail.
+
+    Utilisé sur impact (split_on_impact=True) ou sur expiration (depuis
+    game_instance quand remaining <= 0).
+
+    Éventail : les fragments se dispersent autour de la direction originale
+    du sort.  Chaque fragment est plus petit, plus rapide et fait moins de
+    dégâts que le sort parent.  Ils ne peuvent pas se fragmenter à nouveau.
+    """
+    n = max(2, min(int(spell.get("split_count", 2)), 8))
+
+    # Direction d'origine du sort
+    dir_x = float(spell.get("spell_dir_x", 1.0))
+    dir_y = float(spell.get("spell_dir_y", 0.0))
+    base_angle = math.atan2(dir_y, dir_x)
+
+    # Angle d'éventail total : 60° pour 2-3 fragments, 90° pour 4+
+    spread_total = math.pi / 3.0 if n <= 3 else math.pi / 2.0
+
+    # Vitesse des fragments (au moins 280 px/s, légèrement supérieure au parent)
+    parent_speed = math.hypot(
+        float(spell.get("velocity_x", 0.0)),
+        float(spell.get("velocity_y", 0.0)),
+    )
+    frag_speed = max(parent_speed * 1.05, 280.0)
+
+    # Rayon et dégâts réduits
+    parent_radius = float(spell.get("hitbox_radius", 16.0))
+    frag_radius   = _clamp(parent_radius * 0.65, _MIN_RADIUS, parent_radius)
+
+    parent_impact = float(spell.get("impact_damage", _BASE_DAMAGE))
+    frag_impact   = parent_impact * 0.55
+
+    parent_tick   = float(spell.get("tick_damage", 0.0))
+    frag_tick     = parent_tick * 0.4
+
+    # Durée réduite (les fragments sont éphémères)
+    parent_dur    = float(spell.get("initial_duration", 2.0))
+    frag_duration = _clamp(parent_dur * 0.45, 0.25, 3.5)
+
+    tick_int = float(spell.get("tick_interval", _BASE_TICK_INTERVAL))
+    element  = spell.get("element", "neutral")
+    owner    = spell["owner_id"]
+    x        = float(spell["x"])
+    y        = float(spell["y"])
+
+    for i in range(n):
+        if n == 1:
+            offset = 0.0
+        else:
+            # Distribue uniformément de -spread_total/2 à +spread_total/2
+            offset = (i - (n - 1) / 2.0) * (spread_total / max(n - 1, 1))
+
+        angle   = base_angle + offset
+        fdir_x  = math.cos(angle)
+        fdir_y  = math.sin(angle)
+
+        instance.active_spells.append({
+            "spell_id":         "parametric",
+            "owner_id":         owner,
+            "element":          element,
+            "x":                x,
+            "y":                y,
+            "velocity_x":       fdir_x * frag_speed,
+            "velocity_y":       fdir_y * frag_speed,
+            "hitbox_radius":    frag_radius,
+            "hitbox_radius_x":  frag_radius,
+            "hitbox_radius_y":  frag_radius,
+            "ellipse_angle":    0.0,
+            "remaining":        frag_duration,
+            "initial_duration": frag_duration,
+            "tick_interval":    tick_int,
+            "tick_damage":      frag_tick,
+            "impact_damage":    frag_impact,
+            "next_tick_at":     time.time(),
+            "cone_half_angle":  0.0,
+            "spell_dir_x":      fdir_x,
+            "spell_dir_y":      fdir_y,
+            "pierce":           False,
+            "hit_targets":      [],
+            "compression":      0.0,
+            "fade_rate":        0.0,
+            "split_fragment":   True,   # garde-fou : les fragments ne se divisent pas
+        })
+
+
+def _spawn_aoe_explosion(
+    instance: Any,
+    spell: dict[str, Any],
+    x: float,
+    y: float,
+) -> None:
+    """
+    Spawne une zone d'explosion stationnaire au point d'impact d'un projectile AOI.
+
+    La zone est un sort parametrique standard : elle tick, applique des dégâts
+    de zone et expire normalement.  Le `fade_rate` lui donne un effet de
+    dissolution visuelle.
+    """
+    radius   = float(spell.get("aoi_radius",       60.0))
+    duration = float(spell.get("aoi_duration",      1.5))
+    tick_dmg = float(spell.get("aoi_tick_damage",  _BASE_DAMAGE * 0.5))
+    tick_int = float(spell.get("aoi_tick_interval", _BASE_TICK_INTERVAL))
+
+    # Clamp position sur la carte
+    map_w, map_h = instance.map_data.get("size", [1280, 720])
+    cx = _clamp(x, radius, max(radius, map_w - radius))
+    cy = _clamp(y, radius, max(radius, map_h - radius))
+
+    instance.active_spells.append({
+        "spell_id":         "parametric",
+        "owner_id":         spell["owner_id"],
+        "element":          spell.get("element", "neutral"),
+        "x":                cx,
+        "y":                cy,
+        "velocity_x":       0.0,
+        "velocity_y":       0.0,
+        "hitbox_radius":    radius,
+        "hitbox_radius_x":  radius,
+        "hitbox_radius_y":  radius,
+        "ellipse_angle":    0.0,
+        "remaining":        duration,
+        "initial_duration": duration,
+        "tick_interval":    tick_int,
+        "tick_damage":      tick_dmg,
+        "impact_damage":    0.0,          # l'explosion ne fait pas d'impact
+        "next_tick_at":     time.time(),
+        "cone_half_angle":  0.0,
+        "spell_dir_x":      1.0,
+        "spell_dir_y":      0.0,
+        "pierce":           False,
+        "hit_targets":      [],
+        "compression":      0.0,
+        "fade_rate":        0.35,         # se dissout progressivement
+        "aoi_explosion":    True,         # flag debug / réseau
+    })
 
 
 def resolve_spell_vs_spell(active: list[dict]) -> list[dict]:

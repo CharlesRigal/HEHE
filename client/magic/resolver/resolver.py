@@ -26,6 +26,8 @@ from client.magic.ast.symbol_rules import (
 )
 from client.magic.ast.symbol_registry import REGISTRY, SymbolRegistry
 from client.magic.resolver.resolved_spell import ResolvedSpell
+from client.magic.resolver.spell_intent import SpellIntent
+from client.magic.resolver.role_resolver import resolve_intent as _resolve_intent
 
 if TYPE_CHECKING:
     from client.magic.ast.ast import ASTNode, SpellAST
@@ -136,6 +138,10 @@ class ASTResolver:
         self.last_pass1_bags: dict[str, PropertyBag] = {}
         self.last_pass2_bags: dict[str, PropertyBag] = {}
         self.last_cross_entries: list[PropertyEntry] = []
+
+    def resolve_intent(self, ast: "SpellAST") -> SpellIntent:
+        """Nouveau resolver par roles. AST -> SpellIntent multi-phases."""
+        return _resolve_intent(ast)
 
     def resolve(self, ast: "SpellAST") -> ResolvedSpell:
         """Point d'entrée principal. Execute les 2 passes."""

@@ -74,6 +74,7 @@ class HeuristicPrimitiveRecognizer:
         self.register_rule("segment", self._recognize_segment)
         self.register_rule("circle", self._recognize_circle, requires_closed=True)
         self.register_rule("triangle", self._recognize_triangle, requires_closed=True)
+        self.register_rule("zigzag", self._recognize_zigzag, requires_closed=False)
 
     def _recognize_segment(self, stroke: NormalizedStroke) -> RecognizerResult | None:
         points = stroke.points
@@ -279,6 +280,85 @@ class HeuristicPrimitiveRecognizer:
         mean_distance = total / max(1, len(sampled))
         diagonal = max(1e-6, math.hypot(max(p[0] for p in points) - min(p[0] for p in points), max(p[1] for p in points) - min(p[1] for p in points)))
         return mean_distance / diagonal
+
+    def _recognize_zigzag(self, stroke: NormalizedStroke) -> RecognizerResult | None:
+        """Detecte un zigzag a partir de la signature geometrique.
+
+        Un zigzag est un trace ouvert qui :
+          - alterne des deviations perpendiculaires (>= 2 retournements)
+          - progresse le long d'un axe principal (monotonic_ratio eleve)
+          - a un path_length > distance axe (redondance)
+        """
+        if stroke.is_closed:
+            return None
+
+        signature = self._extract_zigzag_signature(stroke)
+        if signature is None:
+            return None
+
+        turn_count = int(signature["turn_count"])
+        alternation = float(signature["alternation_ratio"])
+        amplitude = float(signature["amplitude_ratio"])
+        path_ratio = float(signature["path_ratio"])
+        axis_progress = float(signature["axis_progress"])
+        monotonic_ratio = float(signature["monotonic_ratio"])
+        raw_vertices = signature["vertices"]
+        vertices: list[Point] = []
+        if isinstance(raw_vertices, list):
+            for v in raw_vertices:
+                if isinstance(v, (list, tuple)) and len(v) >= 2:
+                    vertices.append((float(v[0]), float(v[1])))
+
+        # Seuils d'exclusion : rejeter les traces qui sont plus proches d'un
+        # segment bruite ou d'un triangle que d'un vrai zigzag.
+        if turn_count < 2:
+            return None
+        if alternation < 0.50:
+            return None
+        if amplitude < 0.04:
+            return None
+        if path_ratio < 1.10:
+            return None
+        if axis_progress < 0.55:
+            return None
+        if monotonic_ratio < 0.55:
+            return None
+        if len(vertices) < 4:
+            return None
+
+        # Scoring : chaque critere contribue, normalise dans [0, 1].
+        turn_score = clamp((turn_count - 1) / 5.0)          # 2 -> 0.2, 6+ -> 1.0
+        alternation_score = clamp((alternation - 0.45) / 0.55)
+        amplitude_score = clamp((amplitude - 0.03) / 0.18)  # 0.03 -> 0, 0.21 -> 1
+        path_score = clamp((path_ratio - 1.05) / 0.95)      # 1.05 -> 0, 2.0 -> 1
+        progress_score = clamp((axis_progress - 0.5) / 0.5)
+        monotonic_score = clamp((monotonic_ratio - 0.5) / 0.5)
+
+        score = clamp(
+            turn_score * 0.25
+            + alternation_score * 0.22
+            + amplitude_score * 0.18
+            + path_score * 0.15
+            + progress_score * 0.10
+            + monotonic_score * 0.10
+        )
+
+        if score < 0.55:
+            return None
+
+        return RecognizerResult(
+            label="zigzag",
+            score=score,
+            source="heuristic",
+            payload={
+                "vertices": vertices,
+                "turn_count": turn_count,
+                "amplitude_ratio": amplitude,
+                "path_ratio": path_ratio,
+                "alternation_ratio": alternation,
+                "monotonic_ratio": monotonic_ratio,
+            },
+        )
 
     def _extract_zigzag_signature(self, stroke: NormalizedStroke) -> dict[str, float | list[Point]] | None:
         points = stroke.points
