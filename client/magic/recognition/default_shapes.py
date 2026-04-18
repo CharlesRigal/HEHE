@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from client.magic.primitives import Arrow, ArrowWithBase, Circle, RuneFire, Segment, Triangle
+from client.magic.primitives import Arrow, ArrowWithBase, Circle, RuneFire, Segment, Triangle, ZigZag
 from client.magic.recognition.preprocessing import (
     centroid,
     euclidean_distance,
@@ -76,6 +76,17 @@ def build_default_shape_registry(config: RecognitionConfig) -> ShapeRegistry:
             multi_source_bonus=config.multi_source_bonus,
         )
     )
+    registry.register(
+        ShapeDefinition(
+            label="zigzag",
+            aliases=("zig_zag", "zigzag_line"),
+            threshold=config.get_shape_threshold("zigzag", 0.55),
+            builder=build_zigzag_primitive,
+            requires_closed=False,
+            open_penalty=1.0,
+            multi_source_bonus=config.multi_source_bonus,
+        )
+    )
     return registry
 
 
@@ -110,6 +121,33 @@ def build_circle_primitive(stroke: NormalizedStroke, winner: RecognizerResult) -
         _points=points,
         center=tuple(center),
         radius=float(radius),
+        confidence=float(winner.score),
+        source=winner.source,
+        meta=meta,
+    )
+
+
+def build_zigzag_primitive(stroke: NormalizedStroke, winner: RecognizerResult) -> ZigZag | None:
+    points = list(stroke.points)
+    if len(points) < 4:
+        return None
+    payload = winner.payload or {}
+    raw_vertices = payload.get("vertices") or []
+    vertices: list[tuple[float, float]] = []
+    for v in raw_vertices:
+        if isinstance(v, (list, tuple)) and len(v) >= 2:
+            vertices.append((float(v[0]), float(v[1])))
+    if len(vertices) < 4:
+        return None
+    extra: dict[str, float | int | str | bool] = {}
+    for key in ("turn_count", "amplitude_ratio", "path_ratio", "alternation_ratio", "monotonic_ratio"):
+        value = payload.get(key)
+        if isinstance(value, (int, float)):
+            extra[f"zigzag_{key}"] = float(value)
+    meta = _build_primitive_meta(stroke, winner, extra=extra)
+    return ZigZag(
+        _points=points,
+        vertices=vertices,
         confidence=float(winner.score),
         source=winner.source,
         meta=meta,

@@ -84,8 +84,7 @@ class NetworkClient(threading.Thread):
         return msg
 
     def send_ast_spell(self, ast_spell: dict) -> dict:
-        # Le spec issu de params_to_network_spec inclut deja "t": "s".
-        # On se contente de s'assurer qu'il est present puis on envoie tel quel.
+        # Forward tel quel : le spec porte deja son type ("s" ou "s2").
         msg = dict(ast_spell) if isinstance(ast_spell, dict) else {}
         msg.setdefault("t", "s")
         self._send(msg)

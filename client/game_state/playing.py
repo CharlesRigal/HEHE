@@ -40,17 +40,37 @@ def playing(game, tick_rate):
                 has_primitive = True
 
         if has_primitive:
+            import logging
             import time
-            from client.magic.resolver.resolved_spell import params_to_network_spec
+            from client.magic.grammar import parse as grammar_parse, build_intent, describe
+            from client.magic.resolver.resolved_spell import (
+                intent_to_network_spec,
+                params_to_network_spec,
+            )
             from client.ui.spell_debug_overlay import SpellDebugData
             ast = game.ast_builder.build(game.player.magical_draw._magical_graph)
             resolved = game.ast_resolver.resolve(ast)
 
-            # Le cercle est le nœud exécuteur — sans cercle, aucun sort lancé
-            can_cast = any(n.symbol_type == "circle" for n in ast.all_nodes)
+            # Grammaire : la racine doit etre un cercle (phrase/fonction/zone
+            # de lecture). Tout dessin sans cercle englobant est rejete.
+            parse_tree = grammar_parse(ast)
             net_spec = {}
-            if can_cast:
-                net_spec = params_to_network_spec(resolved)
+            if parse_tree is None:
+                logging.info("Spell rejected: no root circle (grammaire)")
+            else:
+                intent = build_intent(parse_tree)
+                logging.debug(
+                    "Grammaire parse:\n%s\nintent=%s",
+                    describe(parse_tree),
+                    None if intent is None else f"{len(intent.phases)} phase(s) element={intent.element}",
+                )
+                if intent is not None:
+                    # Composition reconnue -> format multi-phase s2.
+                    net_spec = intent_to_network_spec(intent)
+                else:
+                    # Cercle present mais composition non reconnue :
+                    # fallback sur le resolver geometrique emergent (format s).
+                    net_spec = params_to_network_spec(resolved)
                 game.cast_ast_spell(net_spec)
 
             debug_data = SpellDebugData(
