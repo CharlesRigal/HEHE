@@ -1,11 +1,6 @@
-from server.spells.fire_rune import FIRE_RUNE_SERVER_DEFINITION
-from server.spells.fire_projectile import FIRE_PROJECTILE_SERVER_DEFINITION
-from server.spells.lightning_rune import LIGHTNING_RUNE_SERVER_DEFINITION
-from server.spells.parametric_spell import PARAMETRIC_SPELL_DEFINITION
+"""Helpers bas niveau pour le systeme d'effets (damage, direction).
 
-__all__ = [
-    "FIRE_RUNE_SERVER_DEFINITION",
-    "FIRE_PROJECTILE_SERVER_DEFINITION",
-    "LIGHTNING_RUNE_SERVER_DEFINITION",
-    "PARAMETRIC_SPELL_DEFINITION",
-]
+Le systeme de sorts (fire_rune, fire_projectile, ...) a ete supprime : tous
+les sorts passent maintenant par le pipeline emergent
+`server/effects/spell_to_effects.py`.
+"""

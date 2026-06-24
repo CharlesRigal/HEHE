@@ -1,0 +1,79 @@
+name: "Salle des torches"
+size: [1280, 720]
+background: 0
+
+# MVP de la Phase 3 : allumer les 3 torches avec un sort de feu dirige.
+# Aucune torche n'est allumee au spawn. Un brasier central est deja allume
+# pour servir de repere visuel.
+
+spawn_points:
+  - x: 200
+    y: 360
+  - x: 1080
+    y: 360
+
+objects:
+  - id: 1
+    type: wall
+    name: "Mur nord"
+    points:
+      - [0, 0]
+      - [1280, 0]
+      - [1280, 40]
+      - [0, 40]
+
+  - id: 2
+    type: wall
+    name: "Mur sud"
+    points:
+      - [0, 680]
+      - [1280, 680]
+      - [1280, 720]
+      - [0, 720]
+
+  - id: 3
+    type: wall
+    name: "Mur ouest"
+    points:
+      - [0, 0]
+      - [40, 0]
+      - [40, 720]
+      - [0, 720]
+
+  - id: 4
+    type: wall
+    name: "Mur est"
+    points:
+      - [1240, 0]
+      - [1280, 0]
+      - [1280, 720]
+      - [1240, 720]
+
+# Entites interactives (Phase 3)
+interactive:
+  - id: torch_north
+    type: torch
+    position: [640, 180]
+    radius: 20
+    state: { lit: false }
+    affinities: { fire: -1.0, water: 0.5 }
+
+  - id: torch_east
+    type: torch
+    position: [960, 360]
+    radius: 20
+    state: { lit: false }
+    affinities: { fire: -1.0, water: 0.5 }
+
+  - id: torch_west
+    type: torch
+    position: [320, 360]
+    radius: 20
+    state: { lit: false }
+    affinities: { fire: -1.0, water: 0.5 }
+
+  - id: brazier_center
+    type: brazier
+    position: [640, 540]
+    radius: 24
+    state: { lit: true }

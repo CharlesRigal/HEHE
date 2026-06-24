@@ -36,7 +36,7 @@ class Player(BasePlayer):
             self.pos = new_target.copy()
         self.interpolator.set_target(new_target)
 
-    def __init__(self, player_id, x, y, image_path="client/assets/images/full_mage.png", max_health=100, speed=300,
+    def __init__(self, player_id, x, y, image_path="client/assets/images/full_mage/full_mage.png", max_health=100, speed=300,
                  magical_draw=None):
         super().__init__(player_id, x, y, image_path, max_health)
         self.mask = 0

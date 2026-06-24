@@ -1,6 +1,11 @@
 import pygame
 
 from client.entities.player import IN_BOARD, IN_DRAWING
+from client.ui.live_prediction_overlay import try_compute_prediction
+
+
+# Throttle : ~10 Hz de prediction live (suffisant pour un feedback visuel fluide)
+_PREDICTION_THROTTLE_FRAMES = 6
 
 
 def playing(game, tick_rate):
@@ -26,6 +31,13 @@ def playing(game, tick_rate):
             )
         else:
             game.player.magical_draw.validate_points_to_board()
+
+        # Phase 6 : recalcule la prediction live, throttle.
+        game._prediction_frame_counter += 1
+        if game._prediction_frame_counter >= _PREDICTION_THROTTLE_FRAMES:
+            game._prediction_frame_counter = 0
+            strokes = game.player.magical_draw.get_strokes()
+            game.live_prediction.update(try_compute_prediction(game, strokes))
     elif game.prev_board_pressed:
         game.player.magical_draw.validate_points_to_board()
         primitives = game.geometry_analyzer.analyze(game.player.magical_draw.get_strokes())
@@ -40,38 +52,16 @@ def playing(game, tick_rate):
                 has_primitive = True
 
         if has_primitive:
-            import logging
             import time
-            from client.magic.grammar import parse as grammar_parse, build_intent, describe
-            from client.magic.resolver.resolved_spell import (
-                intent_to_network_spec,
-                params_to_network_spec,
-            )
+            from client.magic.resolver.resolved_spell import params_to_network_spec
             from client.ui.spell_debug_overlay import SpellDebugData
             ast = game.ast_builder.build(game.player.magical_draw._magical_graph)
             resolved = game.ast_resolver.resolve(ast)
+            net_spec = params_to_network_spec(resolved)
+            game.cast_ast_spell(net_spec)
 
-            # Grammaire : la racine doit etre un cercle (phrase/fonction/zone
-            # de lecture). Tout dessin sans cercle englobant est rejete.
-            parse_tree = grammar_parse(ast)
-            net_spec = {}
-            if parse_tree is None:
-                logging.info("Spell rejected: no root circle (grammaire)")
-            else:
-                intent = build_intent(parse_tree)
-                logging.debug(
-                    "Grammaire parse:\n%s\nintent=%s",
-                    describe(parse_tree),
-                    None if intent is None else f"{len(intent.phases)} phase(s) element={intent.element}",
-                )
-                if intent is not None:
-                    # Composition reconnue -> format multi-phase s2.
-                    net_spec = intent_to_network_spec(intent)
-                else:
-                    # Cercle present mais composition non reconnue :
-                    # fallback sur le resolver geometrique emergent (format s).
-                    net_spec = params_to_network_spec(resolved)
-                game.cast_ast_spell(net_spec)
+            # Phase 7 : memorise les params pour sauvegarde dans le grimoire (touche S).
+            game._last_resolved_params = dict(resolved.params)
 
             debug_data = SpellDebugData(
                 primitives=list(primitives) if isinstance(primitives, list) else [primitives],
@@ -89,8 +79,14 @@ def playing(game, tick_rate):
 
             game.player.magical_draw.clear_board()
             game.player.magical_draw.cancel_clear()
+            game.live_prediction.clear()
         else:
             game.player.magical_draw.schedule_clear(current_time)
+            game.live_prediction.clear()
+
+    if not board_pressed and game.prev_board_pressed:
+        # Releve de la planche : on efface le feedback live.
+        game.live_prediction.clear()
 
     game.prev_board_pressed = board_pressed
 

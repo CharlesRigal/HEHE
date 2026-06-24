@@ -13,8 +13,12 @@ from client.magic.ast.ast_builder import ASTBuilder
 from client.magic.resolver.resolver import ASTResolver
 from client.network.network import NetworkClient
 from client.ui.spell_debug_overlay import SpellDebugOverlay
+from client.ui.live_prediction_overlay import LivePredictionOverlay, try_compute_prediction
+from client.ui.grimoire import GrimoireOverlay
+from client.magic.grimoire import Grimoire
 from client.debug.spell_logger import SpellLogger
 from client.entities.active_spell_renderer import ActiveSpellRenderer
+from client.entities.interactive_entity_renderer import InteractiveEntityRenderer
 from client.core.game_manager import GameManager
 from client.entities.remote_enemy import RemoteEnemy
 from client.entities.remote_player import RemotePlayer
@@ -79,7 +83,7 @@ class Game:
             "1",
             0,
             0,
-            "client/assets/images/full_mage.png",
+            "client/assets/images/full_mage/full_mage.png",
             magical_draw=MagicalDraw(self.screen),
         )
         self.player.map_renderer = self.map_renderer
@@ -93,7 +97,18 @@ class Game:
         self.spell_debug_overlay = SpellDebugOverlay(self)
         self.spell_logger = SpellLogger()
         self._server_spells: list[dict] = []
+        self._server_entities: dict[str, dict] = {}
         self._spell_renderer = ActiveSpellRenderer()
+        self._entity_renderer = InteractiveEntityRenderer()
+
+        # Phase 6 : feedback live pendant le dessin
+        self.live_prediction = LivePredictionOverlay(font_provider=self._get_font)
+        self._prediction_frame_counter = 0
+
+        # Phase 7 : grimoire (persistance + overlay)
+        self._grimoire_store = Grimoire()
+        self.grimoire_overlay = GrimoireOverlay(self._grimoire_store)
+        self._last_resolved_params: dict | None = None
 
     def run(self):
         """Boucle principale avec fixed timestep"""
@@ -192,7 +207,7 @@ class Game:
             return True
         return False
 
-    def connect_to_server(self, host="82.65.89.84", port=9000) -> bool:
+    def connect_to_server(self, host="127.0.0.1", port=9000) -> bool:
         if self.net is not None and self.net_connected:
             return True
         if self.net is not None and not self.net_connected:
@@ -251,6 +266,10 @@ class Game:
         self.last_input_send = 0.0
         self.prev_board_pressed = False
         self._server_spells = []
+        self._server_entities = {}
+        self._last_resolved_params = None
+        self.live_prediction.clear()
+        self.grimoire_overlay.close()
 
         self.game_manager.clear()
         self.map_renderer.reset()
@@ -465,8 +484,19 @@ class Game:
             self._handle_connection_lost("Chargement annulé.")
 
     def _handle_playing_event(self, event):
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            self._handle_connection_lost("Retour au menu.")
+        if event.type == pygame.KEYDOWN:
+            # Grimoire prioritaire : absorbe G / 1-9 / S / ENTREE / SUPPR quand visible.
+            net_spec = self.grimoire_overlay.handle_key(event, self._last_resolved_params)
+            if net_spec is not None:
+                self.cast_ast_spell(net_spec)
+                return
+            if self.grimoire_overlay.visible:
+                # Ne pas quitter la partie si ESC pendant grimoire → referme juste.
+                if event.key == pygame.K_ESCAPE:
+                    self.grimoire_overlay.close()
+                return
+            if event.key == pygame.K_ESCAPE:
+                self._handle_connection_lost("Retour au menu.")
 
     def _handle_game_over_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
@@ -527,6 +557,14 @@ class Game:
         if "spells" in msg:
             self._server_spells = msg["spells"]
 
+        entities_delta = msg.get("entities")
+        if entities_delta:
+            for ent in entities_delta:
+                eid = ent.get("id")
+                if eid is None:
+                    continue
+                self._server_entities[eid] = ent
+
     def handle_map_data(self, msg: dict) -> bool:
         try:
             map_data: dict = msg["map"]
@@ -566,6 +604,12 @@ class Game:
         all_players.pop(self.client_id, None)
         self.sync_remote_players(all_players)
         self.sync_remote_enemies(msg.get("enemies", {}))
+
+        self._server_entities = {}
+        for ent in msg.get("entities", []) or []:
+            eid = ent.get("id")
+            if eid is not None:
+                self._server_entities[eid] = ent
 
     def handle_player_joined(self, msg):
         player = msg.get("player")
@@ -612,6 +656,7 @@ class Game:
         self.screen.fill((0, 0, 0))  # ← efface l'écran avant chaque frame
         self.camera.update(self.player.render_pos)
         self.map_renderer.draw(self.screen, self.camera)
+        self._entity_renderer.draw(self.screen, self._server_entities.values(), self.camera)
         self.player.draw(self.screen, self.camera)
         self.game_manager.draw_all(self.screen, self.camera)
         now = pygame.time.get_ticks() / 1000.0
@@ -619,8 +664,10 @@ class Game:
         self._spell_renderer.draw(self.screen, self._server_spells, self.camera)
         if self.player.magical_draw.should_render(now, board_pressed):
             self.screen.blit(self.player.magical_draw.draw(), (0, 0))
+        self.live_prediction.draw(self.screen)
         self.draw_hud()
         self.spell_debug_overlay.draw(self.screen)
+        self.grimoire_overlay.draw(self.screen, font_provider=self._get_font)
 
     def draw_hud(self):
         if not self.debug_mode:

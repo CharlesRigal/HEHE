@@ -1,10 +1,13 @@
 sprites:
+  torche:
+    image: "torches/brasero_burning.gif"
+    scale: 1.0
   rock:
     image: "rock.png"
     scale: 1.0
   tree:
     image: "tree.png"
-    scale: 1.2
+    scale: 1.0
   water:
     image: "water_tile.png"
     tiling: true

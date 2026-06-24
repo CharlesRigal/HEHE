@@ -176,13 +176,15 @@ async def handle_join_message(client_id: str, msg: dict) -> str:
     # Créer le joueur dans l'instance
     player = instance.create_player(client_id)
 
-    # on laisse le player qui se connect pour lui indiquer sont emplacement
+    from server.entities.interactive import entity_public_state
+
     await send_json_to_client(client_id, {
         "t": "game_state",
         "your_id": client_id,
         "your_player": player.to_full_state(),
         "players": instance.get_players_state(),
-        "enemies": instance.get_enemies_state()
+        "enemies": instance.get_enemies_state(),
+        "entities": [entity_public_state(e) for e in instance._iter_interactives()],
     })
 
     # Notifier les autres joueurs de cette instance
@@ -203,13 +205,6 @@ async def handle_list_maps_message(client_id: str, msg: dict):
         "t": "maps_list",
         "maps": maps_list
     })
-
-
-async def handle_cast_spell_message(client_id: str, msg: dict):
-    instance = find_player_instance(client_id)
-    if not instance:
-        return
-    instance.add_spell_cast(client_id, msg)
 
 
 async def cleanup_client(client_id: str):
@@ -281,7 +276,17 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 continue
 
             try:
-                msg = json.loads(line.decode("utf-8"))
+                decoded = line.decode("utf-8")
+            except UnicodeDecodeError:
+                # Scanner / probe / client casse : on log court et on jette
+                # la ligne, sans tuer la session (log1 seulement).
+                logging.warning(
+                    f"<- {client_id} : non-UTF8 {len(line)}B head={line[:8]!r}, skipped"
+                )
+                continue
+
+            try:
+                msg = json.loads(decoded)
                 logging.debug(f"<- {client_id}: {msg} ({len(line)} bytes)")
             except json.JSONDecodeError:
                 logging.info(f"<- {client_id} (text): {line!r}")
@@ -303,18 +308,10 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 elif msg_type == "list_maps":
                     await handle_list_maps_message(client_id, msg)
 
-                elif msg_type == "cast_spell":
-                    await handle_cast_spell_message(client_id, msg)
-
                 elif msg_type == "s":
                     instance = find_player_instance(client_id)
                     if instance:
                         instance.add_spell_cast_from_spec(client_id, msg)
-
-                elif msg_type == "s2":
-                    instance = find_player_instance(client_id)
-                    if instance:
-                        instance.add_spell_cast_from_intent(client_id, msg)
 
                 elif msg_type == "chat":
                     # Chat global ou par instance

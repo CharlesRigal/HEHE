@@ -4,7 +4,7 @@ from client.entities.base_player import BasePlayer
 
 
 class RemotePlayer(BasePlayer):
-    DEFAULT_SPRITE_PATH = "client/assets/images/full_mage.png"
+    DEFAULT_SPRITE_PATH = "client/assets/images/full_mage/full_mage.png"
     REMOTE_ALPHA = 180
 
     def __init__(self, player_id, x, y, image_path=DEFAULT_SPRITE_PATH):

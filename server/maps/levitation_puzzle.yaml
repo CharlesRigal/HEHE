@@ -1,0 +1,94 @@
+name: "Salle de la gravite"
+size: [1280, 720]
+background: 0
+
+# Phase 5 : demonstration du binding.
+# Le joueur dessine un sort "focused + duration eleve + element aerien"
+# qui emet une ForceEffect continue+bindee. Premier contact avec un cristal
+# -> binding. Tant que le sort dure, la force verticale souleve le cristal.
+#
+# Reglage (cote client/resolver) : un cercle avec axe vertical + boucle
+# ou noeud (focus) + longueur de trait (duration_bonus) -> produit
+# produce_binding cote serveur.
+
+spawn_points:
+  - x: 200
+    y: 500
+  - x: 1080
+    y: 500
+
+objects:
+  - id: 1
+    type: wall
+    name: "Mur nord"
+    points:
+      - [0, 0]
+      - [1280, 0]
+      - [1280, 40]
+      - [0, 40]
+
+  - id: 2
+    type: wall
+    name: "Mur sud (sol)"
+    points:
+      - [0, 680]
+      - [1280, 680]
+      - [1280, 720]
+      - [0, 720]
+
+  - id: 3
+    type: wall
+    name: "Mur ouest"
+    points:
+      - [0, 0]
+      - [40, 0]
+      - [40, 720]
+      - [0, 720]
+
+  - id: 4
+    type: wall
+    name: "Mur est"
+    points:
+      - [1240, 0]
+      - [1280, 0]
+      - [1280, 720]
+      - [1240, 720]
+
+# Entites interactives
+#   - crystal_small / crystal_large : liftables (static=False, masse variable)
+#     -> un cristal leger monte vite avec peu de puissance
+#     -> un cristal lourd demande plus de power/compression
+#   - altar : point d'objectif visuel (static=True), s'allume si un cristal
+#     passe a proximite (reaction via state_name "powered")
+interactive:
+  - id: crystal_small
+    type: crystal
+    position: [500, 600]
+    radius: 16
+    mass: 1.0
+    static: false
+    state: { lifted: false }
+    affinities: { wind: -0.5, storm: -0.5 }
+
+  - id: crystal_large
+    type: crystal
+    position: [800, 600]
+    radius: 22
+    mass: 2.5
+    static: false
+    state: { lifted: false }
+    affinities: { wind: -0.2, storm: -0.3 }
+
+  - id: altar_left
+    type: altar
+    position: [500, 150]
+    radius: 28
+    static: true
+    state: { powered: false }
+
+  - id: altar_right
+    type: altar
+    position: [800, 150]
+    radius: 28
+    static: true
+    state: { powered: false }
