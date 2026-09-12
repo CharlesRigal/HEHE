@@ -3,7 +3,6 @@ import os
 import logging
 from client.entities.base_player import BasePlayer
 from client.core.settings import TICK_INTERVAL
-from client.entities.magical_draw import MagicalDraw
 from client.ui.health_bar import PlayerHealthBar
 
 IN_UP = 1
@@ -46,8 +45,9 @@ class Player(BasePlayer):
         self.pending_inputs = []
         self.last_processed_seq = -1
         self.map_renderer = None
+        self.change_to_map = None
 
-        self.magical_draw: MagicalDraw = magical_draw
+        #self.magical_draw: MagicalDraw = magical_draw
 
         self._correction = pygame.Vector2(0, 0)
         self.health_bar_ui = PlayerHealthBar()
@@ -69,6 +69,12 @@ class Player(BasePlayer):
 
     def apply_input(self, inp):
         """Applique un input sur self.pos"""
+        map_surface = getattr(self.map_renderer, "map_surface", None)
+        # Ne jamais prédire un déplacement avant le chargement de map_data.
+        if map_surface is None:
+            self.rect.center = self.pos
+            return
+
         vy, vx = self.compute_velocity(inp)
         if vx != 0.0 or vy != 0.0:
             self.facing = pygame.Vector2(vx, vy).normalize()
@@ -80,10 +86,15 @@ class Player(BasePlayer):
         collision_detected = False
         if self.map_renderer:
             collision_detected = self.map_renderer.check_collision(new_x, new_y, size=32)
+            if collision_detected:
+                portal = self.map_renderer.object_nearby("portal",new_x, new_y)
+                if portal is not None:
+                    # change map for load the map of the portals
+                    self.change_to_map = portal.get("target")
 
         if not collision_detected:
-            self.pos.x = max(16, min(new_x, self.map_renderer.map_surface.get_width() - 16))
-            self.pos.y = max(16, min(new_y, self.map_renderer.map_surface.get_height() - 16))
+            self.pos.x = max(16, min(new_x, map_surface.get_width() - 16))
+            self.pos.y = max(16, min(new_y, map_surface.get_height() - 16))
 
         self.rect.center = self.pos
 
@@ -107,6 +118,10 @@ class Player(BasePlayer):
         Même physique que apply_input mais sur un vecteur externe.
         self.pos n'est JAMAIS touché.
         """
+        map_surface = getattr(self.map_renderer, "map_surface", None)
+        if map_surface is None:
+            return pos.copy()
+
         vy, vx = self.compute_velocity(inp)
         # Simulation reste pure : on ne change pas la direction ici.
         new_x = pos.x + vx * TICK_INTERVAL
@@ -118,8 +133,8 @@ class Player(BasePlayer):
 
         if not collision_detected:
             return pygame.Vector2(
-                max(16, min(new_x, self.map_renderer.map_surface.get_width() - 16)),
-                max(16, min(new_y, self.map_renderer.map_surface.get_height() - 16))
+                max(16, min(new_x, map_surface.get_width() - 16)),
+                max(16, min(new_y, map_surface.get_height() - 16))
             )
         return pos.copy()
 
@@ -136,7 +151,7 @@ class Player(BasePlayer):
         Réconciliation sans jamais toucher self.pos ni render_pos.
 
         On simule dans une variable temporaire ce que le serveur a
-        confirmé + les inputs non encorssssse confirmés. On calcule l'écart
+        confirmé + les inputs non encore confirmés. On calcule l'écart
         avec la prédiction locale et on accumule la correction dans
         self._correction. update() la drainera progressivement sur
         self.pos sans aucun saut visible.

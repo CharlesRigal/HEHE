@@ -96,6 +96,13 @@ class NetworkClient(threading.Thread):
         self._send(msg)
         return msg
 
+    def send_quit_request(self, uid):
+        msg = {"t": "quit", "uid": uid}
+        if uid:
+            msg["uid"] = uid
+        self._send(msg)
+        return msg
+
     def send_input(self, input) -> dict:
         msg = {"t": "in", "seq": input.get("seq"), "k": input.get("k")}
         self._send(msg)

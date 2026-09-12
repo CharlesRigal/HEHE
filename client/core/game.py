@@ -3,21 +3,13 @@ import time
 import logging
 import pygame
 
-from client.entities.magical_draw import MagicalDraw
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
 from client.graphics.map_selector import MapSelector
 from client.graphics.game_menu import GameMenu
-from client.magic.geometry_analyzer import GeometryAnalyzer
-from client.magic.ast.ast_builder import ASTBuilder
-from client.magic.resolver.resolver import ASTResolver
+
 from client.network.network import NetworkClient
-from client.ui.spell_debug_overlay import SpellDebugOverlay
-from client.ui.live_prediction_overlay import LivePredictionOverlay, try_compute_prediction
-from client.ui.grimoire import GrimoireOverlay
-from client.magic.grimoire import Grimoire
-from client.debug.spell_logger import SpellLogger
-from client.entities.active_spell_renderer import ActiveSpellRenderer
+
 from client.entities.interactive_entity_renderer import InteractiveEntityRenderer
 from client.core.game_manager import GameManager
 from client.entities.remote_enemy import RemoteEnemy
@@ -38,6 +30,13 @@ class GameState:
 
 
 class Game:
+
+    def _handle_change_map(self, map):
+        if self.net is not None:
+            self.net.send_quit_request(self.player_uuid)
+        self._set_state(GameState.LOADING_INSTANCE)
+        self._start_instance_loading(map)
+
     def __init__(self, slot: str | None = None):
         pygame.init()
         self.game_manager = GameManager()
@@ -60,10 +59,6 @@ class Game:
         self.msg_old = ""
         self.last_unknown_msg = None
 
-        self.geometry_analyzer = GeometryAnalyzer()
-        self.ast_builder = ASTBuilder()
-        self.ast_resolver = ASTResolver()
-
         self.state = GameState.MENU
         self.player_uuid = get_player_uuid(slot)
         self.client_id = None
@@ -83,8 +78,7 @@ class Game:
             "1",
             0,
             0,
-            "client/assets/images/full_mage/full_mage.png",
-            magical_draw=MagicalDraw(self.screen),
+            "client/assets/images/full_mage/full_mage.png"
         )
         self.player.map_renderer = self.map_renderer
 
@@ -94,21 +88,9 @@ class Game:
         self.max_frame_time = 0.25  # Protection contre la spirale de la mort
         self._font_cache: dict[int, pygame.font.Font] = {}
         self.debug_mode = False
-        self.spell_debug_overlay = SpellDebugOverlay(self)
-        self.spell_logger = SpellLogger()
         self._server_spells: list[dict] = []
         self._server_entities: dict[str, dict] = {}
-        self._spell_renderer = ActiveSpellRenderer()
         self._entity_renderer = InteractiveEntityRenderer()
-
-        # Phase 6 : feedback live pendant le dessin
-        self.live_prediction = LivePredictionOverlay(font_provider=self._get_font)
-        self._prediction_frame_counter = 0
-
-        # Phase 7 : grimoire (persistance + overlay)
-        self._grimoire_store = Grimoire()
-        self.grimoire_overlay = GrimoireOverlay(self._grimoire_store)
-        self._last_resolved_params: dict | None = None
 
     def run(self):
         """Boucle principale avec fixed timestep"""
@@ -124,6 +106,9 @@ class Game:
                     while self.accumulator >= TICK_INTERVAL:
                         self.update_logic(TICK_INTERVAL)
                         self.accumulator -= TICK_INTERVAL
+                        if self.player.change_to_map is not None:
+                            self._handle_change_map(self.player.change_to_map)
+                            self.player.change_to_map = None
                 else:
                     self.accumulator = 0.0
 
@@ -131,7 +116,7 @@ class Game:
                 self.clock.tick(FPS)
         finally:
             self.disconnect_from_server()
-            self.spell_logger.close()
+#            self.spell_logger.close()
             pygame.quit()
 
     def _compute_frame_time(self) -> float:
@@ -153,11 +138,13 @@ class Game:
         if self.state == GameState.LOADING_INSTANCE:
             elapsed = now - self.loading_started_at
             if elapsed >= self.loading_timeout:
-                self._handle_connection_lost("Chargement de la partie trop long, retour au menu.")
+                pass
+                #self._handle_connection_lost("Chargement de la partie trop long, retour au menu.")
 
     def update_logic(self, dt):
         """Mise à jour de la logique du jeu à fréquence fixe (60 Hz)"""
         playing(self, tick_rate=dt)
+
 
     def draw(self):
         """Rendu graphique (fréquence variable)"""
@@ -225,9 +212,14 @@ class Game:
             self.net_connected = False
         return self.net_connected
 
-    def join_the_server(self, map_id):
+    def join_map_instance(self, map_id):
         if self.net is not None:
             self.net.send_join_request(map_id, uid=self.player_uuid)
+
+    def leave_map_instance(self):
+        if self.net is not None:
+            self.net.send_quit_request(uid=self.player_uuid)
+
 
     def _close_network_client(self):
         if self.net is None:
@@ -268,8 +260,6 @@ class Game:
         self._server_spells = []
         self._server_entities = {}
         self._last_resolved_params = None
-        self.live_prediction.clear()
-        self.grimoire_overlay.close()
 
         self.game_manager.clear()
         self.map_renderer.reset()
@@ -283,8 +273,8 @@ class Game:
         self.player.life.reset_health()
         if hasattr(self.player, "_correction"):
             self.player._correction.update(0.0, 0.0)
-        if self.player.magical_draw:
-            self.player.magical_draw.clear_board()
+#        if self.player.magical_draw:
+#            self.player.magical_draw.clear_board()
 
     def _handle_connection_lost(self, reason: str):
         logging.info(reason)
@@ -318,7 +308,7 @@ class Game:
         self._awaiting_map_data = True
         self._awaiting_game_state = True
         self._set_state(GameState.LOADING_INSTANCE)
-        self.join_the_server(map_id)
+        self.join_map_instance(map_id)
 
     def _try_enter_playing_state(self):
         if self._awaiting_map_data or self._awaiting_game_state:
@@ -398,8 +388,8 @@ class Game:
         self.camera.set_screen(self.screen)
         self.game_menu.resize(width, height)
         self.map_selector.resize(width, height)
-        if self.player and self.player.magical_draw:
-            self.player.magical_draw.resize_surface((width, height))
+        #if self.player and self.player.magical_draw:
+        #    self.player.magical_draw.resize_surface((width, height))
 
     def handle_events(self):
         window_size_changed_event = getattr(pygame, "WINDOWSIZECHANGED", -1)
@@ -421,18 +411,6 @@ class Game:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_F1 and (event.mod & pygame.KMOD_CTRL):
                 self._toggle_debug_mode()
                 continue
-
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_F5:
-                self.spell_debug_overlay.toggle()
-                continue
-
-            if event.type == pygame.KEYDOWN and self.spell_debug_overlay.visible:
-                if event.key == pygame.K_LEFTBRACKET:
-                    self.spell_debug_overlay.prev_stage()
-                    continue
-                elif event.key == pygame.K_RIGHTBRACKET:
-                    self.spell_debug_overlay.next_stage()
-                    continue
 
             if self.state == GameState.MENU:
                 self._handle_menu_event(event)
@@ -485,16 +463,6 @@ class Game:
 
     def _handle_playing_event(self, event):
         if event.type == pygame.KEYDOWN:
-            # Grimoire prioritaire : absorbe G / 1-9 / S / ENTREE / SUPPR quand visible.
-            net_spec = self.grimoire_overlay.handle_key(event, self._last_resolved_params)
-            if net_spec is not None:
-                self.cast_ast_spell(net_spec)
-                return
-            if self.grimoire_overlay.visible:
-                # Ne pas quitter la partie si ESC pendant grimoire → referme juste.
-                if event.key == pygame.K_ESCAPE:
-                    self.grimoire_overlay.close()
-                return
             if event.key == pygame.K_ESCAPE:
                 self._handle_connection_lost("Retour au menu.")
 
@@ -661,13 +629,13 @@ class Game:
         self.game_manager.draw_all(self.screen, self.camera)
         now = pygame.time.get_ticks() / 1000.0
         board_pressed = bool(self.player.mask & IN_BOARD)
-        self._spell_renderer.draw(self.screen, self._server_spells, self.camera)
-        if self.player.magical_draw.should_render(now, board_pressed):
-            self.screen.blit(self.player.magical_draw.draw(), (0, 0))
-        self.live_prediction.draw(self.screen)
+        #self._spell_renderer.draw(self.screen, self._server_spells, self.camera)
+#        if self.player.magical_draw.should_render(now, board_pressed):
+#d            self.screen.blit(self.player.magical_draw.draw(), (0, 0))
+        #self.live_prediction.draw(self.screen)
         self.draw_hud()
-        self.spell_debug_overlay.draw(self.screen)
-        self.grimoire_overlay.draw(self.screen, font_provider=self._get_font)
+        #self.spell_debug_overlay.draw(self.screen)
+        #self.grimoire_overlay.draw(self.screen, font_provider=self._get_font)
 
     def draw_hud(self):
         if not self.debug_mode:

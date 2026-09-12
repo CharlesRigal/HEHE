@@ -104,12 +104,13 @@ objects:
       - [1600, 900]
       - [0, 900]
 
-  # Ruines
+  # Portail
   - id: 10
-    type: wall
-    name: "Ruines anciennes"
+    type: portal
+    target: "forest"
+    name: "Portal forêt"
     points:
       - [200, 500]
-      - [350, 500]
-      - [350, 600]
-      - [200, 600]
+      - [260,500]
+      - [260,560]
+      - [200,560]

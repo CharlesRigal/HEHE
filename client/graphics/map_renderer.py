@@ -23,6 +23,7 @@ class MapRenderer:
                 self.background_config = file.get("backgrounds", {})
 
         self.loaded_sprites = {}
+        self.scaled_tiles = {}
         self.loaded_backgrounds = {}
 
     # --- Gestion sprites ---
@@ -53,12 +54,15 @@ class MapRenderer:
 
     # --- Gestion backgrounds ---
     def _get_background(self, bg_name: str):
+        # Les YAML de maps utilisent des identifiants numériques (1, 2),
+        # tandis que les clés YAML de sprites sont des chaînes ("1", "2").
+        bg_name = str(bg_name) if bg_name is not None else ""
         if not bg_name or bg_name not in self.background_config:
             return None
 
         if bg_name not in self.loaded_backgrounds:
-            asset_file = resources.files("client.assets.backgrounds") / self.background_config[bg_name]
             try:
+                asset_file = resources.files("client.assets.backgrounds") / self.background_config[bg_name]
                 img = pygame.image.load(str(asset_file)).convert()
             except FileNotFoundError:
                 logging.warning(f"Background introuvable: {self.background_config[bg_name]}")
@@ -115,12 +119,61 @@ class MapRenderer:
         sprite = self._get_sprite(obj_type)
 
         if sprite:
-            rect = sprite.get_rect()
-            rect.topleft = points[0]
-            self.map_surface.blit(sprite, rect)
+            sprite_conf = self.sprite_config.get(obj_type, {})
+            tile_size = self._tile_size(sprite_conf, obj_type)
+            if sprite_conf.get("tiling", False) or tile_size is not None:
+                self._blit_tiled_sprite(sprite, points, tile_size)
+            else:
+                rect = sprite.get_rect()
+                rect.topleft = points[0]
+                self.map_surface.blit(sprite, rect)
         else:
             color = self._get_color(obj_type)
             pygame.draw.polygon(self.map_surface, color, points)
+
+    def _tile_size(self, sprite_conf: dict, obj_type: str):
+        """Retourne la taille de tuile imposée par ``repeat``, si présente."""
+        repeat = sprite_conf.get("repeat")
+        if repeat is None:
+            return None
+        if not isinstance(repeat, (list, tuple)) or len(repeat) != 2:
+            logging.warning("repeat invalide pour le sprite %s: %r", obj_type, repeat)
+            return None
+        try:
+            width, height = (int(repeat[0]), int(repeat[1]))
+        except (TypeError, ValueError):
+            logging.warning("repeat invalide pour le sprite %s: %r", obj_type, repeat)
+            return None
+        if width <= 0 or height <= 0:
+            logging.warning("repeat doit être strictement positif pour le sprite %s", obj_type)
+            return None
+        return (width, height)
+
+    def _blit_tiled_sprite(self, sprite: pygame.Surface, points: list, tile_size):
+        """Répète un sprite dans le rectangle englobant d'un objet de map."""
+        xs, ys = zip(*points)
+        bounds = pygame.Rect(min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))
+        if bounds.width <= 0 or bounds.height <= 0:
+            return
+
+        if tile_size is None:
+            tile = sprite
+        else:
+            cache_key = (id(sprite), tile_size)
+            tile = self.scaled_tiles.get(cache_key)
+            if tile is None:
+                tile = pygame.transform.scale(sprite, tile_size)
+                self.scaled_tiles[cache_key] = tile
+
+        tile_width, tile_height = tile.get_size()
+        previous_clip = self.map_surface.get_clip()
+        self.map_surface.set_clip(bounds)
+        try:
+            for x in range(bounds.left, bounds.right, tile_width):
+                for y in range(bounds.top, bounds.bottom, tile_height):
+                    self.map_surface.blit(tile, (x, y))
+        finally:
+            self.map_surface.set_clip(previous_clip)
 
     def _get_color(self, obj_type: str):
         palette = {
@@ -149,6 +202,24 @@ class MapRenderer:
                         y1 < max(ys) and y2 > min(ys)):
                     return True
         return False
+
+    def object_nearby(self,type,x,y,area_size=10,size=32):
+        x1, x2 = x - size / 2, x + size / 2
+        y1, y2 = y - size / 2, y + size / 2
+
+        max_p_area = lambda x: max(x) + area_size
+        min_p_area = lambda x: min(x) + area_size
+
+        for obj in self.collision_objects:
+            if obj.get("type") == type:
+                pts = obj.get("points", [])
+                if len(pts) >= 4:
+                    xs, ys = zip(*pts)
+                    if (x1 < max_p_area(xs) and x2 > min_p_area(xs) and
+                            y1 < max_p_area(ys) and y2 > min_p_area(ys)):
+                         return obj
+
+
 
     def get_spawn_points(self):
         return self.current_map.get("spawn_points", []) if self.current_map else []

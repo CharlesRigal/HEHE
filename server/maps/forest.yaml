@@ -18,6 +18,16 @@ spawn_points:
 
 # Objets de collision dans la map
 objects:
+  # Portail
+  - id: 1
+    type: portal
+    target: "desert"
+    name: "Portal desert"
+    points:
+      - [200, 500]
+      - [260,500]
+      - [260,560]
+      - [200,560]
 #  # Rocher en haut à gauche
 #  - id: 1
 #    type: rock

@@ -169,6 +169,7 @@ async def handle_join_message(client_id: str, msg: dict) -> str:
             "id": map_id,
             "name": map_data.get("name", "Unnamed"),
             "size": map_data.get("size", [1280, 720]),
+            "background": map_data.get("background"),
             "objects": map_data.get("objects", [])
         }
     })
@@ -208,11 +209,13 @@ async def handle_list_maps_message(client_id: str, msg: dict):
 
 
 async def cleanup_client(client_id: str):
-    """Nettoie un client déconnecté"""
-    # Supprimer de toutes les structures
+    """Nettoie définitivement un client déconnecté."""
+    await leave_map_instance(client_id)
     CLIENTS.pop(client_id, None)
 
-    # Supprimer de son instance de jeu
+
+async def leave_map_instance(client_id: str):
+    """Retire un client de son instance sans fermer sa connexion."""
     instance = find_player_instance(client_id)
     if instance:
         instance.remove_player(client_id)
@@ -231,6 +234,11 @@ async def cleanup_client(client_id: str):
 
         logging.info(f"Cleaned up player {client_id} from instance {instance.map_id}")
 
+
+async def handle_quit_message(client_id):
+    # Le client envoie ``quit`` puis ``join`` pour changer de portail : il
+    # doit rester dans CLIENTS afin de recevoir map_data et game_state.
+    await leave_map_instance(client_id)
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter, line=None, client_id=None):
     """Gère la connexion d'un client
@@ -301,6 +309,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
                 elif msg_type == "join":
                     client_id = await handle_join_message(client_id, msg)
+
+                elif msg_type == "quit":
+                    await handle_quit_message(client_id)
 
                 elif msg_type == "in":
                     await handle_input_message(client_id, msg)

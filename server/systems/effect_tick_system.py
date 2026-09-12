@@ -9,24 +9,24 @@ from __future__ import annotations
 
 from typing import Any
 
-from server.effects.elemental_reactions import detect_reactions
-from server.effects.runtime import spawn_effect, tick_all
+#from server.effects.elemental_reactions import detect_reactions
+#from server.effects.runtime import spawn_effect, tick_all
 
 
 class EffectTickSystem:
     def tick(self, world: Any, dt: float, now: float) -> None:
-        if not world.live_effects:
-            return
+#        if not world.live_effects:
+#            return
         bounds = tuple(world.map_data.get("size", [1280, 720]))
-        world.live_effects = tick_all(world, world.live_effects, dt, now, bounds)
+        #world.live_effects = tick_all(world, world.live_effects, dt, now, bounds)
 
-        result = detect_reactions(world.live_effects)
-        if result.consumed_ids or result.new_effects:
-            world.live_effects = [
-                le for le in world.live_effects if id(le) not in result.consumed_ids
-            ]
-            for effect in result.new_effects:
-                world.live_effects.append(spawn_effect(effect, now=now))
+        #result = detect_reactions(world.live_effects)
+#        if result.consumed_ids or result.new_effects:
+        #           world.live_effects = [
+        #                le for le in world.live_effects if id(le) not in result.consumed_ids
+        #    ]
+        #    for effect in result.new_effects:
+#        world.live_effects.append(spawn_effect(effect, now=now))
 
 
 if __name__ == "__main__":

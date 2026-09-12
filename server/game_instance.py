@@ -6,12 +6,12 @@ from collections import deque
 from typing import Callable
 
 from server.config import PLAYER_SPEED, TICK_INTERVAL
-from server.effects.effect_types import DamageEffect, ShapeKind
-from server.effects.runtime import LiveEffect, spawn_effect
-from server.effects.spell_to_effects import spec_to_effects
+#from server.effects.effect_types import DamageEffect, ShapeKind
+#from server.effects.runtime import LiveEffect, spawn_effect
+#from server.effects.spell_to_effects import spec_to_effects
 from server.entities.components import Entity, EnemyAI, EntityBody, EntityCombat
 from server.entities.interactive import build_entity, entity_public_state
-from server.magic.spell_spec import spec_from_network
+#from server.magic.spell_spec import spec_from_network
 from server.players.player import Player
 from server.save.error import PlayerNotFound
 from server.save.save import get_save
@@ -38,8 +38,8 @@ class GameInstance:
         self.player_attack_hurtbox_h = 18.0
 
         # Pipeline emergent : sorts -> effects -> LiveEffect
-        self.live_effects: list[LiveEffect] = []
-        self._had_effects_last_tick: bool = False
+        #self.live_effects: list[LiveEffect] = []
+        #self._had_effects_last_tick: bool = False
 
         # Unified ECS : ennemis + interactives + futures (caisses, cristaux...)
         self.entities: list[Entity] = []
@@ -141,24 +141,6 @@ class GameInstance:
     @staticmethod
     def _clamp(value: float, minimum: float, maximum: float) -> float:
         return max(minimum, min(maximum, value))
-
-    def add_spell_cast_from_spec(self, client_id: str, msg: dict) -> None:
-        """Pipeline emergent : spec reseau -> effects -> LiveEffect."""
-        player = self.players.get(client_id)
-        if player is None or not player.can_cast_a_spell():
-            return
-
-        spec = spec_from_network(msg)
-        effects = spec_to_effects(spec, player)
-
-        map_w, map_h = self.map_data.get("size", [1280, 720])
-        now = time.time()
-        for effect in effects:
-            shape = effect.shape
-            r = max(shape.radius, shape.radius_x, shape.radius_y, 1.0)
-            shape.x = self._clamp(shape.x, r, max(r, map_w - r))
-            shape.y = self._clamp(shape.y, r, max(r, map_h - r))
-            self.live_effects.append(spawn_effect(effect, now=now))
 
     def _load_interactive_entities(self):
         configs = self.map_data.get("interactive", []) or []
@@ -310,31 +292,6 @@ class GameInstance:
             await self.broadcast_callback(message, player_ids)
             self.messages_sent += 1
 
-    def _serialize_live_effects(self) -> list[dict]:
-        """Serialise pour le client (format historique 'spells')."""
-        out: list[dict] = []
-        for live in self.live_effects:
-            if not isinstance(live.effect, DamageEffect):
-                # StateChange/Force : invisibles cote rendu pour l'instant
-                continue
-            shape = live.effect.shape
-            r = max(shape.radius, shape.radius_x, shape.radius_y)
-            entry = {
-                "x": round(shape.x, 1),
-                "y": round(shape.y, 1),
-                "r": round(r, 1),
-                "e": live.effect.element,
-                "vx": round(shape.velocity_x, 1),
-                "vy": round(shape.velocity_y, 1),
-                "bh": "parametric",
-            }
-            if shape.kind is ShapeKind.ELLIPSE:
-                entry["rx"] = round(shape.radius_x, 1)
-                entry["ry"] = round(shape.radius_y, 1)
-                entry["ea"] = round(math.degrees(shape.angle))
-            out.append(entry)
-        return out
-
     async def game_loop(self):
         logging.info(f"Starting game loop for instance {self.map_id}")
         last_time = time.time()
@@ -356,9 +313,6 @@ class GameInstance:
                             self.process_input(self.players[client_id], input_dict)
                             self.inputs_processed += 1
 
-                # ECS pipeline : IA lit joueurs + ecrit vx/vy
-                #                MovementSystem integre les corps non static
-                #                EffectTickSystem dispatche les LiveEffect
                 self._enemy_ai_system.tick(self, TICK_INTERVAL, current_time)
                 self._movement_system.tick(self, TICK_INTERVAL, current_time)
                 self._effect_tick_system.tick(self, TICK_INTERVAL, current_time)
@@ -377,7 +331,7 @@ class GameInstance:
                         if self.enemies_previous_state.get(enemy.id) != current_data:
                             enemies_state[enemy.id] = current_data
 
-                    spells_state = self._serialize_live_effects()
+                    #spells_state = self._serialize_live_effects()
 
                     # Diff inconditionnel : capture etats (reactions) ET positions
                     # (cristaux en levitation bougent sans que _entities_dirty
@@ -394,22 +348,16 @@ class GameInstance:
                     if (
                         players_state
                         or enemies_state
-                        or spells_state
                         or entities_state
-                        or self._had_effects_last_tick
                     ):
                         message = {"t": "game_update", "timestamp": current_time}
                         if players_state:
                             message["players"] = players_state
                         if enemies_state:
                             message["enemies"] = enemies_state
-                        if spells_state or self._had_effects_last_tick:
-                            message["spells"] = spells_state
                         if entities_state:
                             message["entities"] = entities_state
                         await self.broadcast_to_players(message)
-
-                    self._had_effects_last_tick = bool(spells_state)
 
                     self.players_previous_state = {
                         player_id: player_data.to_update_state()

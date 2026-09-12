@@ -2,12 +2,14 @@ sprites:
   torche:
     image: "torches/brasero_burning.gif"
     scale: 1.0
+    behaviour: ""
   rock:
     image: "rock.png"
-    scale: 1.0
+    repeat: [32, 32]
   tree:
     image: "tree.png"
     scale: 1.0
+    behaviour: "can_burn"
   water:
     image: "water_tile.png"
     tiling: true
@@ -16,6 +18,10 @@ sprites:
     repeat: [32, 32]
   default:
     color: [128, 128, 128]
+  portal:
+    image: "portal.png"
+    scale: 1.0
+    portal_dir: "forest"
 
 backgrounds:
   "1": "dirt_and_grass.png"

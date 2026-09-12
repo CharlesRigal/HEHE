@@ -31,12 +31,12 @@ from typing import Any
 
 import pygame
 
-from client.magic.grimoire import Grimoire, GrimoireEntry
-from client.magic.resolver.prediction import predict_archetype
-from client.ui.live_prediction_overlay import (
-    _draw_archetype_icon as _draw_phase6_icon,
-    _ELEMENT_COLORS as _PHASE6_ELEMENT_COLORS,
-)
+#from client.magic.grimoire import Grimoire, GrimoireEntry
+#from client.magic.resolver.prediction import predict_archetype
+#from client.ui.live_prediction_overlay import (
+#    _draw_archetype_icon as _draw_phase6_icon,
+#    _ELEMENT_COLORS as _PHASE6_ELEMENT_COLORS,
+#)
 
 
 _ASSETS = Path("client/assets/images/grimoire/PNG")
