@@ -94,3 +94,20 @@ client → {"t": "join", "map": "<map_id>"}
 ## Architecture
 
 Voir [CLAUDE.md](CLAUDE.md) pour les détails de la pipeline client (strokes → primitives → AST → resolver → réseau) et la structure serveur.
+
+---
+
+## Tests automatisés
+
+La simulation serveur est testée sans ouvrir de fenêtre ni démarrer le réseau.
+La suite couvre notamment le mouvement, les collisions, l'ordre des entrées
+réseau, l'IA ennemie et les interactions de puzzle.
+Elle comprend aussi une régression visuelle pygame sans fenêtre : une scène
+d'objets interactifs est rendue puis comparée à sa capture de référence.
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Le même scénario est exécuté automatiquement par GitHub Actions à chaque push
+et pull request (`.github/workflows/tests.yml`).

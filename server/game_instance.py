@@ -24,6 +24,10 @@ from server.systems import (
 
 
 class GameInstance:
+    # Borne de surete : un client ne peut pas monopoliser un tick en envoyant
+    # une file d'entrees infinie. Exposee pour etre verifiee par les tests.
+    MAX_INPUTS_PER_TICK = 60
+
     def __init__(self, map_id: str, map_data: dict, broadcast_callback: Callable):
         self.map_id = map_id
         self.map_data = map_data
@@ -247,7 +251,10 @@ class GameInstance:
             return
 
         seq = input_data.get("seq", -1)
-        player.record_input_seq(seq)
+        # Les paquets reseau peuvent arriver dans le desordre.  Un paquet
+        # ancien ne doit jamais remplacer le mouvement plus recent du joueur.
+        if not player.record_input_seq(seq):
+            return
 
         k = input_data.get("k", 0)
         speed = PLAYER_SPEED
@@ -278,8 +285,15 @@ class GameInstance:
         map_w, map_h = self.map_data.get("size", [1280, 720])
         size = self.player_collision_size
 
-        new_x = max(size / 2, min(new_x, map_w - size / 2))
-        new_y = max(size / 2, min(new_y, map_h - size / 2))
+        clamped_x = max(size / 2, min(new_x, map_w - size / 2))
+        clamped_y = max(size / 2, min(new_y, map_h - size / 2))
+        # A la limite de carte, ne pas publier une vitesse qui pointe hors
+        # monde : le client ne doit pas animer/predire un faux mouvement.
+        if clamped_x != new_x:
+            vx = 0.0
+        if clamped_y != new_y:
+            vy = 0.0
+        new_x, new_y = clamped_x, clamped_y
 
         if not self._check_collision_with_objects(new_x, new_y, size):
             player.set_motion(x=new_x, y=new_y, vx=vx, vy=vy)
@@ -292,11 +306,18 @@ class GameInstance:
             await self.broadcast_callback(message, player_ids)
             self.messages_sent += 1
 
+    def _process_pending_inputs(self) -> None:
+        """Traite une tranche bornee de chaque file d'entrees client."""
+        for client_id, input_list in list(self.pending_inputs.items()):
+            if client_id in self.players and input_list:
+                for _ in range(min(self.MAX_INPUTS_PER_TICK, len(input_list))):
+                    input_dict = input_list.popleft()
+                    self.process_input(self.players[client_id], input_dict)
+                    self.inputs_processed += 1
+
     async def game_loop(self):
         logging.info(f"Starting game loop for instance {self.map_id}")
         last_time = time.time()
-        MAX_INPUTS_PER_TICK = 60
-
         try:
             while self.running:
                 current_time = time.time()
@@ -306,12 +327,7 @@ class GameInstance:
                 self.dt_samples.append(dt)
                 self.tick_count += 1
 
-                for client_id, input_list in list(self.pending_inputs.items()):
-                    if client_id in self.players and input_list:
-                        for _ in range(min(MAX_INPUTS_PER_TICK, len(input_list))):
-                            input_dict = input_list.popleft()
-                            self.process_input(self.players[client_id], input_dict)
-                            self.inputs_processed += 1
+                self._process_pending_inputs()
 
                 self._enemy_ai_system.tick(self, TICK_INTERVAL, current_time)
                 self._movement_system.tick(self, TICK_INTERVAL, current_time)

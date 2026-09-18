@@ -64,16 +64,16 @@ class EnemyAISystem:
                 vx = (dx / distance) * effective_speed
                 vy = (dy / distance) * effective_speed
 
-            new_x = body.x + vx * TICK_INTERVAL
-            new_y = body.y + vy * TICK_INTERVAL
+            # L'IA choisit une vitesse; le deplacement est exclusivement
+            # integre par MovementSystem au tick suivant.  Cela evite de
+            # deplacer un ennemi deux fois par tick.
+            new_x = body.x + vx * dt
+            new_y = body.y + vy * dt
             half = body.radius
             new_x = max(half, min(new_x, map_w - half))
             new_y = max(half, min(new_y, map_h - half))
 
-            if not _collides(world, new_x, new_y, body.radius * 2):
-                body.x = new_x
-                body.y = new_y
-            else:
+            if _collides(world, new_x, new_y, body.radius * 2):
                 vx = vy = 0.0
 
             body.velocity_x = vx
