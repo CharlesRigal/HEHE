@@ -3,6 +3,8 @@ from __future__ import annotations
 import math
 import time
 
+from server.entities.components import EntityBody
+
 
 class Player:
     __slots__ = (
@@ -18,6 +20,7 @@ class Player:
         "_alive",
         "_last_input_seq",
         "_last_update",
+        "body",
     )
 
     def __init__(
@@ -40,6 +43,10 @@ class Player:
         self._y = float(y)
         self._vx = float(vx)
         self._vy = float(vy)
+        self.body = EntityBody(
+            x=self._x, y=self._y, velocity_x=self._vx, velocity_y=self._vy,
+            radius=13.0,
+        )
 
         norm = math.hypot(facing_x, facing_y)
         if norm <= 1e-9:
@@ -163,11 +170,29 @@ class Player:
         self._y = float(y)
         self._vx = float(vx)
         self._vy = float(vy)
+        self.body.x, self.body.y = self._x, self._y
+        self.body.intent_velocity_x, self.body.intent_velocity_y = self._vx, self._vy
+        self.body.velocity_x, self.body.velocity_y = self._vx, self._vy
+        self.mark_updated()
+
+    def set_intent(self, vx: float, vy: float) -> None:
+        """Intention de mouvement, composee ensuite avec les forces externes."""
+        self.body.intent_velocity_x = float(vx)
+        self.body.intent_velocity_y = float(vy)
+
+    def sync_body(self) -> None:
+        """Recopie l'etat physique autoritaire dans l'API Player historique."""
+        self._x, self._y = self.body.x, self.body.y
+        self._vx, self._vy = self.body.velocity_x, self.body.velocity_y
         self.mark_updated()
 
     def stop(self) -> None:
         self._vx = 0.0
         self._vy = 0.0
+        self.body.intent_velocity_x = 0.0
+        self.body.intent_velocity_y = 0.0
+        self.body.velocity_x = 0.0
+        self.body.velocity_y = 0.0
         self.mark_updated()
 
     def take_damage(self, amount: float) -> bool:
@@ -179,6 +204,10 @@ class Player:
             self._alive = False
             self._vx = 0.0
             self._vy = 0.0
+            self.body.intent_velocity_x = 0.0
+            self.body.intent_velocity_y = 0.0
+            self.body.force_velocity_x = 0.0
+            self.body.force_velocity_y = 0.0
 
         self.mark_updated()
         return not self._alive

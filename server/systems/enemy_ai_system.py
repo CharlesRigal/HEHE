@@ -30,8 +30,8 @@ class EnemyAISystem:
         alive_players = [p for p in world.players.values() if p.is_alive()]
         if not alive_players:
             for entity in enemies:
-                entity.body.velocity_x = 0.0
-                entity.body.velocity_y = 0.0
+                entity.body.intent_velocity_x = 0.0
+                entity.body.intent_velocity_y = 0.0
             return
 
         map_w, map_h = world.map_data.get("size", [1280, 720])
@@ -46,8 +46,8 @@ class EnemyAISystem:
 
             speed_mult = float(states.get("speed_multiplier", 1.0))
             if states.get("frozen", False) or speed_mult < 0.01:
-                body.velocity_x = 0.0
-                body.velocity_y = 0.0
+                body.intent_velocity_x = 0.0
+                body.intent_velocity_y = 0.0
                 continue
 
             target = min(
@@ -76,8 +76,8 @@ class EnemyAISystem:
             if _collides(world, new_x, new_y, body.radius * 2):
                 vx = vy = 0.0
 
-            body.velocity_x = vx
-            body.velocity_y = vy
+            body.intent_velocity_x = vx
+            body.intent_velocity_y = vy
             if dx < 0:
                 ai.direction = -1
             elif dx > 0:

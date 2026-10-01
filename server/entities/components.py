@@ -29,13 +29,20 @@ class EntityBody:
     mass: float = 1.0
     static: bool = False     # immuable (mur, torche scellee)
     radius: float = 16.0     # hitbox simple pour collision d'effet
+    # Les systemes de controle (joueur, IA) ecrivent une intention. Les
+    # forces externes sont conservees separement afin qu'une IA ne puisse pas
+    # ecraser une poussee magique au tick suivant.
+    intent_velocity_x: float = 0.0
+    intent_velocity_y: float = 0.0
+    force_velocity_x: float = 0.0
+    force_velocity_y: float = 0.0
 
     def apply_force(self, fx: float, fy: float, dt: float) -> None:
         """F = m*a : integre l'acceleration sur dt."""
         if self.static or self.mass <= 0.0:
             return
-        self.velocity_x += (fx / self.mass) * dt
-        self.velocity_y += (fy / self.mass) * dt
+        self.force_velocity_x += (fx / self.mass) * dt
+        self.force_velocity_y += (fy / self.mass) * dt
 
     def integrate(self, dt: float, bounds: tuple[float, float] | None = None) -> None:
         """Avance la position selon la velocite. Clamp optionnel."""

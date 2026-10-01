@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import math
 import time
@@ -19,6 +20,7 @@ from server.systems import (
     EffectTickSystem,
     EnemyAISystem,
     MovementSystem,
+    PhysicsSystem,
     ProximitySystem,
 )
 
@@ -27,6 +29,7 @@ class GameInstance:
     # Borne de surete : un client ne peut pas monopoliser un tick en envoyant
     # une file d'entrees infinie. Exposee pour etre verifiee par les tests.
     MAX_INPUTS_PER_TICK = 60
+    NETWORK_UPDATE_INTERVAL = 1.0 / 20.0
 
     def __init__(self, map_id: str, map_data: dict, broadcast_callback: Callable):
         self.map_id = map_id
@@ -40,6 +43,8 @@ class GameInstance:
         self.player_collision_size = 26.0
         self.player_attack_hurtbox_w = 18.0
         self.player_attack_hurtbox_h = 18.0
+        self._obstacle_aabbs = self._build_obstacle_aabbs(map_data.get("objects", []))
+        self._last_broadcast_at = 0.0
 
         # Pipeline emergent : sorts -> effects -> LiveEffect
         #self.live_effects: list[LiveEffect] = []
@@ -52,7 +57,8 @@ class GameInstance:
 
         # Systems (ordre : IA -> mouvement -> effets -> proximite)
         self._enemy_ai_system = EnemyAISystem()
-        self._movement_system = MovementSystem()
+        self._movement_system = MovementSystem()  # compatibilite API interne
+        self._physics_system = PhysicsSystem()
         self._effect_tick_system = EffectTickSystem()
         self._proximity_system = ProximitySystem()
 
@@ -62,6 +68,7 @@ class GameInstance:
         self.last_stats_log = time.time()
         self.inputs_processed = 0
         self.messages_sent = 0
+        self.message_bytes_sent = 0
 
         logging.info(
             f"Created game instance for map '{map_id}' - {map_data.get('name', 'Unnamed')}"
@@ -145,6 +152,19 @@ class GameInstance:
     @staticmethod
     def _clamp(value: float, minimum: float, maximum: float) -> float:
         return max(minimum, min(maximum, value))
+
+    @staticmethod
+    def _build_obstacle_aabbs(objects: list[dict]) -> list[tuple[float, float, float, float]]:
+        """Normalise les murs une seule fois au chargement de l'instance."""
+        out = []
+        for obj in objects:
+            points = obj.get("points", [])
+            if len(points) < 4:
+                continue
+            xs = [float(p[0]) for p in points]
+            ys = [float(p[1]) for p in points]
+            out.append((min(xs), min(ys), max(xs), max(ys)))
+        return out
 
     def _load_interactive_entities(self):
         configs = self.map_data.get("interactive", []) or []
@@ -230,21 +250,42 @@ class GameInstance:
         return {e.id: self._enemy_public_state(e) for e in self._iter_enemies()}
 
     def _check_collision_with_objects(self, x: float, y: float, player_size: float = 32) -> bool:
-        objects = self.map_data.get("objects", [])
-        for obj in objects:
-            points = obj.get("points", [])
-            if len(points) < 4:
-                continue
-            x_coords = [p[0] for p in points]
-            y_coords = [p[1] for p in points]
-            obj_x1, obj_x2 = min(x_coords), max(x_coords)
-            obj_y1, obj_y2 = min(y_coords), max(y_coords)
-
+        for obj_x1, obj_y1, obj_x2, obj_y2 in self._obstacle_aabbs:
             px1, px2 = x - player_size / 2, x + player_size / 2
             py1, py2 = y - player_size / 2, y + player_size / 2
             if px1 < obj_x2 and px2 > obj_x1 and py1 < obj_y2 and py2 > obj_y1:
                 return True
         return False
+
+    def _move_body_with_collision(self, body: EntityBody, dx: float, dy: float) -> None:
+        """Deplacement discret borne : complet, puis glissement axe par axe."""
+        width, height = self.map_data.get("size", [1280, 720])
+        half = body.radius
+        def candidate(x: float, y: float) -> tuple[float, float]:
+            return (
+                max(half, min(float(width) - half, x)),
+                max(half, min(float(height) - half, y)),
+            )
+
+        target_x, target_y = candidate(body.x + dx, body.y + dy)
+        size = body.radius * 2.0
+        if not self._check_collision_with_objects(target_x, target_y, size):
+            body.x, body.y = target_x, target_y
+            return
+        x_only, _ = candidate(body.x + dx, body.y)
+        if not self._check_collision_with_objects(x_only, body.y, size):
+            body.x = x_only
+        _, y_only = candidate(body.x, body.y + dy)
+        if not self._check_collision_with_objects(body.x, y_only, size):
+            body.y = y_only
+
+    def apply_force(self, target_id: str, fx: float, fy: float, duration: float = 0.0) -> bool:
+        """API publique pour les futurs effets magiques, independante des sorts."""
+        return self._physics_system.apply_force(self, target_id, fx, fy, duration)
+
+    def apply_force_in_radius(self, x: float, y: float, radius: float, fx: float, fy: float, duration: float = 0.0) -> list[str]:
+        """Applique une force identique aux corps mobiles dans une zone."""
+        return self._physics_system.apply_force_in_radius(self, x, y, radius, fx, fy, duration)
 
     def process_input(self, player: Player, input_data: dict):
         if not player.can_receive_input():
@@ -305,6 +346,7 @@ class GameInstance:
             player_ids = list(self.players.keys())
             await self.broadcast_callback(message, player_ids)
             self.messages_sent += 1
+            self.message_bytes_sent += len(json.dumps(message, separators=(",", ":")).encode("utf-8"))
 
     def _process_pending_inputs(self) -> None:
         """Traite une tranche bornee de chaque file d'entrees client."""
@@ -330,11 +372,11 @@ class GameInstance:
                 self._process_pending_inputs()
 
                 self._enemy_ai_system.tick(self, TICK_INTERVAL, current_time)
-                self._movement_system.tick(self, TICK_INTERVAL, current_time)
+                self._physics_system.tick(self, TICK_INTERVAL, current_time)
                 self._effect_tick_system.tick(self, TICK_INTERVAL, current_time)
                 self._proximity_system.tick(self, TICK_INTERVAL, current_time)
 
-                if self.players:
+                if self.players and current_time - self._last_broadcast_at >= self.NETWORK_UPDATE_INTERVAL:
                     players_state = {}
                     enemies_state = {}
                     for player_id, player_data in self.players.items():
@@ -374,6 +416,7 @@ class GameInstance:
                         if entities_state:
                             message["entities"] = entities_state
                         await self.broadcast_to_players(message)
+                        self._last_broadcast_at = current_time
 
                     self.players_previous_state = {
                         player_id: player_data.to_update_state()
@@ -392,10 +435,12 @@ class GameInstance:
                             f"[Instance {self.map_id}] ticks={self.tick_count}, "
                             f"avg_dt={avg_dt * 1000:.2f}ms, max_dt={max_dt * 1000:.2f}ms, "
                             f"inputs={self.inputs_processed}, msgs={self.messages_sent}"
+                            f", avg_msg={self.message_bytes_sent / max(1, self.messages_sent):.0f}B"
                         )
                     self.dt_samples.clear()
                     self.inputs_processed = 0
                     self.messages_sent = 0
+                    self.message_bytes_sent = 0
                     self.last_stats_log = time.time()
 
                 sleep_time = max(0, TICK_INTERVAL - (time.time() - current_time))

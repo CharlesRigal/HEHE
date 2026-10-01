@@ -1,4 +1,4 @@
-"""MovementSystem : integre la physique continue pour toute Entity non static.
+"""Compatibilite : MovementSystem est remplace par PhysicsSystem.
 
 Itere sur `world.entities` et applique :
   - integration x += vx*dt

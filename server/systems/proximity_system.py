@@ -48,8 +48,14 @@ class ProximitySystem:
 
         rx, ry = receiver.body.x, receiver.body.y
         hit = False
-        for source in world.entities:
+        # La grille est fournie par PhysicsSystem ; fallback conserve pour les
+        # petits doubles de test et les mondes sans simulation physique.
+        grid = getattr(getattr(world, "_physics_system", None), "grid", None)
+        sources = grid.query_circle(rx, ry, within + 64.0) if grid and grid.cells else world.entities
+        for source in sources:
             if source.id == receiver.id:
+                continue
+            if not hasattr(source, "states"):
                 continue
             if source_type and source.type != source_type:
                 continue
