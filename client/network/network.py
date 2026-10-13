@@ -27,36 +27,45 @@ class NetworkClient(threading.Thread):
         self.send_q = queue.Queue()
         self.recv_q = queue.Queue()
         self.connected = False
+        self._sender = threading.Thread(target=self._send_loop, daemon=True)
 
     def connect(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         s.settimeout(3.0)
         s.connect((self.host, self.port))
-        s.settimeout(0.05)
+        # Bloquant : envoi et reception ont chacun leur thread, close() les reveille.
+        s.settimeout(None)
         self.socket = s
         self.connected = True
+
+    def start(self):
+        super().start()
+        self._sender.start()
+
+    def _send_loop(self):
+        """Envoie chaque message des qu'il est poste, sans attendre la reception."""
+        while True:
+            msg = self.send_q.get()
+            if msg is None or self.stop_event.is_set():
+                break
+            try:
+                data = (json.dumps(msg) + "\n").encode("utf-8")
+                self.socket.sendall(data)
+            except Exception as e:
+                if not self.stop_event.is_set():
+                    self.recv_q.put({"t": "_error", "where": "send", "error": str(e)})
+                break
 
     def run(self):
         buf = b""
         try:
             while not self.stop_event.is_set():
-                # envoi
-                try:
-                    while True:
-                        msg = self.send_q.get_nowait()
-                        data = (json.dumps(msg) + "\n").encode("utf-8")
-                        self.socket.sendall(data)
-                except queue.Empty:
-                    pass
-                except Exception as e:
-                    self.recv_q.put({"t": "_error", "where": "send", "error": str(e)})
-                    break
-
                 try:
                     chunk = self.socket.recv(4096)
                     if not chunk:
-                        self.recv_q.put({"t": "_info", "event": "server_closed"})
+                        if not self.stop_event.is_set():
+                            self.recv_q.put({"t": "_info", "event": "server_closed"})
                         break
                     buf += chunk
                     while True:
@@ -72,10 +81,9 @@ class NetworkClient(threading.Thread):
                         except json.JSONDecodeError:
                             obj = {"t": "_raw", "data": line.decode("utf-8", errors="ignore")}
                         self.recv_q.put(obj)
-                except socket.timeout:
-                    pass
                 except Exception as e:
-                    self.recv_q.put({"t": "_error", "where": "recv", "error": str(e)})
+                    if not self.stop_event.is_set():
+                        self.recv_q.put({"t": "_error", "where": "recv", "error": str(e)})
                     break
         finally:
             try:
@@ -84,6 +92,8 @@ class NetworkClient(threading.Thread):
             except Exception:
                 pass
             self.connected = False
+            self.stop_event.set()
+            self.send_q.put(None)  # reveille le thread d'envoi
 
     def _send(self, obj:dict):
         if not self.connected:
@@ -122,6 +132,7 @@ class NetworkClient(threading.Thread):
 
     def close(self):
         self.stop_event.set()
+        self.send_q.put(None)  # reveille le thread d'envoi
         try:
             if self.socket:
                 try:
