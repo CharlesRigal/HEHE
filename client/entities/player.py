@@ -4,6 +4,7 @@ import logging
 from client.entities.base_player import BasePlayer
 from client.core.settings import TICK_INTERVAL
 from client.ui.health_bar import PlayerHealthBar
+from server.systems.inventory import Inventory
 
 IN_UP = 1
 IN_DOWN = 2
@@ -38,6 +39,7 @@ class Player(BasePlayer):
     def __init__(self, player_id, x, y, image_path="client/assets/images/full_mage/full_mage.png", max_health=100, speed=300,
                  magical_draw=None):
         super().__init__(player_id, x, y, image_path, max_health)
+        self.invetory = Inventory(64)
         self.mask = 0
         self.speed = speed
         self.target_pos = self.pos.copy()

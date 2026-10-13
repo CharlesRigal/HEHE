@@ -6,6 +6,18 @@ import socket
 
 class NetworkClient(threading.Thread):
 
+    def send_get_item(self, item_number) -> dict:
+        msg = {"g": f"{item_number}"}
+        self._send(msg)
+        return msg
+
+    def send_join_request(self, map, uid: str = "") -> dict:
+        msg = {"t": "join", "map": map}
+        if uid:
+            msg["uid"] = uid
+        self._send(msg)
+        return msg
+
     def __init__(self, host: str, port: int):
         super().__init__(daemon=True)
         self.host = host

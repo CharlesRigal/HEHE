@@ -359,6 +359,8 @@ class Game:
         elif t == "maps_list":
             available_maps = msg.get("maps", {})
             self.map_selector.set_available_maps(available_maps)
+        elif t == "i": # item getted
+            self.player.invetory.add_items(msg.get("i"))
         else:
             if msg != self.last_unknown_msg:
                 logging.info(f"Unhandled server message: {msg}")

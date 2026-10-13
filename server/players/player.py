@@ -4,6 +4,7 @@ import math
 import time
 
 from server.entities.components import EntityBody
+from server.systems.inventory import Inventory, InventoryIsFull
 
 
 class Player:
@@ -21,6 +22,7 @@ class Player:
         "_last_input_seq",
         "_last_update",
         "body",
+        "inventory",
     )
 
     def __init__(
@@ -37,6 +39,7 @@ class Player:
         alive: bool = True,
         last_input_seq: int = -1,
         last_update: float | None = None,
+        inventory_slot: int = 32,
     ):
         self._id = id
         self._x = float(x)
@@ -62,6 +65,7 @@ class Player:
         self._alive = bool(alive) and self._health > 0.0
         self._last_input_seq = int(last_input_seq)
         self._last_update = time.time() if last_update is None else float(last_update)
+        self.inventory = Inventory(inventory_slot)
 
     @property
     def id(self) -> str:
@@ -241,3 +245,6 @@ class Player:
         if self._alive:
             return True
         return False
+
+    def store_items(self, items_id):
+        return self.inventory.add_item(items_id)

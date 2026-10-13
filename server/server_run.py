@@ -197,6 +197,11 @@ async def handle_join_message(client_id: str, msg: dict) -> str:
     logging.info(f"Player {client_id} joined instance {map_id}")
     return client_id
 
+async def handle_player_get_item(client_id: str, msg: dict ):
+    """ Payer ack for getting an item """
+    await send_json_to_client(client_id, {
+        ""
+    })
 
 async def handle_list_maps_message(client_id: str, msg: dict):
     """Envoie la liste des maps disponibles au client"""
