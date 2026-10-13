@@ -9,3 +9,5 @@ TICK_INTERVAL = 1.0 / TICK_RATE
 IP = "82.65.89.84"
 
 PLAYER_SPEED = 300
+# Doit rester identique a GameInstance.player_collision_size cote serveur.
+PLAYER_COLLISION_SIZE = 26.0

@@ -2,7 +2,7 @@ import pygame
 import os
 import logging
 from client.entities.base_player import BasePlayer
-from client.core.settings import TICK_INTERVAL
+from client.core.settings import PLAYER_COLLISION_SIZE, TICK_INTERVAL
 from client.ui.health_bar import PlayerHealthBar
 from server.systems.inventory import Inventory
 
@@ -44,6 +44,8 @@ class Player(BasePlayer):
         self.speed = speed
         self.target_pos = self.pos.copy()
         self.render_pos = self.pos.copy()
+        self._prev_tick_pos = self.pos.copy()
+        self._tick_pos = self.pos.copy()
         self.pending_inputs = []
         self.last_processed_seq = -1
         self.map_renderer = None
@@ -82,12 +84,14 @@ class Player(BasePlayer):
             self.facing = pygame.Vector2(vx, vy).normalize()
         self.update_direction_from_velocity(vx)
 
-        new_x = self.pos.x + vx * TICK_INTERVAL
-        new_y = self.pos.y + vy * TICK_INTERVAL
+        # Meme ordre que le serveur : clamp aux bords, puis test de collision.
+        half = PLAYER_COLLISION_SIZE / 2
+        new_x = max(half, min(self.pos.x + vx * TICK_INTERVAL, map_surface.get_width() - half))
+        new_y = max(half, min(self.pos.y + vy * TICK_INTERVAL, map_surface.get_height() - half))
 
         collision_detected = False
         if self.map_renderer:
-            collision_detected = self.map_renderer.check_collision(new_x, new_y, size=32)
+            collision_detected = self.map_renderer.check_collision(new_x, new_y, size=PLAYER_COLLISION_SIZE)
             if collision_detected:
                 portal = self.map_renderer.object_nearby("portal",new_x, new_y)
                 if portal is not None:
@@ -95,8 +99,8 @@ class Player(BasePlayer):
                     self.change_to_map = portal.get("target")
 
         if not collision_detected:
-            self.pos.x = max(16, min(new_x, map_surface.get_width() - 16))
-            self.pos.y = max(16, min(new_y, map_surface.get_height() - 16))
+            self.pos.x = new_x
+            self.pos.y = new_y
 
         self.rect.center = self.pos
 
@@ -126,18 +130,16 @@ class Player(BasePlayer):
 
         vy, vx = self.compute_velocity(inp)
         # Simulation reste pure : on ne change pas la direction ici.
-        new_x = pos.x + vx * TICK_INTERVAL
-        new_y = pos.y + vy * TICK_INTERVAL
+        half = PLAYER_COLLISION_SIZE / 2
+        new_x = max(half, min(pos.x + vx * TICK_INTERVAL, map_surface.get_width() - half))
+        new_y = max(half, min(pos.y + vy * TICK_INTERVAL, map_surface.get_height() - half))
 
         collision_detected = False
         if self.map_renderer:
-            collision_detected = self.map_renderer.check_collision(new_x, new_y, size=32)
+            collision_detected = self.map_renderer.check_collision(new_x, new_y, size=PLAYER_COLLISION_SIZE)
 
         if not collision_detected:
-            return pygame.Vector2(
-                max(16, min(new_x, map_surface.get_width() - 16)),
-                max(16, min(new_y, map_surface.get_height() - 16))
-            )
+            return pygame.Vector2(new_x, new_y)
         return pos.copy()
 
     def save_input_for_reconciliation(self, inp):
@@ -183,7 +185,13 @@ class Player(BasePlayer):
 
         # Delta entre ce que le serveur dit et ce qu'on a prédit localement
         # Si les simulations sont identiques → correction ≈ (0, 0)
-        self._correction += sim - self.pos
+        # sim - self.pos est deja l'erreur totale : on remplace, on ne cumule pas.
+        error = sim - self.pos
+        if error.length_squared() < 1.0:
+            self.pos += error
+            self._correction.update(0.0, 0.0)
+        else:
+            self._correction = error
 
     def on_death(self):
         super().on_death()
@@ -219,13 +227,11 @@ class Player(BasePlayer):
 
     def update(self, dt, *args, **kwargs):
         """
-        Draine la correction accumulée progressivement sur self.pos.
-        Aucun saut : la correction influence les futures simulations
-        sans jamais déplacer le joueur instantanément.
-        render_pos suit self.pos avec lissage → aucune saccade visuelle.
+        Draine la correction serveur progressivement sur self.pos.
+        Aucun lissage sur le joueur local : le rendu interpole seulement
+        entre les deux derniers ticks (voir interpolate_render).
         """
         CORRECTION_RATE = 20.0
-        SMOOTHING_RATE  = 20.0
 
         # Drainer la correction sur self.pos progressivement
         if self._correction.length_squared() > 0.01:
@@ -233,10 +239,21 @@ class Player(BasePlayer):
             self.pos      += step
             self._correction -= step
 
-        # render_pos suit self.pos avec lissage
-        delta = self.pos - self.render_pos
-        self.render_pos += delta * min(1.0, SMOOTHING_RATE * dt)
-        self.rect.center = (int(self.render_pos.x), int(self.render_pos.y))
+        self._prev_tick_pos = self._tick_pos
+        self._tick_pos = self.pos.copy()
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
+
+    def interpolate_render(self, alpha: float):
+        """Position affichee entre le tick precedent et le tick courant."""
+        alpha = max(0.0, min(1.0, alpha))
+        self.render_pos = self._prev_tick_pos.lerp(self._tick_pos, alpha)
+
+    def snap_render(self):
+        """Teleportation (spawn, reset) : aucun fondu depuis l'ancienne position."""
+        self._prev_tick_pos = self.pos.copy()
+        self._tick_pos = self.pos.copy()
+        self.render_pos = self.pos.copy()
+        self._correction.update(0.0, 0.0)
 
     def draw(self, screen, camera=None):
         if self.direction > -1:

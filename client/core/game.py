@@ -51,9 +51,6 @@ class Game:
         self.running = True
         self.start_time = None
         self.input_seq = 0
-        self.last_input_send = 0.0
-        self.input_send_hz = 60.0
-        self.input_prev_mask = 0
         self.prev_board_pressed = False
         self.last_sid_ack = None
         self.msg_old = ""
@@ -182,17 +179,12 @@ class Game:
         pygame.display.flip()
 
     def send_input_if_needed(self, inp):
-        now = time.time()
+        # Un input par tick logique : le serveur avance d'un TICK_INTERVAL par
+        # input recu, donc tout input predit localement doit etre envoye.
         if not getattr(self, "net_connected", False) or self.net is None:
             return False
-        period = 1.0 / self.input_send_hz
-        should_send = (now - self.last_input_send >= period) or (inp["k"] != self.input_prev_mask)
-        if should_send:
-            self.net.send_input(inp)
-            self.last_input_send = now
-            self.input_prev_mask = inp["k"]
-            return True
-        return False
+        self.net.send_input(inp)
+        return True
 
     def connect_to_server(self, host="127.0.0.1", port=9000) -> bool:
         if self.net is not None and self.net_connected:
@@ -254,8 +246,6 @@ class Game:
         self.accumulator = 0.0
         self.start_time = None
         self.input_seq = 0
-        self.input_prev_mask = 0
-        self.last_input_send = 0.0
         self.prev_board_pressed = False
         self._server_spells = []
         self._server_entities = {}
@@ -266,13 +256,11 @@ class Game:
         self.player.pending_inputs.clear()
         self.player.last_processed_seq = -1
         self.player.pos.update(0.0, 0.0)
-        self.player.render_pos = self.player.pos.copy()
+        self.player.snap_render()
         self.player.rect.center = (0, 0)
         self.player.mask = 0
         self.player.alive = True
         self.player.life.reset_health()
-        if hasattr(self.player, "_correction"):
-            self.player._correction.update(0.0, 0.0)
 #        if self.player.magical_draw:
 #            self.player.magical_draw.clear_board()
 
@@ -560,7 +548,7 @@ class Game:
         if your_player_data:
             self.player.pos.x = your_player_data.get("x", self.player.pos.x)
             self.player.pos.y = your_player_data.get("y", self.player.pos.y)
-            self.player.render_pos = self.player.pos.copy()  # sync render immédiat
+            self.player.snap_render()  # sync render immédiat
             self.player.life.life_current = your_player_data.get("health", self.player.life.life_current)
             self.player.alive = your_player_data.get("alive", self.player.alive)
             #print(f"Your player spawned at ({self.player.pos.x}, {self.player.pos.y})")
@@ -624,6 +612,7 @@ class Game:
 
     def draw_playing(self):
         self.screen.fill((0, 0, 0))  # ← efface l'écran avant chaque frame
+        self.player.interpolate_render(self.accumulator / TICK_INTERVAL)
         self.camera.update(self.player.render_pos)
         self.map_renderer.draw(self.screen, self.camera)
         self._entity_renderer.draw(self.screen, self._server_entities.values(), self.camera)
