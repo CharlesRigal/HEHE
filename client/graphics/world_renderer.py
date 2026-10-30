@@ -32,10 +32,12 @@ _ELEMENT_COLORS = {
 
 
 def _over(rgb: np.ndarray, alpha: np.ndarray, color: tuple[int, int, int], layer_alpha: np.ndarray) -> None:
-    """Compose une couche de couleur unie sur (rgb, alpha), en place."""
-    a = np.clip(layer_alpha, 0.0, 1.0)[..., None]
-    rgb[:] = rgb * (1.0 - a) + np.asarray(color, dtype=float) * a
-    alpha[:] = alpha + a[..., 0] * (1.0 - alpha)
+    """Compose une couche de couleur unie sur (rgb, alpha), en place (couleurs non premultipliees)."""
+    a = np.clip(layer_alpha, 0.0, 1.0)
+    out_alpha = a + alpha * (1.0 - a)
+    weight_new = np.divide(a, out_alpha, out=np.zeros_like(a), where=out_alpha > 0)[..., None]
+    rgb[:] = rgb * (1.0 - weight_new) + np.asarray(color, dtype=float) * weight_new
+    alpha[:] = out_alpha
 
 
 class WorldRenderer:
