@@ -2,14 +2,8 @@ name: "Salle de la gravite"
 size: [1280, 720]
 background: 0
 
-# Phase 5 : demonstration du binding.
-# Le joueur dessine un sort "focused + duration eleve + element aerien"
-# qui emet une ForceEffect continue+bindee. Premier contact avec un cristal
-# -> binding. Tant que le sort dure, la force verticale souleve le cristal.
-#
-# Reglage (cote client/resolver) : un cercle avec axe vertical + boucle
-# ou noeud (focus) + longueur de trait (duration_bonus) -> produit
-# produce_binding cote serveur.
+# Cristaux legers et lourds a porter jusqu'aux autels avec des courants
+# d'element (vent, eau). Un cristal pose sur un autel l'allume.
 
 spawn_points:
   - x: 200
@@ -55,11 +49,8 @@ objects:
       - [1240, 720]
 
 # Entites interactives
-#   - crystal_small / crystal_large : liftables (static=False, masse variable)
-#     -> un cristal leger monte vite avec peu de puissance
-#     -> un cristal lourd demande plus de power/compression
-#   - altar : point d'objectif visuel (static=True), s'allume si un cristal
-#     passe a proximite (reaction via state_name "powered")
+#   - crystal_small / crystal_large : mobiles, masse variable
+#   - altar : statique, 'powered' quand un cristal est dans son rayon
 interactive:
   - id: crystal_small
     type: crystal
@@ -68,7 +59,6 @@ interactive:
     mass: 1.0
     static: false
     state: { lifted: false }
-    affinities: { wind: -0.5, storm: -0.5 }
 
   - id: crystal_large
     type: crystal
@@ -77,7 +67,6 @@ interactive:
     mass: 2.5
     static: false
     state: { lifted: false }
-    affinities: { wind: -0.2, storm: -0.3 }
 
   - id: altar_left
     type: altar

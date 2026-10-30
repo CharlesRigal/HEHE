@@ -7,17 +7,12 @@ from collections import deque
 from typing import Callable
 
 from server.config import PLAYER_SPEED, TICK_INTERVAL
-#from server.effects.effect_types import DamageEffect, ShapeKind
-#from server.effects.runtime import LiveEffect, spawn_effect
-#from server.effects.spell_to_effects import spec_to_effects
 from server.entities.components import Entity, EnemyAI, EntityBody, EntityCombat
 from server.entities.interactive import build_entity, entity_public_state
-#from server.magic.spell_spec import spec_from_network
 from server.players.player import Player
 from server.save.error import PlayerNotFound
 from server.save.save import get_save
 from server.systems import (
-    EffectTickSystem,
     EnemyAISystem,
     MovementSystem,
     PhysicsSystem,
@@ -46,10 +41,6 @@ class GameInstance:
         self._obstacle_aabbs = self._build_obstacle_aabbs(map_data.get("objects", []))
         self._last_broadcast_at = 0.0
 
-        # Pipeline emergent : sorts -> effects -> LiveEffect
-        #self.live_effects: list[LiveEffect] = []
-        #self._had_effects_last_tick: bool = False
-
         # Unified ECS : ennemis + interactives + futures (caisses, cristaux...)
         self.entities: list[Entity] = []
         self._entities_dirty: bool = False
@@ -59,7 +50,6 @@ class GameInstance:
         self._enemy_ai_system = EnemyAISystem()
         self._movement_system = MovementSystem()  # compatibilite API interne
         self._physics_system = PhysicsSystem()
-        self._effect_tick_system = EffectTickSystem()
         self._proximity_system = ProximitySystem()
 
         # Stats monitoring
@@ -373,7 +363,6 @@ class GameInstance:
 
                 self._enemy_ai_system.tick(self, TICK_INTERVAL, current_time)
                 self._physics_system.tick(self, TICK_INTERVAL, current_time)
-                self._effect_tick_system.tick(self, TICK_INTERVAL, current_time)
                 self._proximity_system.tick(self, TICK_INTERVAL, current_time)
 
                 if self.players and current_time - self._last_broadcast_at >= self.NETWORK_UPDATE_INTERVAL:
@@ -388,8 +377,6 @@ class GameInstance:
                         current_data = self._enemy_public_state(enemy)
                         if self.enemies_previous_state.get(enemy.id) != current_data:
                             enemies_state[enemy.id] = current_data
-
-                    #spells_state = self._serialize_live_effects()
 
                     # Diff inconditionnel : capture etats (reactions) ET positions
                     # (cristaux en levitation bougent sans que _entities_dirty

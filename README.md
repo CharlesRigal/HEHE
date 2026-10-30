@@ -174,6 +174,7 @@ Le monde est une grille de cellules en 2D. Chaque cellule contient quelques gran
 | charge | ≥ 0 | Foudre |
 | lumière | ≥ 0 | Lumière |
 
+- **M0 — Garde-fou.** Toute règle du monde s'écrit comme un seuil sur une ou plusieurs grandeurs de cellule. Une règle qui nomme des éléments ou des entités (« A + B → C », « la torche s'allume au feu ») est refusée.
 - **M1 — États par seuils.** L'état de la matière dépend de la température : eau froide → glace, eau chaude → vapeur, terre très chaude → lave. Il n'y a pas de table de réactions.
 - **M2 — Règles croisées.** Les règles qui lient deux grandeurs (par exemple la charge conduite par l'eau) viendront plus tard.
 

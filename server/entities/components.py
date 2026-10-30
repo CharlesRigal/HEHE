@@ -1,17 +1,15 @@
 """Composants d'entite partages (Phase 2).
 
-Toute entite simulee (joueur, ennemi, torche, levier, projectile, terrain
-reactif) peut porter un sous-ensemble de ces composants. Les systemes
+Toute entite simulee (joueur, ennemi, cristal, autel, porte) peut porter un sous-ensemble de ces composants. Les systemes
 consomment les composants sans connaitre le type d'entite.
 
 Contrat minimal pose en Phase 2 :
   - EntityBody       : physique (position, velocite, masse) pour ForceEffect
-  - EntityAffinities : ponderation par element (vulnerabilite, resistance)
-  - EntityStates    : sac d'etats nommes (lit, frozen, powered, ...)
+  - EntityStates    : sac d'etats nommes (lifted, powered, open, ...)
   - EntityReactive  : regles declenchees sur changement d'etat (Phase 3)
 
-La composition est volontaire : un joueur peut avoir Body + States ; une
-torche aura Body (statique) + Affinities + States + Reactive.
+La composition est volontaire : un joueur peut avoir Body + States ; un
+autel aura Body (statique) + States + Reactive.
 """
 from __future__ import annotations
 
@@ -27,7 +25,7 @@ class EntityBody:
     velocity_x: float = 0.0
     velocity_y: float = 0.0
     mass: float = 1.0
-    static: bool = False     # immuable (mur, torche scellee)
+    static: bool = False     # immuable (mur, autel)
     radius: float = 16.0     # hitbox simple pour collision d'effet
     # Les systemes de controle (joueur, IA) ecrivent une intention. Les
     # forces externes sont conservees separement afin qu'une IA ne puisse pas
@@ -54,28 +52,6 @@ class EntityBody:
             w, h = bounds
             self.x = max(self.radius, min(w - self.radius, self.x))
             self.y = max(self.radius, min(h - self.radius, self.y))
-
-
-@dataclass
-class EntityAffinities:
-    """Ponderation par element. Negatif = vulnerable, positif = resistant.
-
-    weights[e] = -1.0  -> s'enflamme / fond / reagit fort a e
-    weights[e] = +1.0  -> resiste
-    weights absent    -> neutre (0.0)
-    """
-    weights: dict[str, float] = field(default_factory=dict)
-
-    def weight_for(self, element: str | None) -> float:
-        if element is None:
-            return 0.0
-        return self.weights.get(element, 0.0)
-
-    def reacts_to(self, element: str | None, min_intensity: float = 0.0) -> bool:
-        """True si l'affinite est suffisamment negative (vulnerable)."""
-        if element is None:
-            return False
-        return self.weights.get(element, 0.0) <= -min_intensity
 
 
 @dataclass
@@ -126,8 +102,7 @@ class EntityReactive:
 class EntityCombat:
     """Composant HP : porte par tout ce qui peut subir un DamageEffect.
 
-    Absent sur torches / portes / mares d'eau : le sort les traverse sans degat
-    (seul StateChangeEffect agit). Present sur ennemis et potentiellement
+    Absent sur autels / portes. Present sur ennemis et potentiellement
     joueurs, cristaux destructibles, miroirs fragiles, etc.
     """
     health: float = 100.0
@@ -158,14 +133,12 @@ class Entity:
     """Agregat a composition variable.
 
     Un ennemi a body + combat + ai + states (frozen, speed_multiplier).
-    Une torche a body (static) + affinities + states + reactive.
-    Une mare d'eau a body (static) + affinities + states.
+    Un autel a body (static) + states.
     Les systemes filtrent par presence de composant (combat, ai).
     """
     id: str
-    type: str                                   # "torch" | "enemy" | "brazier" | ...
+    type: str                                   # "enemy" | "crystal" | "altar" | ...
     body: EntityBody = field(default_factory=EntityBody)
-    affinities: EntityAffinities = field(default_factory=EntityAffinities)
     states: EntityStates = field(default_factory=EntityStates)
     reactive: EntityReactive = field(default_factory=EntityReactive)
     combat: EntityCombat | None = None
@@ -182,31 +155,26 @@ class Entity:
 if __name__ == "__main__":
     body = EntityBody(x=100.0, y=100.0, mass=2.0)
     body.apply_force(40.0, 0.0, dt=0.5)
-    assert abs(body.velocity_x - 10.0) < 1e-6
+    assert abs(body.force_velocity_x - 10.0) < 1e-6
+    body.velocity_x = body.force_velocity_x
     body.integrate(0.5)
     assert abs(body.x - 105.0) < 1e-6
 
     # Static : n'encaisse pas la force
     wall = EntityBody(static=True, mass=1.0)
     wall.apply_force(100.0, 100.0, dt=1.0)
-    assert wall.velocity_x == 0.0 and wall.velocity_y == 0.0
-
-    # Affinities
-    aff = EntityAffinities(weights={"fire": -1.0, "water": 0.5})
-    assert aff.reacts_to("fire", min_intensity=0.5)
-    assert not aff.reacts_to("water")
-    assert aff.weight_for("ice") == 0.0
+    assert wall.force_velocity_x == 0.0 and wall.force_velocity_y == 0.0
 
     # States + Reactive
     fired = []
-    def on_lit(entity, name, old, new, ctx):
+    def on_powered(entity, name, old, new, ctx):
         fired.append((name, old, new))
 
-    ent = Entity(id="torch_01", type="torch")
-    ent.reactive.on_state_change.append(("lit", on_lit))
-    assert ent.set_state("lit", True)
-    assert not ent.set_state("lit", True)        # pas de change -> pas de fire
-    assert fired == [("lit", None, True)]
+    ent = Entity(id="altar_01", type="altar")
+    ent.reactive.on_state_change.append(("powered", on_powered))
+    assert ent.set_state("powered", True)
+    assert not ent.set_state("powered", True)        # pas de change -> pas de fire
+    assert fired == [("powered", None, True)]
 
     # EntityCombat + EnemyAI optionnels
     goblin = Entity(
@@ -217,7 +185,7 @@ if __name__ == "__main__":
     )
     assert goblin.combat is not None and goblin.ai is not None
     assert goblin.combat.alive and goblin.combat.health == 100.0
-    torch2 = Entity(id="t2", type="torch")
-    assert torch2.combat is None and torch2.ai is None
+    altar2 = Entity(id="a2", type="altar")
+    assert altar2.combat is None and altar2.ai is None
 
     print("components: OK")

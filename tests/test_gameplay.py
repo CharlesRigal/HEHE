@@ -13,7 +13,7 @@ import time
 
 from server.config import PLAYER_SPEED, TICK_INTERVAL
 from server.entities.components import EnemyAI, Entity, EntityBody, EntityCombat
-from server.entities.interactive import apply_state_change_to_entity, build_entity, entity_public_state
+from server.entities.interactive import build_entity, entity_public_state
 from server.game_instance import GameInstance
 from server.players.player import Player
 from server.systems.enemy_ai_system import EnemyAISystem
@@ -261,7 +261,6 @@ class GameplayTests(unittest.TestCase):
             now = tick * TICK_INTERVAL
             world._enemy_ai_system.tick(world, TICK_INTERVAL, now)
             world._movement_system.tick(world, TICK_INTERVAL, now)
-            world._effect_tick_system.tick(world, TICK_INTERVAL, now)
             world._proximity_system.tick(world, TICK_INTERVAL, now)
             durations.append(time.perf_counter() - start)
 
@@ -314,13 +313,11 @@ class GameplayTests(unittest.TestCase):
         self.assertEqual(enemy.body.velocity_x, 0)
         self.assertEqual((enemy.body.x, enemy.body.y), (100, 100))
 
-    def test_fire_lights_torch_only_above_threshold(self):
-        torch = build_entity({"id": "torch", "type": "torch", "position": [10, 10]})
+    def test_public_state_hides_internal_flags(self):
+        altar = build_entity({"id": "altar", "type": "altar", "position": [10, 10]})
 
-        self.assertFalse(apply_state_change_to_entity(torch, "fire", 0.05))
-        self.assertTrue(apply_state_change_to_entity(torch, "fire", 0.2))
-        self.assertTrue(torch.states.get("lit"))
-        self.assertNotIn("_reactions", entity_public_state(torch)["state"])
+        self.assertIn("_proximity", altar.states.flags)
+        self.assertEqual(entity_public_state(altar)["state"], {"powered": False})
 
     def test_crystal_proximity_powers_and_unpowers_altar(self):
         class World:

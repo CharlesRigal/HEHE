@@ -24,7 +24,7 @@ class VisualRenderingTests(unittest.TestCase):
     """Capture de reference d'une scene representative des objets interactifs."""
 
     # Mise a jour volontaire uniquement si le rendu voulu a change.
-    EXPECTED_SCENE_SHA256 = "7fa599fc571ca84aa6edbc2767770c411ad1ba466c2cec38f474cb5467d5c0ee"
+    EXPECTED_SCENE_SHA256 = "aa02dcc50086085547d7e34e54ac7cbbb32f14c9a73fa9b9f2cbe39636078101"
 
     @classmethod
     def setUpClass(cls):
@@ -36,12 +36,12 @@ class VisualRenderingTests(unittest.TestCase):
         pygame.quit()
 
     @staticmethod
-    def _render_scene(torch_lit: bool = True, altar_powered: bool = True) -> pygame.Surface:
+    def _render_scene(plate_pressed: bool = True, altar_powered: bool = True) -> pygame.Surface:
         surface = pygame.Surface((240, 160), pygame.SRCALPHA)
         surface.fill((12, 18, 30, 255))
         InteractiveEntityRenderer().draw(surface, [
-            {"id": "torch", "type": "torch", "x": 45, "y": 86, "r": 20,
-             "state": {"lit": torch_lit}},
+            {"id": "plate", "type": "pressure_plate", "x": 45, "y": 86, "r": 20,
+             "state": {"pressed": plate_pressed}},
             {"id": "altar", "type": "altar", "x": 120, "y": 86, "r": 24,
              "state": {"powered": altar_powered}},
             {"id": "crystal", "type": "crystal", "x": 195, "y": 86, "r": 20,
@@ -55,7 +55,7 @@ class VisualRenderingTests(unittest.TestCase):
         actual_hash = hashlib.sha256(pixels).hexdigest()
         self.assertEqual(actual_hash, self.EXPECTED_SCENE_SHA256)
 
-    def test_lit_and_powered_states_have_visible_effects(self):
+    def test_pressed_and_powered_states_have_visible_effects(self):
         """Evite les regressions ou un changement d'etat ne se voit plus."""
         inactive = pygame.image.tobytes(self._render_scene(False, False), "RGBA")
         active = pygame.image.tobytes(self._render_scene(True, True), "RGBA")
