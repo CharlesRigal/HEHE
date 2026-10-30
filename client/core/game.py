@@ -5,6 +5,8 @@ import pygame
 
 from client.game_state.playing import playing
 from client.graphics.map_renderer import MapRenderer
+from client.graphics.world_renderer import WorldRenderer
+from client.magic.drawing_board import DrawingBoard
 from client.graphics.map_selector import MapSelector
 from client.graphics.game_menu import GameMenu
 
@@ -16,7 +18,7 @@ from client.entities.remote_enemy import RemoteEnemy
 from client.entities.remote_player import RemotePlayer
 from client.core.settings import FPS, TICK_INTERVAL
 from client.core.player_identity import get_player_uuid
-from client.entities.player import Player, IN_BOARD
+from client.entities.player import Player
 from client.entities.camera import Camera
 
 
@@ -85,9 +87,10 @@ class Game:
         self.max_frame_time = 0.25  # Protection contre la spirale de la mort
         self._font_cache: dict[int, pygame.font.Font] = {}
         self.debug_mode = False
-        self._server_spells: list[dict] = []
         self._server_entities: dict[str, dict] = {}
         self._entity_renderer = InteractiveEntityRenderer()
+        self.world_renderer = WorldRenderer()
+        self.drawing_board = DrawingBoard()
 
     def run(self):
         """Boucle principale avec fixed timestep"""
@@ -113,7 +116,7 @@ class Game:
                 self.clock.tick(FPS)
         finally:
             self.disconnect_from_server()
-#            self.spell_logger.close()
+            self.drawing_board.close()
             pygame.quit()
 
     def _compute_frame_time(self) -> float:
@@ -141,6 +144,19 @@ class Game:
     def update_logic(self, dt):
         """Mise à jour de la logique du jeu à fréquence fixe (60 Hz)"""
         playing(self, tick_rate=dt)
+        self._cast_pending_spell()
+
+    def _cast_pending_spell(self) -> None:
+        """Envoie le sort lu a la fermeture du cercle (README L1, L7)."""
+        result = self.drawing_board.poll()
+        if result is None:
+            return
+        self._set_status_message(result.status)
+        if result.message is None:
+            return
+        logging.info(f"Spell cast: {result.message}")
+        if self.net_connected and self.net is not None:
+            self.net.send_spell(result.message)
 
 
     def draw(self):
@@ -247,9 +263,9 @@ class Game:
         self.start_time = None
         self.input_seq = 0
         self.prev_board_pressed = False
-        self._server_spells = []
         self._server_entities = {}
-        self._last_resolved_params = None
+        self.world_renderer.reset()
+        self.drawing_board.clear()
 
         self.game_manager.clear()
         self.map_renderer.reset()
@@ -261,8 +277,6 @@ class Game:
         self.player.mask = 0
         self.player.alive = True
         self.player.life.reset_health()
-#        if self.player.magical_draw:
-#            self.player.magical_draw.clear_board()
 
     def _handle_connection_lost(self, reason: str):
         logging.info(reason)
@@ -378,8 +392,6 @@ class Game:
         self.camera.set_screen(self.screen)
         self.game_menu.resize(width, height)
         self.map_selector.resize(width, height)
-        #if self.player and self.player.magical_draw:
-        #    self.player.magical_draw.resize_surface((width, height))
 
     def handle_events(self):
         window_size_changed_event = getattr(pygame, "WINDOWSIZECHANGED", -1)
@@ -452,6 +464,8 @@ class Game:
             self._handle_connection_lost("Chargement annulé.")
 
     def _handle_playing_event(self, event):
+        if self.drawing_board.handle_event(event):
+            return
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self._handle_connection_lost("Retour au menu.")
@@ -513,7 +527,9 @@ class Game:
         self.sync_remote_enemies(remote_enemy_list)
 
         if "spells" in msg:
-            self._server_spells = msg["spells"]
+            self.world_renderer.set_spells(msg["spells"])
+        if "world" in msg:
+            self.world_renderer.set_cells(msg["world"])
 
         entities_delta = msg.get("entities")
         if entities_delta:
@@ -562,6 +578,9 @@ class Game:
         all_players.pop(self.client_id, None)
         self.sync_remote_players(all_players)
         self.sync_remote_enemies(msg.get("enemies", {}))
+
+        self.world_renderer.load(msg.get("world"))
+        self.world_renderer.set_spells(msg.get("spells"))
 
         self._server_entities = {}
         for ent in msg.get("entities", []) or []:
@@ -615,18 +634,13 @@ class Game:
         self.player.interpolate_render(self.accumulator / TICK_INTERVAL)
         self.camera.update(self.player.render_pos)
         self.map_renderer.draw(self.screen, self.camera)
+        self.world_renderer.draw(self.screen, self.camera)
         self._entity_renderer.draw(self.screen, self._server_entities.values(), self.camera)
         self.player.draw(self.screen, self.camera)
         self.game_manager.draw_all(self.screen, self.camera)
-        now = pygame.time.get_ticks() / 1000.0
-        board_pressed = bool(self.player.mask & IN_BOARD)
-        #self._spell_renderer.draw(self.screen, self._server_spells, self.camera)
-#        if self.player.magical_draw.should_render(now, board_pressed):
-#d            self.screen.blit(self.player.magical_draw.draw(), (0, 0))
-        #self.live_prediction.draw(self.screen)
+        self.drawing_board.draw(self.screen)
         self.draw_hud()
-        #self.spell_debug_overlay.draw(self.screen)
-        #self.grimoire_overlay.draw(self.screen, font_provider=self._get_font)
+        self.draw_status_message()
 
     def draw_hud(self):
         if not self.debug_mode:
@@ -653,9 +667,7 @@ class Game:
             else "-"
         )
 
-        magical_snapshot = {}
-        if self.player and self.player.magical_draw and hasattr(self.player.magical_draw, "debug_snapshot"):
-            magical_snapshot = self.player.magical_draw.debug_snapshot()
+        board = self.drawing_board.debug_snapshot()
 
         lines = [
             "DEBUG MODE [Ctrl+F1]",
@@ -665,15 +677,11 @@ class Game:
             f"player=({player_pos.x:.1f},{player_pos.y:.1f}) render=({render_pos.x:.1f},{render_pos.y:.1f})",
             f"map={map_size}",
         ]
-        if magical_snapshot:
-            lines.append(
-                "magic "
-                f"strokes={magical_snapshot.get('strokes', 0)} "
-                f"active_points={magical_snapshot.get('active_points', 0)} "
-                f"primitives={magical_snapshot.get('primitives', 0)} "
-                f"order_fx={magical_snapshot.get('order_effects', 0)} "
-                f"clear_waiting={1 if magical_snapshot.get('clear_waiting', False) else 0}"
-            )
+        lines.append(
+            f"board open={int(board['open'])} strokes={board['strokes']} "
+            f"reading={int(board['reading'])} ink={board['ink']} "
+            f"spells={len(self.world_renderer.spells)}"
+        )
 
         font = self._get_font(18)
         line_height = 20
@@ -701,57 +709,3 @@ class Game:
             return int(queue_obj.qsize())
         except Exception:
             return -1
-
-    def cast_ast_spell(self, net_spec: dict) -> None:
-        """Lance un sort issu du pipeline AST émergent."""
-        logging.info(f"AST spell cast: {net_spec}")
-        if self.net_connected and self.net is not None:
-            try:
-                self.net.send_ast_spell(net_spec)
-            except Exception as e:
-                logging.warning(f"Failed to send AST spell to server: {e}")
-        else:
-            logging.info("AST spell cast locally (not connected to server)")
-
-    def _compute_forward_cast_center(
-        self,
-        *,
-        hitbox_radius: float,
-        fallback_center: tuple[float, float],
-        distance_bonus: float = 0.0,
-    ) -> tuple[float, float]:
-        player = getattr(self, "player", None)
-        map_renderer = getattr(self, "map_renderer", None)
-        if player is None:
-            return fallback_center
-
-        try:
-            px, py = player.get_position()
-        except Exception:
-            return fallback_center
-
-        if hasattr(player, "get_facing_vector"):
-            try:
-                facing = player.get_facing_vector()
-            except Exception:
-                facing = pygame.Vector2(1.0, 0.0)
-        else:
-            facing = pygame.Vector2(1.0, 0.0)
-
-        if facing.length_squared() <= 1e-9:
-            facing = pygame.Vector2(1.0, 0.0)
-        else:
-            facing = facing.normalize()
-
-        cast_distance = max(24.0, float(hitbox_radius) + 10.0 + max(0.0, float(distance_bonus)))
-        cx = float(px + facing.x * cast_distance)
-        cy = float(py + facing.y * cast_distance)
-
-        if map_renderer and getattr(map_renderer, "map_surface", None) is not None:
-            width = map_renderer.map_surface.get_width()
-            height = map_renderer.map_surface.get_height()
-            margin = max(1.0, float(hitbox_radius))
-            cx = max(margin, min(cx, width - margin))
-            cy = max(margin, min(cy, height - margin))
-
-        return (cx, cy)

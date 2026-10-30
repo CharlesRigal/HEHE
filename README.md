@@ -245,12 +245,33 @@ client → {"t": "ping"}
 server → {"t": "pong"}
 ```
 
-### Cast de sort (format unique émergent)
+### Cast de sort
 ```json
-client → {"t": "s", "e": "fire", "bh": "projectile", "spd": 0.5, "pwr": 0.8, ...}
+client → {"t": "s", "R": 120.0, "q": 0.93, "e": "water", "eq": 0.88, "ink": 1450.0,
+          "signs": [{"k": "traction", "r": 0.8, "a": 1.57, "o": -1.57, "s": 0.25, "q": 0.9}]}
 ```
 
-Le format `"s"` porte les paramètres continus dérivés du `ResolvedSpell`. Le serveur traduit ces paramètres en **effets** (damage, force, state_change, terrain_spawn, binding, reaction élémentaire) selon des seuils — pas une lookup table.
+Le message porte la lecture du pentacle (L7) :
+- `R` : rayon du cercle ;
+- `q` : qualité du cercle ;
+- `e`, `eq` : élément de l'emblème et son score ;
+- `ink` : encre consommée ;
+- `signs` : pour chaque signe vivant, son type `k`, sa distance au centre `r` (en fraction de R), l'angle de sa position `a`, son orientation base → tête `o`, sa taille `s` et son score `q`. Les angles sont en radians, dans le repère de la page.
+
+Le centre n'est pas envoyé : le serveur prend la position du mage (S1). Il pose le champ sur la grille du monde.
+
+### Monde
+```json
+server → {"t": "game_update", "world": [[index, eau, terre, air, chaleur, charge, lumière], ...],
+          "spells": [{"x": 640, "y": 360, "R": 120, "e": "water", "left": 2.9}]}
+```
+
+`world` liste les cellules non vides de la grille, à 10 Hz au plus. L'état complet (`cs`, `cols`, `rows`, `cells`) arrive dans `game_state`.
+
+### Commandes de dessin
+- Clic droit : ouvrir ou fermer le tableau.
+- Clic gauche maintenu : tracer.
+- Le sort part quand le cercle se ferme.
 
 ### Input joueur
 ```json

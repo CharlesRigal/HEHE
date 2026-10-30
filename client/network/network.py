@@ -105,8 +105,8 @@ class NetworkClient(threading.Thread):
         self._send(msg)
         return msg
 
-    def send_ast_spell(self, ast_spell: dict) -> dict:
-        msg = dict(ast_spell) if isinstance(ast_spell, dict) else {}
+    def send_spell(self, spell: dict) -> dict:
+        msg = dict(spell) if isinstance(spell, dict) else {}
         msg.setdefault("t", "s")
         self._send(msg)
         return msg

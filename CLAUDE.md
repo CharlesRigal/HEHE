@@ -11,37 +11,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running the project
 
 ```bash
-python -m server.server_run          # server (config: server/config.yaml — host, port, tick_rate, player_speed)
+python -m server.server_run          # server (listens on 9000; server/config.yaml holds tick_rate, player_speed)
 python -m client.main                # pygame client
 python -m unittest discover -s tests -v   # test suite (headless, also run by .github/workflows/tests.yml)
 ```
 
-CI uses Python 3.13, `PyYAML`, `pygame-ce==2.5.8`, `SDL_VIDEODRIVER=dummy`.
+CI uses Python 3.13, `PyYAML`, `numpy`, `pygame-ce==2.5.8`, `SDL_VIDEODRIVER=dummy`.
+
+In-game: right-click opens/closes the drawing board, left-click draws; the spell is cast when the circle closes. Map `elements_lab` is the sandbox for the element world.
 
 ## Current state of the code
 
-The old spell pipeline (`client/magic/`: recognition, $1, heuristics, AST, resolver; `server/magic/`, `server/spells/`, `server/effects/`) was **deleted** in commit `9c70177`. The spell system is being redesigned from the README rules and does not exist in code yet.
+The spell system follows the README rules (plan in `plan.md`, draft). The old AST pipeline was deleted in `9c70177`; the old torch/affinity system was removed (README M0 forbids rules naming elements or entities).
 
-Leftovers to be aware of:
-- `server/server_run.py` still routes `{"t": "s"}` to `GameInstance.add_spell_cast_from_spec`, which no longer exists.
-- `server/systems/effect_tick_system.py` has its effect-runtime imports commented out.
-- `client/ui/grimoire.py` still assumes `{"t": "s", ...}` spell specs.
+- Emblem and sign glyphs in `client/magic/templates.py` are **placeholders** until the real glyphs are drawn.
+- `client/ui/grimoire.py` is unused and still assumes the old spell spec.
+- Two enemy AI tests in `tests/test_gameplay.py` fail independently of the spell system.
 
 ## Architecture
 
 Pygame client ↔ asyncio TCP server, newline-delimited JSON. Server is authoritative for simulation.
 
 ### Network messages (`"t"` field)
-- client → server: `ping`, `join {map}`, `quit`, `list_maps`, `in {k: bitmask, seq}`, `chat`, `s` (spell — format to be redefined)
-- server → client: `welcome {your_id}`, `pong`, `map_data`, `game_state`, `game_update`, `player_joined`, `player_left`, `maps_list`, `chat`
+- client → server: `ping`, `join {map}`, `quit`, `list_maps`, `in {k: bitmask, seq}`, `chat`, `s` (spell reading: `R`, `q`, `e`, `eq`, `ink`, `signs[]` — see README)
+- server → client: `welcome {your_id}`, `pong`, `map_data`, `game_state` (incl. `world`, `spells`), `game_update` (incl. sparse `world` cells and `spells` at ≤10 Hz), `player_joined`, `player_left`, `maps_list`, `chat`
 
 ### Server (`server/`)
 - `server_run.py` — connection handling and message routing.
-- `game_instance.py` — one instance per map: players, enemies, interactive entities, input processing, tick loop. Exposes `apply_force` / `apply_force_in_radius`.
-- `entities/components.py` — composable components: `EntityBody` (position, velocity, mass), `EntityAffinities`, `EntityStates`, `EntityReactive`.
-- `entities/interactive.py` — torches, braziers, plates, doors loaded from map YAML with threshold reactions.
-- `systems/` — `physics_system`, `movement_system`, `enemy_ai_system`, `proximity_system`, `effect_tick_system`, `inventory`.
-- `maps/*.yaml` — maps, including puzzle maps (`torch_puzzle`, `levitation_puzzle`).
+- `game_instance.py` — one instance per map: players, enemies, interactive entities, world grid, active spells, input processing, tick loop. `add_spell_cast_from_spec` centers a spell on the caster (S1).
+- `world/grid.py` — `WorldGrid`: numpy cells (water, earth, air, signed heat, charge, light), conservative transport, diffusion, walls, M1 heat thresholds.
+- `world/spell.py` — message validation, `ActiveSpell` field built from signs relative to the circle center, element creation (E4), `combine_flows`.
+- `entities/components.py` — composable components: `EntityBody` (position, velocity, mass), `EntityStates`, `EntityReactive`, `EntityCombat`, `EnemyAI`.
+- `entities/interactive.py` — crystals, altars, plates, doors loaded from map YAML (no element reactions).
+- `systems/` — `physics_system`, `movement_system`, `enemy_ai_system`, `proximity_system`, `world_system` (spells → grid → matter pushes bodies), `inventory`.
+- `maps/*.yaml` — maps, including `elements_lab` and `levitation_puzzle`; optional `world:` entries seed the grid.
 - `save/` — player persistence (`save.yml`).
 
 ### Client (`client/`)
@@ -49,10 +52,12 @@ Pygame client ↔ asyncio TCP server, newline-delimited JSON. Server is authorit
 - `entities/` — local/remote players, enemies, portal, interactive entity rendering, camera.
 - `game_state/playing.py`, `graphics/`, `gui/`, `ui/` (grimoire, health bar).
 - `network/network.py` — threaded socket client with send/recv queues.
+- `magic/` — pentacle reading: `grouping` (contact), `circle` (closed round loop), `dollar_p` ($P with rotation sweep), `templates`, `reader`, `spell_message`, `drawing_board` (input, reading in a worker thread).
+- `graphics/world_renderer.py` — draws the world grid and active spell rings.
 
 ## Spell system design (README summary)
 
-Pipeline target: `strokes → grouping by contact → role by position → $P / measurement → field map → server grid simulation`.
+Pipeline: `strokes → grouping by contact → role by position → $P / measurement → field map → server grid simulation`.
 
 - **Reading happens once, at circle closure** (no real-time feedback), on the **client** (no anti-cheat).
 - **Contact = rendering**: strokes touch iff distance ≤ rendered stroke thickness. Touching strokes = one symbol; distinct symbols never touch.
