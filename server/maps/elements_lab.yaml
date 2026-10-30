@@ -1,0 +1,70 @@
+name: "Laboratoire des elements"
+size: [1280, 720]
+background: 0
+
+# Carte de test du systeme par champ (README, « Le monde »).
+# - bassin d'eau a l'ouest : la traction peut ramener cette eau ;
+# - terre chaude au sud-est : de la lave, que la glace refroidit ;
+# - cristaux legers et lourds : le vent ou l'eau en mouvement les poussent ;
+# - autel au nord : un cristal pose dessus l'allume.
+
+spawn_points:
+  - x: 640
+    y: 360
+  - x: 700
+    y: 360
+
+objects:
+  - id: 1
+    type: wall
+    name: "Mur nord"
+    points:
+      - [0, 0]
+      - [1280, 0]
+      - [1280, 32]
+      - [0, 32]
+  - id: 2
+    type: wall
+    name: "Mur sud"
+    points:
+      - [0, 688]
+      - [1280, 688]
+      - [1280, 720]
+      - [0, 720]
+  - id: 3
+    type: wall
+    name: "Mur ouest"
+    points:
+      - [0, 0]
+      - [32, 0]
+      - [32, 720]
+      - [0, 720]
+  - id: 4
+    type: wall
+    name: "Mur est"
+    points:
+      - [1248, 0]
+      - [1280, 0]
+      - [1280, 720]
+      - [1248, 720]
+
+world:
+  - { field: water, rect: [64, 224, 256, 272], amount: 1.5 }
+  - { field: earth, rect: [928, 480, 256, 160], amount: 1.0 }
+  - { field: heat,  rect: [928, 480, 256, 160], amount: 3.0 }
+
+interactive:
+  - id: crystal_light
+    type: crystal
+    position: [560, 300]
+    radius: 14
+    mass: 0.5
+  - id: crystal_heavy
+    type: crystal
+    position: [760, 420]
+    radius: 22
+    mass: 3.0
+  - id: altar_north
+    type: altar
+    position: [640, 96]
+    radius: 28

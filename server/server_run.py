@@ -186,6 +186,8 @@ async def handle_join_message(client_id: str, msg: dict) -> str:
         "players": instance.get_players_state(),
         "enemies": instance.get_enemies_state(),
         "entities": [entity_public_state(e) for e in instance._iter_interactives()],
+        "world": instance.world_state(),
+        "spells": instance.spells_state(),
     })
 
     # Notifier les autres joueurs de cette instance

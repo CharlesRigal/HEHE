@@ -17,7 +17,10 @@ from server.systems import (
     MovementSystem,
     PhysicsSystem,
     ProximitySystem,
+    WorldSystem,
 )
+from server.world.grid import FIELDS, WorldGrid
+from server.world.spell import ActiveSpell, parse_spell_message
 
 
 class GameInstance:
@@ -25,6 +28,8 @@ class GameInstance:
     # une file d'entrees infinie. Exposee pour etre verifiee par les tests.
     MAX_INPUTS_PER_TICK = 60
     NETWORK_UPDATE_INTERVAL = 1.0 / 20.0
+    WORLD_UPDATE_INTERVAL = 1.0 / 10.0
+    WORLD_CELL_SIZE = 16.0
 
     def __init__(self, map_id: str, map_data: dict, broadcast_callback: Callable):
         self.map_id = map_id
@@ -41,15 +46,25 @@ class GameInstance:
         self._obstacle_aabbs = self._build_obstacle_aabbs(map_data.get("objects", []))
         self._last_broadcast_at = 0.0
 
+        # Monde simule : grille d'elements et sorts actifs (README, « Le monde »)
+        width, height = map_data.get("size", [1280, 720])
+        self.world_grid = WorldGrid(width, height, self.WORLD_CELL_SIZE, self._obstacle_aabbs)
+        self.active_spells: list[ActiveSpell] = []
+        self._last_world_broadcast_at = 0.0
+        self._previous_world_snapshot: list | None = None
+        self._previous_spells_state: list | None = None
+        self._load_world_content(map_data.get("world", []) or [])
+
         # Unified ECS : ennemis + interactives + futures (caisses, cristaux...)
         self.entities: list[Entity] = []
         self._entities_dirty: bool = False
         self._entities_previous_state: dict[str, dict] = {}
 
-        # Systems (ordre : IA -> mouvement -> effets -> proximite)
+        # Systems (ordre : IA -> monde -> physique -> proximite)
         self._enemy_ai_system = EnemyAISystem()
         self._movement_system = MovementSystem()  # compatibilite API interne
         self._physics_system = PhysicsSystem()
+        self._world_system = WorldSystem()
         self._proximity_system = ProximitySystem()
 
         # Stats monitoring
@@ -168,6 +183,48 @@ class GameInstance:
         if loaded:
             logging.info(f"[{self.map_id}] Loaded {loaded} interactive entities")
         self._entities_dirty = bool(self.entities)
+
+    def _load_world_content(self, configs: list[dict]) -> None:
+        """Contenu initial de la grille : `world: [{field, rect: [x, y, w, h], amount}]`."""
+        for cfg in configs:
+            field = cfg.get("field")
+            rect = cfg.get("rect")
+            if field not in FIELDS or not rect or len(rect) != 4:
+                logging.warning(f"[{self.map_id}] ignored world entry {cfg}")
+                continue
+            self.world_grid.add_rect(field, *[float(v) for v in rect], float(cfg.get("amount", 1.0)))
+
+    def add_spell_cast_from_spec(self, client_id: str, msg: dict) -> ActiveSpell | None:
+        """Pose un sort lu par le client. Centre = position du mage (S1)."""
+        player = self.players.get(client_id)
+        if player is None or not player.is_alive():
+            return None
+        try:
+            spec = parse_spell_message(msg)
+        except (TypeError, ValueError) as e:
+            logging.info(f"[{self.map_id}] spell from {client_id} ignored: {e}")
+            return None
+        spell = ActiveSpell(spec, player.x, player.y, self.world_grid, owner=client_id)
+        self.active_spells.append(spell)
+        logging.info(
+            f"[{self.map_id}] spell {spec.element} R={spec.radius:.0f} "
+            f"signs={len(spec.signs)} power={spec.power:.2f} by {client_id}"
+        )
+        return spell
+
+    def world_state(self) -> dict:
+        """Etat complet du monde pour un joueur qui arrive."""
+        grid = self.world_grid
+        return {
+            "cs": grid.cell_size,
+            "cols": grid.cols,
+            "rows": grid.rows,
+            "fields": list(FIELDS),
+            "cells": grid.snapshot(),
+        }
+
+    def spells_state(self) -> list[dict]:
+        return [spell.public_state() for spell in self.active_spells]
 
     def _on_entity_state_changed(self, entity: Entity) -> None:
         """Hook appele par le runtime apres mutation d'etat."""
@@ -362,6 +419,7 @@ class GameInstance:
                 self._process_pending_inputs()
 
                 self._enemy_ai_system.tick(self, TICK_INTERVAL, current_time)
+                self._world_system.tick(self, TICK_INTERVAL, current_time)
                 self._physics_system.tick(self, TICK_INTERVAL, current_time)
                 self._proximity_system.tick(self, TICK_INTERVAL, current_time)
 
@@ -390,10 +448,25 @@ class GameInstance:
                             self._entities_previous_state[ent.id] = pub
                     self._entities_dirty = False
 
+                    world_cells = None
+                    spells_state = None
+                    if current_time - self._last_world_broadcast_at >= self.WORLD_UPDATE_INTERVAL:
+                        self._last_world_broadcast_at = current_time
+                        snapshot = self.world_grid.snapshot()
+                        if snapshot != self._previous_world_snapshot:
+                            world_cells = snapshot
+                            self._previous_world_snapshot = snapshot
+                        spells = self.spells_state()
+                        if spells != self._previous_spells_state:
+                            spells_state = spells
+                            self._previous_spells_state = spells
+
                     if (
                         players_state
                         or enemies_state
                         or entities_state
+                        or world_cells is not None
+                        or spells_state is not None
                     ):
                         message = {"t": "game_update", "timestamp": current_time}
                         if players_state:
@@ -402,6 +475,10 @@ class GameInstance:
                             message["enemies"] = enemies_state
                         if entities_state:
                             message["entities"] = entities_state
+                        if world_cells is not None:
+                            message["world"] = world_cells
+                        if spells_state is not None:
+                            message["spells"] = spells_state
                         await self.broadcast_to_players(message)
                         self._last_broadcast_at = current_time
 

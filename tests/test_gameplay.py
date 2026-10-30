@@ -254,12 +254,16 @@ class GameplayTests(unittest.TestCase):
             "enemy", "enemy", EntityBody(x=400, y=300, radius=12),
             combat=EntityCombat(), ai=EnemyAI(speed=180),
         ))
+        world.add_spell_cast_from_spec(player.id, {"t": "s", "R": 150, "e": "water", "signs": [
+            {"k": "traction", "r": 0.8, "a": 0.0, "o": math.pi, "s": 0.3},
+        ]})
         durations = []
 
         for tick in range(300):
             start = time.perf_counter()
             now = tick * TICK_INTERVAL
             world._enemy_ai_system.tick(world, TICK_INTERVAL, now)
+            world._world_system.tick(world, TICK_INTERVAL, now)
             world._movement_system.tick(world, TICK_INTERVAL, now)
             world._proximity_system.tick(world, TICK_INTERVAL, now)
             durations.append(time.perf_counter() - start)

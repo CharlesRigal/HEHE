@@ -16,10 +16,12 @@ from server.systems.enemy_ai_system import EnemyAISystem
 from server.systems.movement_system import MovementSystem
 from server.systems.proximity_system import ProximitySystem
 from server.systems.physics_system import PhysicsSystem
+from server.systems.world_system import WorldSystem
 
 __all__ = [
     "EnemyAISystem",
     "MovementSystem",
     "ProximitySystem",
     "PhysicsSystem",
+    "WorldSystem",
 ]

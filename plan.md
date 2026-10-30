@@ -102,6 +102,7 @@ traits ─► groupement (L2-L4) ─► rôles (L5)     {"t":"s"} ─► ActiveS
 
 - **Direction et Traction** ont le même effet de champ (une vitesse). La traction porte aussi au-delà du cercle (bassin de captation à 2 R) : elle va chercher l'élément existant (E4).
 - **Colonne** : vecteur comme Direction, mais plus rapide et plus étroit. Pas de hauteur (monde 2D).
+- **Convergence** : agit de sa bande jusqu'au centre (elle resserre tout l'intérieur). La traction, elle, agit de sa bande vers l'extérieur (bassin de 2 R). Les deux se complètent : la traction ramène, la convergence resserre.
 - **Durée de base d'un sort** : constante, prolongée localement par la Répétition.
 - **Rupture C5** (couper un cercle actif) : pas dans cette itération.
 
