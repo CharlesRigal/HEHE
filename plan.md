@@ -33,7 +33,6 @@ Ce jalon valide les fondations. Tout le reste s'y greffe.
 3. **Composants d'entité** — pas d'état (allumé, gelé), pas d'affinité élémentaire, pas de masse
 4. **Réactions élémentaires** — `feu + glace → eau` etc. n'existe nulle part
 5. **Binding** — un sort ne peut pas « tenir », « lier », « suivre »
-6. **Feedback en cours de dessin** — le joueur dessine à l'aveugle
 
 ---
 

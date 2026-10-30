@@ -2,79 +2,70 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Source of truth
+
+- **README.md is the spec.** It defines the spell-drawing rules (circle C*, emblem E*, signs F*, reading L*, quality, support S*). Read it before any spell-system work.
+- **plan.md is a draft**, not normative. Never treat it as a requirement.
+- The user speaks French; README and docs are in French.
+
 ## Running the project
 
 ```bash
-# Start the server
-python -m server.server_run
-
-# Start the client
-python -m client.main
-
-# Run a module's built-in validation test (each key module has an if __name__ == "__main__" block)
-python -m client.magic.ast.ast_builder
-python -m client.magic.ast.symbol_registry
-python -m client.magic.resolver.resolver
+python -m server.server_run          # server (config: server/config.yaml — host, port, tick_rate, player_speed)
+python -m client.main                # pygame client
+python -m unittest discover -s tests -v   # test suite (headless, also run by .github/workflows/tests.yml)
 ```
 
-The server reads config from `server/config.yaml` (host, port, tick_rate, player_speed). No external test runner is configured — validation is done via the `__main__` blocks in each module.
+CI uses Python 3.13, `PyYAML`, `pygame-ce==2.5.8`, `SDL_VIDEODRIVER=dummy`.
+
+## Current state of the code
+
+The old spell pipeline (`client/magic/`: recognition, $1, heuristics, AST, resolver; `server/magic/`, `server/spells/`, `server/effects/`) was **deleted** in commit `9c70177`. The spell system is being redesigned from the README rules and does not exist in code yet.
+
+Leftovers to be aware of:
+- `server/server_run.py` still routes `{"t": "s"}` to `GameInstance.add_spell_cast_from_spec`, which no longer exists.
+- `server/systems/effect_tick_system.py` has its effect-runtime imports commented out.
+- `client/ui/grimoire.py` still assumes `{"t": "s", ...}` spell specs.
 
 ## Architecture
 
-This is a multiplayer wizard game: a Pygame client communicates with an asyncio TCP server via newline-delimited JSON.
+Pygame client ↔ asyncio TCP server, newline-delimited JSON. Server is authoritative for simulation.
 
-### Network protocol (README.md)
-- `{"t": "ping"}` / `{"t": "pong"}` — keepalive
-- `{"t": "s", ...}` — cast a spell by parametric spec (compact format)
-- `{"t": "in", "k": int}` — player input (key bitmask)
-- `{"t": "join", "map": str}` — join a game instance
+### Network messages (`"t"` field)
+- client → server: `ping`, `join {map}`, `quit`, `list_maps`, `in {k: bitmask, seq}`, `chat`, `s` (spell — format to be redefined)
+- server → client: `welcome {your_id}`, `pong`, `map_data`, `game_state`, `game_update`, `player_joined`, `player_left`, `maps_list`, `chat`
 
-### Client-side spell pipeline
+### Server (`server/`)
+- `server_run.py` — connection handling and message routing.
+- `game_instance.py` — one instance per map: players, enemies, interactive entities, input processing, tick loop. Exposes `apply_force` / `apply_force_in_radius`.
+- `entities/components.py` — composable components: `EntityBody` (position, velocity, mass), `EntityAffinities`, `EntityStates`, `EntityReactive`.
+- `entities/interactive.py` — torches, braziers, plates, doors loaded from map YAML with threshold reactions.
+- `systems/` — `physics_system`, `movement_system`, `enemy_ai_system`, `proximity_system`, `effect_tick_system`, `inventory`.
+- `maps/*.yaml` — maps, including puzzle maps (`torch_puzzle`, `levitation_puzzle`).
+- `save/` — player persistence (`save.yml`).
 
-Drawing strokes go through this pipeline:
+### Client (`client/`)
+- `core/` — game loop (`game.py`), state handling, interpolation, settings.
+- `entities/` — local/remote players, enemies, portal, interactive entity rendering, camera.
+- `game_state/playing.py`, `graphics/`, `gui/`, `ui/` (grimoire, health bar).
+- `network/network.py` — threaded socket client with send/recv queues.
 
-```
-Strokes
-  → geometry_analyzer.py     (raw stroke → shape candidates)
-  → recognition/pipeline.py  (dollar-one + complex composers → primitives)
-  → primitives.py             (Circle, Arrow, Triangle, Segment, ZigZag, RuneFire, ...)
-  → graph_geo.py (GraphGeo)   (spatial relations: contains, near, intersects)
-  → ast/ast_builder.py        (containment tree → SpellAST)
-  → ast/symbol_rules.py       (per-symbol rules → PropertyBag with tagged entries)
-  → resolver/resolver.py      (3-pass resolution → ResolvedSpell with continuous params)
-  → resolver/resolved_spell.py (params_to_network_spec → compact dict {"t":"s",...})
-  → TCP → server
-```
+## Spell system design (README summary)
 
-The **old pipeline** (`spell_chain.py` → `spell_spec.py`) still exists and uses ring-ordering + a rune registry. The **new AST pipeline** (`ast/` + `resolver/`) is the emergent system under development.
+Pipeline target: `strokes → grouping by contact → role by position → $P / measurement → field map → server grid simulation`.
 
-### AST / resolver design (the emergent spell system)
+- **Reading happens once, at circle closure** (no real-time feedback), on the **client** (no anti-cheat).
+- **Contact = rendering**: strokes touch iff distance ≤ rendered stroke thickness. Touching strokes = one symbol; distinct symbols never touch.
+- **Roles by position**: enclosing closed loop = circle (multi-stroke allowed); symbol nearest center = emblem; others = signs.
+- **$P recognizer for emblem and signs**. Signs use a rotation sweep; templates annotate head/base; best angle = orientation; base/head ambiguity (θ vs θ+180°) = dead sign. Everything else (position, size, circle) is measured.
+- **Quality** per symbol = min of its criteria; below threshold the symbol is dead.
+- **A spell acts only on its own element**, never directly on objects. The emblem creates its element (quantity ∝ circle size); traction pulls existing element. Only cost = ink per stroke.
+- **Pentacle = field map** centered on the circle center: each sign samples a field (vector: direction/traction; signed scalar: convergence(+)/dispersion(−); suspension; local duration: repetition), softly interpolated. Sign distance from center maps to the same relative radius in the effect zone ("dehors agit dehors"). Sign size = coverage, not force; force comes from circle size.
+- **World is 2D.** Planned simulation: grid of cells holding element quantities (water, earth, air, signed temperature, charge, light). Ice = negative temperature (fire and ice emblems share one quantity). Matter states change by **temperature thresholds**, not recipes.
+- **Spell end releases** accumulated element (side effects intended).
+- **Never** `pattern → effect` lookup tables.
 
-The key idea: instead of a lookup table `(element, behavior) → spell_id`, every drawn symbol contributes `PropertyEntry` objects tagged with `(domain, axis, scope)` (e.g. `energy.magnitude.self`). The resolver runs 3 passes:
+## Working conventions
 
-1. **Bottom-up** — children resolve first, child bags flow into parents
-2. **Top-down** — parent entries scoped `children`/`global` propagate down
-3. **Cross-node** — `interaction_algebra.py` computes trigonometric interference between peer nodes linked by spatial relations
-
-Final aggregation maps the merged `PropertyBag` to continuous params (`speed`, `power`, `spread`, `element`, `behavior`, etc.) sent to the server.
-
-Adding a new symbol = add a `rule_xxx` function in `symbol_rules.py` and register it in `symbol_registry.py`. No other files need to change.
-
-### Server-side spell routing
-
-```
-TCP message {"t":"s",...}
-  → spec_from_network()       (server/magic/spell_spec.py)
-  → route_spec()              (server/magic/spec_router.py)
-  → spell_id → GameInstance   (server/game_instance.py dispatches to server/spells/)
-```
-
-`spec_router.py` maps `(element, behavior)` pairs to spell implementations. Only 3 spell implementations exist today: `fire_projectile`, `fire_rune`, `lightning_rune`. Anything unmapped falls back to `fire_rune`.
-
-### Key data structures
-
-- `PropertyBag` — list of `PropertyEntry(tag, value, weight, source_node_id)`. `net(domain, axis)` = weighted sum. `merge()` returns a new bag.
-- `PropertyTag(domain, axis, scope)` — tags entries. Domains: `energy`, `space`, `time`, `motion`, `polarity`. Scopes: `self`, `children`, `parent`, `siblings`, `global`.
-- `SpellAST` — tree of `ASTNode` built from containment. Virtual root node (`symbol_type="root"`) created when multiple top-level shapes exist.
-- `ResolvedSpell` — final output with `params` dict and `property_snapshot` for debugging.
-- `ServerSpellSpec` — server-side deserialized spell with typed fields (element, behavior, direction, power, etc.).
+- Don't raise balancing limits/caps in design discussions; they are added later.
+- Prefer the simplest physical model; new physics must be expressible as thresholds on cell quantities.
