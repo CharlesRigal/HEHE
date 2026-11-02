@@ -17,7 +17,6 @@ from server.entities.interactive import build_entity, entity_public_state
 from server.game_instance import GameInstance
 from server.players.player import Player
 from server.systems.enemy_ai_system import EnemyAISystem
-from server.systems.movement_system import MovementSystem
 from server.systems.proximity_system import ProximitySystem
 
 
@@ -155,20 +154,22 @@ class GameplayTests(unittest.TestCase):
         world.entities = [enemy]
         system = EnemyAISystem()
 
+        # L'IA ecrit une intention de vitesse ; PhysicsSystem la transforme
+        # en deplacement.
         enemy.states.set("frozen", True)
         system.tick(world, TICK_INTERVAL, 1.09)
-        self.assertEqual(enemy.body.velocity_x, 0)
+        self.assertEqual(enemy.body.intent_velocity_x, 0)
         self.assertEqual(player.health, 100)
 
         enemy.states.set("frozen", False)
         enemy.states.set("speed_multiplier", 0.0)
         system.tick(world, TICK_INTERVAL, 1.09)
-        self.assertEqual(enemy.body.velocity_x, 0)
+        self.assertEqual(enemy.body.intent_velocity_x, 0)
 
         enemy.states.set("speed_multiplier", 0.01)
         player.set_motion(x=500, y=100, vx=0, vy=0)
         system.tick(world, TICK_INTERVAL, 1.09)
-        self.assertGreater(enemy.body.velocity_x, 0)
+        self.assertGreater(enemy.body.intent_velocity_x, 0)
 
         player.set_motion(x=100, y=100, vx=0, vy=0)
         enemy.states.set("speed_multiplier", 1.0)
@@ -276,14 +277,7 @@ class GameplayTests(unittest.TestCase):
         )
 
     def test_enemy_moves_once_per_simulation_tick(self):
-        class World:
-            map_data = {"size": [1000, 1000]}
-            player_attack_hurtbox_w = 18.0
-            player_attack_hurtbox_h = 18.0
-            def _check_collision_with_objects(self, x, y, size):
-                return False
-
-        world = World()
+        world = GameInstance("test", {"size": [1000, 1000]}, None)
         world.players = {"mage": Player("mage", 500, 100)}
         enemy = Entity(
             id="enemy", type="enemy",
@@ -292,8 +286,9 @@ class GameplayTests(unittest.TestCase):
         )
         world.entities = [enemy]
 
-        EnemyAISystem().tick(world, TICK_INTERVAL, now=10.0)
-        MovementSystem().tick(world, TICK_INTERVAL, now=10.0)
+        # Meme ordre que GameInstance.game_loop : l'IA decide, la physique deplace.
+        world._enemy_ai_system.tick(world, TICK_INTERVAL, 10.0)
+        world._physics_system.tick(world, TICK_INTERVAL, 10.0)
 
         self.assertAlmostEqual(enemy.body.x, 100 + 180 * TICK_INTERVAL)
         self.assertEqual(enemy.body.y, 100)

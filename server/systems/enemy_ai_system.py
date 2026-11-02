@@ -7,8 +7,9 @@ Comportement (identique a l'ancien GameInstance._update_enemies) :
   4. Frappe si hitbox d'attaque chevauche hurtbox du joueur et cooldown ok
   5. Applique les modifiers d'etat : `frozen` immobilise, `speed_multiplier` scale
 
-Le systeme ecrit `body.velocity_x/y`, `ai.direction`, `ai.attack_seq` ; il ne
-deplace pas lui-meme : MovementSystem le fait au pass suivant.
+Le systeme ecrit `body.intent_velocity_x/y`, `ai.direction`, `ai.attack_seq` ;
+il ne deplace pas lui-meme : PhysicsSystem ajoute les forces externes a cette
+intention et deplace le corps dans le meme tick.
 """
 from __future__ import annotations
 
@@ -64,9 +65,9 @@ class EnemyAISystem:
                 vx = (dx / distance) * effective_speed
                 vy = (dy / distance) * effective_speed
 
-            # L'IA choisit une vitesse; le deplacement est exclusivement
-            # integre par MovementSystem au tick suivant.  Cela evite de
-            # deplacer un ennemi deux fois par tick.
+            # L'IA choisit une vitesse ; le deplacement est exclusivement
+            # integre par PhysicsSystem. Cela evite de deplacer un ennemi
+            # deux fois par tick.
             new_x = body.x + vx * dt
             new_y = body.y + vy * dt
             half = body.radius
@@ -147,12 +148,12 @@ if __name__ == "__main__":
     sys = EnemyAISystem()
     sys.tick(world, dt=TICK_INTERVAL, now=0.0)
     # Ennemi se dirige a droite vers le joueur
-    assert e.body.velocity_x > 0.0
+    assert e.body.intent_velocity_x > 0.0
     assert e.ai.direction == 1
 
     # Frozen : ne bouge pas
     e.states.flags["frozen"] = True
     sys.tick(world, dt=TICK_INTERVAL, now=0.0)
-    assert e.body.velocity_x == 0.0
+    assert e.body.intent_velocity_x == 0.0
 
     print("enemy_ai_system: OK")

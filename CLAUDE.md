@@ -26,7 +26,6 @@ The spell system follows the README rules (plan in `plan.md`, draft). The old AS
 
 - Emblem and sign glyphs in `client/magic/templates.py` are **placeholders** until the real glyphs are drawn.
 - `client/ui/grimoire.py` is unused and still assumes the old spell spec.
-- Two enemy AI tests in `tests/test_gameplay.py` fail independently of the spell system.
 
 ## Architecture
 
